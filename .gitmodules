@@ -1,0 +1,18 @@
+[submodule "3rdParty/assimp"]
+	path = 3rdParty/assimp
+	url = https://gitee.com/deepmonte/assimp.git
+[submodule "3rdParty/glm"]
+	path = 3rdParty/glm
+	url = https://gitee.com/snow-github-mirrors/glm.git
+[submodule "3rdParty/glfw"]
+	path = 3rdParty/glfw
+	url = https://gitee.com/MkJzCode/glfw.git
+[submodule "3rdParty/imgui"]
+	path = 3rdParty/imgui
+	url = https://gitee.com/fghydx-osc_admin/imgui.git
+[submodule "3rdParty/NlohmannJson"]
+	path = 3rdParty/NlohmannJson
+	url = https://gitee.com/haha-web/nlohmannjson.git
+[submodule "3rdParty/VulkanMemoryAllocator"]
+	path = 3rdParty/VulkanMemoryAllocator
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git

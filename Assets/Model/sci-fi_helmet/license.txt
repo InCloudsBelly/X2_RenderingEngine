@@ -1,0 +1,11 @@
+Model Information:
+* title:	Sci-Fi Helmet
+* source:	https://sketchfab.com/3d-models/sci-fi-helmet-785f5cfd848940b1a4a0b8ddeefc9ef1
+* author:	Udon-San (https://sketchfab.com/udonsan)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Sci-Fi Helmet" (https://sketchfab.com/3d-models/sci-fi-helmet-785f5cfd848940b1a4a0b8ddeefc9ef1) by Udon-San (https://sketchfab.com/udonsan) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
