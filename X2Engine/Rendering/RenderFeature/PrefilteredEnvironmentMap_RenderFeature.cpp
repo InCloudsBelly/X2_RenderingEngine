@@ -197,8 +197,6 @@ void PrefilteredEnvironmentMap_RenderFeature::resolveRenderFeatureData(RenderFea
 void PrefilteredEnvironmentMap_RenderFeature::destroyRenderFeatureData(RenderFeatureDataBase* renderFeatureData)
 {
 	auto featureData = static_cast<PrefilteredEnvironmentMap_RenderFeatureData*>(renderFeatureData);
-	Instance::getAssetManager()->unload(featureData->m_generateShader);
-	Instance::getAssetManager()->unload(featureData->m_boxMesh);
 
 	for (int i = X_POSITIVE_INDEX; i <= Z_NEGATIVE_INDEX; i++)
 	{
@@ -207,6 +205,9 @@ void PrefilteredEnvironmentMap_RenderFeature::destroyRenderFeatureData(RenderFea
 	}
 	delete featureData->m_targetCubeImage;
 	delete featureData->m_environmentImageSampler;
+
+	//Mesh & shader
+	Instance::getAssetManager()->unload(featureData->m_boxMesh);
 	delete featureData->m_generateMaterial;
 }
 

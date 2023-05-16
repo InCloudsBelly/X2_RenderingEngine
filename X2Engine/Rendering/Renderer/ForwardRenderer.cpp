@@ -54,12 +54,12 @@ RendererDataBase* ForwardRenderer::onCreateRendererData(CameraBase* camera)
 
 void ForwardRenderer::onResolveRendererData(RendererDataBase* rendererData, CameraBase* camera)
 {
-	//auto prefilteredIrradianceData = static_cast<PrefilteredIrradiance_RenderFeature::PrefilteredIrradiance_RenderFeatureData*>(rendererData->getRenderFeatureData("PrefilteredIrradiance_RenderFeature"));
+	auto prefilteredIrradianceData = static_cast<PrefilteredIrradiance_RenderFeature::PrefilteredIrradiance_RenderFeatureData*>(rendererData->getRenderFeatureData("PrefilteredIrradiance_RenderFeature"));
 	auto prefilteredEnvData = static_cast<PrefilteredEnvironmentMap_RenderFeature::PrefilteredEnvironmentMap_RenderFeatureData*>(rendererData->getRenderFeatureData("PrefilteredEnvironmentMap_RenderFeature"));
 
 	auto backgroundData = static_cast<Background_RenderFeature::Background_RenderFeatureData*>(rendererData->getRenderFeatureData("Background_RenderFeature"));
 	backgroundData->needClearColorAttachment = true;
-	backgroundData->backgroundImage = Instance::g_backgroundImage;
+	//backgroundData->backgroundImage = Instance::g_backgroundImage;
 	//backgroundData->backgroundImage = prefilteredIrradianceData->m_targetCubeImage;
 	//backgroundData->backgroundImage = prefilteredEnvData->m_targetCubeImage;
 

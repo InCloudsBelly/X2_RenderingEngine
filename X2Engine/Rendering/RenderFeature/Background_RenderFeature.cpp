@@ -183,7 +183,6 @@ void Background_RenderFeature::excute(RenderFeatureDataBase* renderFeatureData, 
 		{
 			auto material = rendererComponent->getMaterial(m_renderPassName);
 			if (material == nullptr) continue;
-			material->setSampledImageCube("backgroundTexture", featureData->backgroundImage, Instance::g_defaultSampler);
 			material->setUniformBuffer("cameraInfo", camera->getCameraInfoBuffer());
 			material->setUniformBuffer("attachmentSizeInfo", featureData->attachmentSizeInfoBuffer);
 

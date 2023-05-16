@@ -197,8 +197,6 @@ void PrefilteredIrradiance_RenderFeature::resolveRenderFeatureData(RenderFeature
 void PrefilteredIrradiance_RenderFeature::destroyRenderFeatureData(RenderFeatureDataBase* renderFeatureData)
 {
 	auto featureData = static_cast<PrefilteredIrradiance_RenderFeatureData*>(renderFeatureData);
-	Instance::getAssetManager()->unload(featureData->m_generateShader);
-	Instance::getAssetManager()->unload(featureData->m_boxMesh);
 
 	for (int i = X_POSITIVE_INDEX; i <= Z_NEGATIVE_INDEX; i++)
 	{
@@ -207,6 +205,9 @@ void PrefilteredIrradiance_RenderFeature::destroyRenderFeatureData(RenderFeature
 	}
 	delete featureData->m_targetCubeImage;
 	delete featureData->m_environmentImageSampler;
+
+	// delete mesh & shader
+	Instance::getAssetManager()->unload(featureData->m_boxMesh);
 	delete featureData->m_generateMaterial;
 }
 

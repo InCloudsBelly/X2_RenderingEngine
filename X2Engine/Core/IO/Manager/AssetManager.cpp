@@ -1,4 +1,6 @@
 #include "AssetManager.h"
+#include <iostream>
+
 
 AssetManager::AssetManager()
 	: m_wrappers()
@@ -8,10 +10,12 @@ AssetManager::AssetManager()
 
 AssetManager::~AssetManager()
 {
-	for (auto iter = m_wrappers.begin(); iter != m_wrappers.end(); iter++)
+	for (auto iterator = m_wrappers.begin(); iterator != m_wrappers.end(); iterator++)
 	{
-		delete iter->second->asset;
-		delete iter->second; 
+		if (iterator->second->referenceCount != 0)
+			std::cout << "Warn! " << iterator->first << " hasn't been delete!  ReferenceCount is " << iterator->second->referenceCount << std::endl;
+		delete iterator->second->asset;
+		delete iterator->second;
 	}
 }
 

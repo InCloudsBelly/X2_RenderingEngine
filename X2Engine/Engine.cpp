@@ -43,6 +43,8 @@
 #include "Asset/Mesh.h"
 
 #include "Behaviour/CameraMoveBehaviour.h"
+#include "Behaviour/BackgroundRenderer_Behaviour.h"
+#include "Behaviour/PresentRenderer_Behaviour.h"
 
 #include "Utils/CrossLinkableNode.h"
 
@@ -109,17 +111,7 @@ void Engine::prepareData()
         GameObject* backgroundRendererGo = new GameObject("BackgroundRendererGameObject");
         renderers->addChild(backgroundRendererGo);
         backgroundRendererGo->addComponent(new Renderer());
-        
-        {
-            auto mesh = Instance::getAssetManager()->load<Mesh>(std::string(MODEL_DIR) + "default/BackgroundMesh.ply");
-            auto shader = Instance::getAssetManager()->load<Shader>(std::string(SHADER_DIR)+"Background_Shader.shader");
-
-
-            auto material = new Material(shader);
-            auto renderer = backgroundRendererGo->getComponent<Renderer>();
-            renderer->addMaterial(material);
-            renderer->mesh = mesh;
-        }
+        backgroundRendererGo->addComponent(new BackgroundRenderer_Behaviour());
     } 
 
     // Present
@@ -127,18 +119,8 @@ void Engine::prepareData()
         GameObject* presentRendererGo = new GameObject("PresentRendererGameObject");
         renderers->addChild(presentRendererGo);
         presentRendererGo->addComponent(new Renderer());
+        presentRendererGo->addComponent(new PresentRenderer_Behaviour());
 
-        {
-            auto fullScreenMesh = Instance::getAssetManager()->load<Mesh>(std::string(MODEL_DIR) + "default/BackgroundMesh.ply");
-            auto presentShader = Instance::getAssetManager()->load<Shader>(std::string(SHADER_DIR) + "PresentShader.shader");
-
-            auto presentMaterial = new Material(presentShader);
-
-            auto renderer = presentRendererGo->getComponent<Renderer>();
-            renderer->addMaterial(presentMaterial);
-            renderer->mesh = fullScreenMesh;
-        }
-    
     }
 
 
@@ -171,8 +153,8 @@ void Engine::mainLoop()
 
         iterateByDynamicBfs(Component::ComponentType::BEHAVIOUR);
 
-        //LogicInstance::getInputManager()clear();
-        //LogicInstance::getInputManager().refresh();
+        LogicInstance::getInputManager()clear();
+        LogicInstance::getInputManager().refresh();
 
         //IterateByDynamicBfs(Component::ComponentType::BEHAVIOUR);
         auto cameras = std::vector<Component*>();
