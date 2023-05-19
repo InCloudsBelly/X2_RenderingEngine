@@ -19,4 +19,5 @@ void main()
 {
 	worldPosition = vertexPosition;
 	gl_Position = pushConsts.mvp * vec4(vertexPosition.xyz, 1.0);
+	gl_Position.y = - gl_Position.y;
 }

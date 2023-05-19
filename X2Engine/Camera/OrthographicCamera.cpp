@@ -35,6 +35,9 @@ void OrthographicCamera::onSetProjectionMatrix(glm::mat4& matrix)
 		0, 0, -1.0 / flatDistence, 0,
 		0, 0, -nearFlat / flatDistence, 1
 	);
+
+	// left-handed coordinate system to right-handed
+	matrix[1][1] = -matrix[1][1];
 }
 
 OrthographicCamera::OrthographicCamera(std::string rendererName, std::map<std::string, Image*> attachments)

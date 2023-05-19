@@ -39,4 +39,5 @@ void main()
 		}
 	}
 	ColorAttachment = vec4(PI * color / float(sampleCount), 1.0);
+	
 }

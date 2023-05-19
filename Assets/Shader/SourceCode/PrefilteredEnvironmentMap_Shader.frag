@@ -108,4 +108,5 @@ void main()
 	vec3 N = normalize(worldPosition);
 	N.y = -N.y;
 	ColorAttachment = vec4(prefilterEnvMap(N, pushConsts.roughness), 1.0);
+
 }

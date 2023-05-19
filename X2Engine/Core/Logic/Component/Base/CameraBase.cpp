@@ -3,6 +3,7 @@
 #include <glm/vec4.hpp>
 //#include "Utils/Log.h"
 #include <rttr/registration>
+#include <iostream>
 #include "Core/Graphic/Instance/Buffer.h"
 #include "Core/Graphic/Command/CommandBuffer.h"
 #include "Asset/Mesh.h"
@@ -42,18 +43,30 @@ void CameraBase::refreshCameraInfo()
 	m_cameraInfo.nearFlat = nearFlat;
 	m_cameraInfo.farFlat = farFlat;
 	m_cameraInfo.aspectRatio = aspectRatio;
-	m_cameraInfo.position = getGameObject()->transform.getModelMatrix() * glm::vec4(0, 0, 0, 1);
+	m_cameraInfo.position = getGameObject()->transform.getTranslation();
 	onSetParameter(m_cameraInfo.parameter);
 	onSetSize(m_cameraInfo.halfSize);
-	m_cameraInfo.forward = glm::normalize(m_cameraInfo.forward);
-	m_cameraInfo.right = glm::normalize(m_cameraInfo.right);
+	//m_cameraInfo.forward = glm::normalize(m_cameraInfo.forward);
+	//m_cameraInfo.right = glm::normalize(m_cameraInfo.right);
+	
+	glm::vec3 rotation = getGameObject()->transform.getRotation();
+	float yaw = rotation.y;
+	float pitch = rotation.x;
+
+	m_cameraInfo.forward = glm::normalize(glm::vec3{ glm::cos(pitch)* glm::cos(yaw), glm::sin(pitch), glm::cos(pitch)* glm::sin(yaw) });
+	m_cameraInfo.right = glm::normalize(glm::cross(glm::vec3(0, 1, 0), -m_cameraInfo.forward));
+	//m_cameraInfo.right = getGameObject()->transform.getModelMatrix() * glm::vec4(1, 0, 0, 0);
+	////std::cout << "right : " << m_cameraInfo.right.x << ", " << m_cameraInfo.right.y << ", " << m_cameraInfo.right.z << std::endl;
+	//m_cameraInfo.right = glm::cross(m_cameraInfo.forward, glm::vec3(0, 1, 0));
+	
+
 	onSetClipPlanes(m_cameraInfo.clipPlanes);
 	onSetProjectionMatrix(m_cameraInfo.projection);
 
 	glm::vec3 eyePos = m_cameraInfo.position;
-	glm::vec3 dir = glm::normalize(eyePos+ m_cameraInfo.forward);
+	glm::vec3 targetPos = eyePos+ m_cameraInfo.forward;
 	glm::vec3 up = glm::normalize(glm::cross(m_cameraInfo.right, m_cameraInfo.forward));
-	m_cameraInfo.view = glm::lookAt(eyePos, dir, up);
+	m_cameraInfo.view = glm::lookAt(eyePos, targetPos, up);
 
 	m_intersectionChecker.setIntersectPlanes(m_cameraInfo.clipPlanes, 6);
 

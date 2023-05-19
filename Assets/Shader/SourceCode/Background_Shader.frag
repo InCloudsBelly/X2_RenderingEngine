@@ -13,6 +13,6 @@ void main()
     vec3 ndcPosition = IMAGE_TO_NDC_SPACE(iPosition, 1);
     vec3 wPosition = PositionN2W(ndcPosition, cameraInfo.info);
     vec3 observeDirection = VIEW_DIRECTION(cameraInfo.info, wPosition);
-    observeDirection.z = -observeDirection.z;
+
     ColorAttachment = vec4(texture(backgroundTexture, observeDirection).rgb, 1);
 }

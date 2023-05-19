@@ -64,19 +64,34 @@ void CameraMoveBehaviour::onUpdate()
 		if (LogicInstance::getInputManager()->getKeyStatus()[GLFW_KEY_E])
 			posMovement += moveDistance * 0.8f * up;
 
-		getGameObject()->transform.setTranslation(posMovement);
+		getGameObject()->transform.setTranslation(getGameObject()->transform.getTranslation()+ posMovement);
 	}
 
-
-	static double pitch = asin(forward.y);
-	static double yaw = asin(forward.z / cos(pitch));
-
+	static std::array<double, 2> preCursorPos = LogicInstance::getInputManager()->getCursorPos();
+	if (m_isEnableCursor) 
 	{
-		static std::array<double, 2> preCursorPos = LogicInstance::getInputManager()->getCursorPos();
+		
 		std::array<double, 2> curCursorPos = LogicInstance::getInputManager()->getCursorPos();
 		std::array<double, 2> CursorOffset = { curCursorPos[0] - preCursorPos[0] ,  preCursorPos[1] - curCursorPos[1] };
-
 		preCursorPos = curCursorPos;
+
+		glm::vec3 rotation = getGameObject()->transform.getRotation();
+
+		rotation.x += CursorOffset[1] * m_sensitivity * 0.01;
+		rotation.y += CursorOffset[0] * m_sensitivity * 0.01;
+		
+		if (rotation.x > glm::radians(89.0))
+			rotation.x = glm::radians(89.0);
+		else if (rotation.x < glm::radians(-89.0))
+			rotation.x = glm::radians(-89.0);
+
+	/*	std::cout << "right : " << right.x << ", " << right.y << ", " << right.z << std::endl;*/
+
+		//std::cout << "getGameObject()->transform.getRotation() : " << getGameObject()->transform.getRotation().x << ", " << getGameObject()->transform.getRotation().y << ", " << getGameObject()->transform.getRotation().z << std::endl;
+		getGameObject()->transform.setRotation(rotation);
+	/*	
+
+		
 
 		if (m_isEnableCursor) {
 			yaw += glm::radians(CursorOffset[0] * m_sensitivity);
@@ -91,12 +106,14 @@ void CameraMoveBehaviour::onUpdate()
 			forward.y = sin(pitch);
 			forward.z = cos(pitch) * sin(yaw);
 			forward = glm::normalize(forward);
-			right = glm::normalize(glm::cross({ 0,1,0 }, -forward));
+			right = glm::normalize(glm::cross(up, -forward));
 
 			camera->setForwardDir(forward);
-			camera->setRightDir(right);
-		}
+			camera->setRightDir(right);*/
+	/*	}*/
 	}
+	else
+		preCursorPos = LogicInstance::getInputManager()->getCursorPos();
 
 }
 

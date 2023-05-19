@@ -25,7 +25,7 @@ private:
 
 
 	double m_moveSpeed = 0.005;
-	double m_sensitivity = 0.2;
+	double m_sensitivity = 0.5;
 	bool m_isEnableCursor = true;
 private:
 

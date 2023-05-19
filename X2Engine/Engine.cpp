@@ -45,6 +45,7 @@
 #include "Behaviour/CameraMoveBehaviour.h"
 #include "Behaviour/BackgroundRenderer_Behaviour.h"
 #include "Behaviour/PresentRenderer_Behaviour.h"
+#include "Behaviour/SimpleForwardRenderer_Behaviour.h"
 
 #include "Utils/CrossLinkableNode.h"
 
@@ -114,6 +115,16 @@ void Engine::prepareData()
         backgroundRendererGo->addComponent(new BackgroundRenderer_Behaviour());
     } 
 
+    //SimpleMesh
+    {
+        GameObject* SimpleForwardRendererGo = new GameObject("SimpleForwardRendererGameObject");
+        renderers->addChild(SimpleForwardRendererGo);
+        SimpleForwardRendererGo->addComponent(new Renderer());
+        SimpleForwardRendererGo->addComponent(new SimpleForwardRenderer_Behaviour());
+        SimpleForwardRendererGo->transform.setTranslation(glm::vec3(0, 0, 0));
+        SimpleForwardRendererGo->transform.setScale(glm::vec3(0.5,0.5,0.5));
+    }
+
     // Present
     {
         GameObject* presentRendererGo = new GameObject("PresentRendererGameObject");
@@ -153,8 +164,6 @@ void Engine::mainLoop()
 
         iterateByDynamicBfs(Component::ComponentType::BEHAVIOUR);
 
-        LogicInstance::getInputManager()clear();
-        LogicInstance::getInputManager().refresh();
 
         //IterateByDynamicBfs(Component::ComponentType::BEHAVIOUR);
         auto cameras = std::vector<Component*>();

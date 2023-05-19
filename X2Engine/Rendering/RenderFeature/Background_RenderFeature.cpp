@@ -139,41 +139,45 @@ void Background_RenderFeature::excute(RenderFeatureDataBase* renderFeatureData, 
 
 	if (featureData->needClearColorAttachment)
 	{
-		//Change layout
 		{
-			auto colorAttachmentBarrier = ImageMemoryBarrier
-			(
-				featureData->frameBuffer->getAttachment("ColorAttachment"),
-				VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED,
-				VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				0,
-				VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT
-			);
-			commandBuffer->addPipelineImageBarrier(
-				VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT,
-				{ &colorAttachmentBarrier }
-			);
+			//Change layout
+			{
+				auto colorAttachmentBarrier = ImageMemoryBarrier
+				(
+					featureData->frameBuffer->getAttachment("ColorAttachment"),
+					VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED,
+					VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					0,
+					VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT
+				);
+				commandBuffer->addPipelineImageBarrier(
+					VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT,
+					{ &colorAttachmentBarrier }
+				);
+			}
+
+			///Clear
+			VkClearColorValue clearValue = { 0, 0, 0, 255 };
+			commandBuffer->clearColorImage(featureData->frameBuffer->getAttachment("ColorAttachment"), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, clearValue);
+
+			//Change layout
+			{
+				auto colorAttachmentBarrier = ImageMemoryBarrier
+				(
+					featureData->frameBuffer->getAttachment("ColorAttachment"),
+					VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+					VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT,
+					VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
+				);
+				commandBuffer->addPipelineImageBarrier(
+					VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+					{ &colorAttachmentBarrier }
+				);
+			}
 		}
 
-		///Clear
-		VkClearColorValue clearValue = { 0, 0, 0, 255 };
-		commandBuffer->clearColorImage(featureData->frameBuffer->getAttachment("ColorAttachment"), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, clearValue);
-
-		//Change layout
-		{
-			auto colorAttachmentBarrier = ImageMemoryBarrier
-			(
-				featureData->frameBuffer->getAttachment("ColorAttachment"),
-				VkImageLayout::VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-				VkImageLayout::VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-				VkAccessFlagBits::VK_ACCESS_TRANSFER_WRITE_BIT,
-				VkAccessFlagBits::VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
-			);
-			commandBuffer->addPipelineImageBarrier(
-				VkPipelineStageFlagBits::VK_PIPELINE_STAGE_TRANSFER_BIT, VkPipelineStageFlagBits::VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-				{ &colorAttachmentBarrier }
-			);
-		}
+	
 	}
 
 	///Render
@@ -185,6 +189,8 @@ void Background_RenderFeature::excute(RenderFeatureDataBase* renderFeatureData, 
 			if (material == nullptr) continue;
 			material->setUniformBuffer("cameraInfo", camera->getCameraInfoBuffer());
 			material->setUniformBuffer("attachmentSizeInfo", featureData->attachmentSizeInfoBuffer);
+			//material->setSampledImageCube("backgroundTexture", featureData->backgroundImage, Instance::g_defaultSampler);
+			material->setSampledImageCube("backgroundTexture", featureData->backgroundImage, Instance::g_defaultSampler);
 
 			commandBuffer->drawMesh(rendererComponent->mesh, material);
 		}

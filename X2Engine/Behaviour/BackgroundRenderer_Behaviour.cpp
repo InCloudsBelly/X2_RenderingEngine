@@ -36,7 +36,7 @@ void BackgroundRenderer_Behaviour::onStart()
 	);
 
 	auto material = new Material(shader);
-	material->setSampledImageCube("backgroundTexture", background, sampler);
+	//material->setSampledImageCube("backgroundTexture", background, sampler);
 
 	auto renderer = getGameObject()->getComponent<Renderer>();
 	renderer->addMaterial(material);

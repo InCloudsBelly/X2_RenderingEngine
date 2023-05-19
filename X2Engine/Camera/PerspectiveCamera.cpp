@@ -1,4 +1,7 @@
 #include "PerspectiveCamera.h"
+
+#include <glm/gtc/matrix_transform.hpp>
+
 RTTR_REGISTRATION
 {
     using namespace rttr;
@@ -40,6 +43,10 @@ void PerspectiveCamera::onSetProjectionMatrix(glm::mat4& matrix)
         0, 0, -farFlat / flatDistence, -1,
         0, 0, -nearFlat * farFlat / flatDistence, 0
     );
+
+
+    // left-handed coordinate system to right-handed
+    matrix[1][1] = -matrix[1][1];
 }
 
 PerspectiveCamera::PerspectiveCamera(std::string rendererName, std::map<std::string, Image*> attachments)
