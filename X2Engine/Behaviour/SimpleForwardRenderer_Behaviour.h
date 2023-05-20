@@ -3,23 +3,25 @@
 #include <string>
 #include <future>
 
-class Mesh;
+class Model;
 class Shader;
 class Image;
 class ImageSampler;
+
 
 class SimpleForwardRenderer_Behaviour : public Behaviour
 {
 public:
 	CONSTRUCTOR(SimpleForwardRenderer_Behaviour)
+
+		SimpleForwardRenderer_Behaviour(std::string modelPath);
 		void onAwake()override;
 	void onStart()override;
 	void onUpdate()override;
 	void onDestroy()override;
 
 private:
-	Mesh* mesh;
-	Image* albedoTexture;
+	Model* m_model;
 	ImageSampler* sampler;
 	Shader* shader;
 

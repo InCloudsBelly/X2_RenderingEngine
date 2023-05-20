@@ -21,6 +21,7 @@ struct VertexData
 
 class Mesh final : public AssetBase
 {
+	friend class Model;
 private:
 	std::vector<VertexData> m_vertices;
 	std::vector<uint32_t> m_indices;

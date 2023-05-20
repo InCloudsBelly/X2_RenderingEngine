@@ -6,6 +6,7 @@
 #include "Core/Graphic/Rendering/Material.h"
 
 #include "Asset/Mesh.h"
+#include "Asset/Model.h"
 #include "Core/Graphic/Rendering/Shader.h"
 #include "Core/Graphic/Instance/Image.h"
 
@@ -15,16 +16,19 @@ RTTR_REGISTRATION
 }
 
 
+SimpleForwardRenderer_Behaviour::SimpleForwardRenderer_Behaviour(std::string modelPath)
+{
+	m_model = Instance::getAssetManager()->load<Model>(modelPath);
+}
+
 void SimpleForwardRenderer_Behaviour::onAwake()
 {
 }
 
 void SimpleForwardRenderer_Behaviour::onStart()
 {
-	mesh = Instance::getAssetManager()->load<Mesh>(std::string(MODEL_DIR) + "default/Box.ply");
-	albedoTexture = Instance::getAssetManager()->load<Image>(std::string(MODEL_DIR) + "defaultTexture/DefaultTexture.png");
 	shader = Instance::getAssetManager()->load<Shader>(std::string(SHADER_DIR) + "SimpleMesh.shader");
-	
+
 	sampler = new ImageSampler(
 		VkFilter::VK_FILTER_LINEAR,
 		VkSamplerMipmapMode::VK_SAMPLER_MIPMAP_MODE_NEAREST,
@@ -33,13 +37,25 @@ void SimpleForwardRenderer_Behaviour::onStart()
 		VkBorderColor::VK_BORDER_COLOR_INT_OPAQUE_BLACK
 	);
 
-	auto material = new Material(shader);
+	static int meshId = 0;
+	for (auto pair : m_model->m_meshTextureMap)
+	{
+		GameObject* meshGo = new GameObject("MeshRenderer_" + std::to_string(meshId));
+		getGameObject()->addChild(meshGo);
+		meshGo->addComponent(new Renderer());
+		auto renderer = meshGo->getComponent<Renderer>();
 
-	auto renderer = getGameObject()->getComponent<Renderer>();
-	material->setSampledImage2D("albedoTexture", albedoTexture, sampler);
+		auto material = new Material(shader);
 
-	renderer->addMaterial(material);
-	renderer->mesh = mesh;
+		material->setSampledImage2D("albedoTexture", pair.second->albedo, sampler);
+		//material->setSampledImage2D("metallicRoughnessTexture", pair.second->metallicRoughness, sampler);
+		//material->setSampledImage2D("emissiveTexture", pair.second->emissive, sampler);
+		//material->setSampledImage2D("ambientOcclusionTexture", pair.second->ao, sampler);
+		//material->setSampledImage2D("normalTexture", pair.second->normal, sampler);
+
+		renderer->addMaterial(material);
+		renderer->mesh = pair.first;
+	}
 }
 
 void SimpleForwardRenderer_Behaviour::onUpdate()
@@ -52,7 +68,8 @@ void SimpleForwardRenderer_Behaviour::onDestroy()
 	// shader & mesh are deleted when delete Renderer.
 
 	delete sampler;
-	Instance::getAssetManager()->unload(albedoTexture);
+
+	Instance::getAssetManager()->unload(m_model);
 }
 
 SimpleForwardRenderer_Behaviour::SimpleForwardRenderer_Behaviour()

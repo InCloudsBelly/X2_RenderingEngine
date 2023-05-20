@@ -24,8 +24,8 @@ void AssetManager::unload(AssetBase* asset)
 	if (asset != nullptr)
 	{
 		//std::unique_lock<std::mutex> wrapperLock(asset->m_wrapper->mutex);
-
-		asset->m_wrapper->referenceCount--;
+		if(asset->m_wrapper != nullptr)
+			asset->m_wrapper->referenceCount--;
 	}
 }
 

@@ -41,7 +41,6 @@
 #include "Rendering/Renderer/ForwardRenderer.h"
 
 #include "Asset/Mesh.h"
-
 #include "Behaviour/CameraMoveBehaviour.h"
 #include "Behaviour/BackgroundRenderer_Behaviour.h"
 #include "Behaviour/PresentRenderer_Behaviour.h"
@@ -115,15 +114,15 @@ void Engine::prepareData()
         backgroundRendererGo->addComponent(new BackgroundRenderer_Behaviour());
     } 
 
-    //SimpleMesh
-    {
-        GameObject* SimpleForwardRendererGo = new GameObject("SimpleForwardRendererGameObject");
-        renderers->addChild(SimpleForwardRendererGo);
-        SimpleForwardRendererGo->addComponent(new Renderer());
-        SimpleForwardRendererGo->addComponent(new SimpleForwardRenderer_Behaviour());
-        SimpleForwardRendererGo->transform.setTranslation(glm::vec3(0, 0, 0));
-        SimpleForwardRendererGo->transform.setScale(glm::vec3(0.5,0.5,0.5));
-    }
+    ////SimpleMesh
+    //{
+    //    GameObject* SimpleForwardRendererGo = new GameObject("SimpleForwardRendererGameObject");
+    //    renderers->addChild(SimpleForwardRendererGo);
+    //    SimpleForwardRendererGo->addComponent(new Renderer());
+    //    SimpleForwardRendererGo->addComponent(new SimpleForwardRenderer_Behaviour());
+    //    SimpleForwardRendererGo->transform.setTranslation(glm::vec3(0, 0, 0));
+    //    SimpleForwardRendererGo->transform.setScale(glm::vec3(0.5,0.5,0.5));
+    //}
 
     // Present
     {
@@ -132,6 +131,20 @@ void Engine::prepareData()
         presentRendererGo->addComponent(new Renderer());
         presentRendererGo->addComponent(new PresentRenderer_Behaviour());
 
+    }
+
+
+    //Models
+    GameObject* models = new GameObject("Models");
+    LogicInstance::rootObject.addChild(models);
+
+
+    {
+        GameObject* damaged_helmet = new GameObject("damaged_helmet_Model");
+        models->addChild(damaged_helmet);
+        damaged_helmet->addComponent(new SimpleForwardRenderer_Behaviour(std::string(MODEL_DIR) + "damagedHelmet/DamagedHelmet.gltf"));
+        damaged_helmet->transform.setTranslation(glm::vec3(0, 0, 0));
+        damaged_helmet->transform.setScale(glm::vec3(0.5,0.5,0.5));
     }
 
 
@@ -148,6 +161,8 @@ void Engine::prepareData()
 
 void Engine::mainLoop()
 {
+    iterateByDynamicBfs(Component::ComponentType::BEHAVIOUR);
+
     auto targetComponents = std::vector<std::vector<Component*>>();
     iterateByStaticBfs({ Component::ComponentType::CAMERA, Component::ComponentType::RENDERER }, targetComponents);
 
