@@ -11,6 +11,9 @@
 
 #include "Core/Graphic/CoreObject/GraphicInstance.h"
 
+#include "Core/Graphic/Manager/LightManager.h"
+#include "Light/AmbientLight.h"
+
 #include <glm/glm.hpp>
 
 RTTR_REGISTRATION

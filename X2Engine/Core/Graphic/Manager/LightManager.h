@@ -11,12 +11,14 @@ class Instance;
 
 class Buffer;
 class Image;
-class ImageSampler;
 
 class CommandPool;
 class CommandBuffer;
 
 class Material;
+
+class DirectionalLight;
+class AmbientLight;
 
 
 class LightManager final
@@ -65,22 +67,23 @@ public:
 		alignas(16) LightBoundingBox lightBoundingBoxInfos[MAX_TILE_BASED_FORWARD_ORTHER_LIGHT_COUNT];
 	};
 	void setLightInfo(std::vector<Component*> lights);
-	Image* getAmbientTextureCube();
+	AmbientLight* getAmbientLight();
 	Buffer* getForwardLightInfosBuffer();
 	Buffer* getTileBasedForwardLightInfosBuffer();
 	Buffer* getTileBasedForwardLightBoundindBoxInfosBuffer();
 	LightInfo getMainLightInfo();
-	LightBase* getMainLight();
-	void setAmbientLightParameters(Material* material, ImageSampler* sampler) const;
+	DirectionalLight* getMainLight();
+	void setAmbientLightParameters(Material* material) const;
 private:
 	Buffer* m_forwardLightInfosBuffer;
 	Buffer* m_tileBasedForwardLightInfosBuffer;
 	Buffer* m_tileBasedForwardLightBoundingBoxInfosBuffer;
 
 	LightInfo m_ambientLightInfo;
-	Image* m_irradianceCubeImage;
-	Image* m_prefilteredCubeImage;
-	Image* m_lutImage;
+	//Image* m_irradianceCubeImage;
+	//Image* m_prefilteredCubeImage;
+	//Image* m_lutImage;
+	LightBase* m_ambientLight;
 	LightInfo m_mainLightInfo;
 	LightBase* m_mainLight;
 	int m_ortherLightCount;

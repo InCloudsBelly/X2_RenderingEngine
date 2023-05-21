@@ -6,7 +6,6 @@
 class Model;
 class Shader;
 class Image;
-class ImageSampler;
 
 
 class SimpleForwardRenderer_Behaviour : public Behaviour
@@ -22,7 +21,6 @@ public:
 
 private:
 	Model* m_model;
-	ImageSampler* sampler;
 	Shader* shader;
 
 	RTTR_ENABLE(Behaviour)

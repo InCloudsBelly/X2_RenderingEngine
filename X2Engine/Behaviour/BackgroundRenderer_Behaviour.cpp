@@ -28,8 +28,8 @@ void BackgroundRenderer_Behaviour::onStart()
 	auto background = Instance::g_backgroundImage;
 
 	sampler = new ImageSampler(
-		VkFilter::VK_FILTER_NEAREST,
-		VkSamplerMipmapMode::VK_SAMPLER_MIPMAP_MODE_NEAREST,
+		VkFilter::VK_FILTER_LINEAR,
+		VkSamplerMipmapMode::VK_SAMPLER_MIPMAP_MODE_LINEAR,
 		VkSamplerAddressMode::VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
 		0.0f,
 		VkBorderColor::VK_BORDER_COLOR_INT_OPAQUE_BLACK

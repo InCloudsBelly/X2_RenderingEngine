@@ -23,6 +23,7 @@ void AmbientLight::setBoundingBoxInfo(std::array<glm::vec4, 8>& boundingBoxVerte
 
 }
 
+
 AmbientLight::AmbientLight()
 	: LightBase(LightType::AMBIENT)
 	, m_irradianceCubeImage(nullptr)

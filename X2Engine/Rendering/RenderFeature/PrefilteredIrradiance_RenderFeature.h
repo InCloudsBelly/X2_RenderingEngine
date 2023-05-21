@@ -37,7 +37,6 @@ public:
 		Shader* m_generateShader;
 		Material* m_generateMaterial;
 		
-		ImageSampler* m_environmentImageSampler;
 		Mesh* m_boxMesh;
 		uint32_t m_sliceIndex;
 	public:

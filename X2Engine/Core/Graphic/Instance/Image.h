@@ -13,13 +13,6 @@
 class Image;
 class ImageSampler;
 
-struct Texture
-{
-	Image* image = nullptr;
-	ImageSampler* sampler = nullptr;
-};
-
-
 
 class Image : public AssetBase
 {
@@ -84,6 +77,7 @@ private:
 	void loadCubeMap(std::string path, CommandBuffer* transferCommandBuffer);
 
 public:
+
 	static Image* Create2DImage(
 		VkExtent2D extent,
 		VkFormat format,
@@ -135,6 +129,8 @@ public:
 	void AddImageView(std::string name, VkImageViewType imageViewType, VkImageAspectFlags imageAspectFlags, uint32_t baseArrayLayer, uint32_t layerCount, uint32_t baseMipmapLevel = 0, uint32_t mipmapLevelCount = 1);
 	void RemoveImageView(std::string name);
 
+	ImageSampler* m_sampler = nullptr;
+
 	ImageView& getRawImageView(std::string imageViewName = "DefaultImageView");
 	VkImageView& getImageView(std::string imageViewName = "DefaultImageView");
 	ImageInfo& getImageInfo();
@@ -145,6 +141,7 @@ public:
 	uint32_t getMipMapLevelCount();
 	uint32_t getLayerCount();
 	VkFormat getFormat();
+	ImageSampler* getSampler();
 	VkImageUsageFlags getImageUsageFlags();
 	VmaMemoryUsage getMemoryUsageFlags();
 	VkImageTiling getImageTiling();
@@ -196,7 +193,8 @@ public:
 		VkSamplerMipmapMode mipmapMode,
 		VkSamplerAddressMode addressMode,
 		float maxAnisotropy,
-		VkBorderColor borderColor
+		VkBorderColor borderColor,
+		uint32_t mipmapLevel = 1
 	);
 	~ImageSampler();
 	VkSampler& getSampler();

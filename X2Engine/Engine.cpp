@@ -13,6 +13,7 @@
 #include "Core/Graphic/Manager/DescriptorSetManager.h"
 #include "Core/Graphic/Manager/RenderPassManager.h"
 #include "Core/Graphic/Manager/RenderPipelineManager.h"
+#include "Core/Graphic/Manager/LightManager.h"
 
 #include "Core/Logic/Object/GameObject.h"
 #include "Core/Logic/Component/Component.h"
@@ -41,10 +42,18 @@
 #include "Rendering/Renderer/ForwardRenderer.h"
 
 #include "Asset/Mesh.h"
+
+#include "Light/DirectionalLight.h"
+#include "Light/PointLight.h"
+#include "Light/AmbientLight.h"
+
 #include "Behaviour/CameraMoveBehaviour.h"
 #include "Behaviour/BackgroundRenderer_Behaviour.h"
 #include "Behaviour/PresentRenderer_Behaviour.h"
 #include "Behaviour/SimpleForwardRenderer_Behaviour.h"
+
+#include "Rendering/RenderFeature/PrefilteredEnvironmentMap_RenderFeature.h"
+#include "Rendering/RenderFeature/PrefilteredIrradiance_RenderFeature.h"
 
 #include "Utils/CrossLinkableNode.h"
 
@@ -148,14 +157,31 @@ void Engine::prepareData()
     }
 
 
-    //m_imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-    //m_renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
 
-    //for (uint32_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
-    //{
-    //    m_imageAvailableSemaphores[i] = new Semaphore();
-    //    m_renderFinishedSemaphores[i] = new Semaphore();    
-    //}
+    //Lights
+    GameObject* lights = new GameObject("Lights");
+    LogicInstance::rootObject.addChild(lights);
+
+    GameObject* directionalLightGo = new GameObject("DirectionalLight");
+    lights->addChild(directionalLightGo);
+    directionalLightGo->transform.setEulerRotation(glm::vec3(-30, 0, 0));
+    auto directionalLight = new DirectionalLight();
+    directionalLight->color = { 1, 239.0 / 255, 213.0 / 255, 1 };
+    directionalLight->intensity = 8;
+    directionalLightGo->addComponent(directionalLight);
+   
+    GameObject* iblGo = new GameObject("SkyBox");
+    lights->addChild(iblGo);
+    auto iblLight = new AmbientLight();
+    iblLight->color = { 1, 1, 1, 1 };
+    iblLight->intensity = 0.5f;
+    iblLight->m_lutImage = Instance::getAssetManager()->load<Image>(std::string(MODEL_DIR) + "defaultTexture/BRDF_LUT.png");
+    iblLight->m_irradianceCubeImage = static_cast<PrefilteredIrradiance_RenderFeature::PrefilteredIrradiance_RenderFeatureData*>(camera->getRendererData()->getRenderFeatureData("PrefilteredIrradiance_RenderFeature"))->m_targetCubeImage;
+    iblLight->m_prefilteredCubeImage = static_cast<PrefilteredEnvironmentMap_RenderFeature::PrefilteredEnvironmentMap_RenderFeatureData*>(camera->getRendererData()->getRenderFeatureData("PrefilteredEnvironmentMap_RenderFeature"))->m_targetCubeImage;
+
+    iblGo->addComponent(iblLight);
+
+
 
 }
 
@@ -164,10 +190,13 @@ void Engine::mainLoop()
     iterateByDynamicBfs(Component::ComponentType::BEHAVIOUR);
 
     auto targetComponents = std::vector<std::vector<Component*>>();
-    iterateByStaticBfs({ Component::ComponentType::CAMERA, Component::ComponentType::RENDERER }, targetComponents);
+    iterateByStaticBfs({ Component::ComponentType::LIGHT, Component::ComponentType::CAMERA, Component::ComponentType::RENDERER }, targetComponents);
 
-    Instance::addCamera(targetComponents[0]);
-    Instance::addRenderer(targetComponents[1]);
+    Instance::addLight(targetComponents[0]);
+    Instance::addCamera(targetComponents[1]);
+    Instance::addRenderer(targetComponents[2]);
+
+    Instance::getLightManager().setLightInfo(Instance::g_lights);
 
     uint8_t currentFrame = 0;
 

@@ -214,6 +214,9 @@ Image::~Image()
 	}
 
 	vmaDestroyImage(Instance::getVmaAllocator(), m_image, m_allocation);
+
+	if (m_sampler)
+		delete m_sampler;
 }
 
 void Image::destroy()
@@ -297,6 +300,13 @@ uint32_t Image::getLayerCount()
 VkFormat Image::getFormat()
 {
 	return m_imageInfo.format;
+}
+
+ImageSampler* Image::getSampler()
+{
+	if (m_sampler == nullptr)
+		throw(std::runtime_error("Image dosen't have a ImageSampler"));
+	return m_sampler;
 }
 
 VkImageUsageFlags Image::getImageUsageFlags()
@@ -556,8 +566,8 @@ ImageSampler::ImageSampler(VkFilter filter)
 
 }
 
-ImageSampler::ImageSampler(VkFilter filter, VkSamplerMipmapMode mipmapMode, VkSamplerAddressMode addressMode, float maxAnisotropy, VkBorderColor borderColor)
-	: ImageSampler(filter, filter, mipmapMode, addressMode, addressMode, addressMode, maxAnisotropy, borderColor)
+ImageSampler::ImageSampler(VkFilter filter, VkSamplerMipmapMode mipmapMode, VkSamplerAddressMode addressMode, float maxAnisotropy, VkBorderColor borderColor, uint32_t mipmapLevel)
+	: ImageSampler(filter, filter, mipmapMode, addressMode, addressMode, addressMode, maxAnisotropy, borderColor, mipmapLevel)
 {
 }
 
@@ -750,6 +760,18 @@ void Image::load2DImage(std::string path, CommandBuffer* transferCommandBuffer)
 	}
 
 	delete stagingBuffer;
+
+	m_sampler = new ImageSampler(
+		VK_FILTER_LINEAR,
+		VK_FILTER_LINEAR,
+		VK_SAMPLER_MIPMAP_MODE_LINEAR,
+		VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+		VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+		VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT,
+		16,
+		VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+		m_mipmapLevelCount
+	);
 }
 
 void Image::loadCubeMap(std::string path, CommandBuffer* transferCommandBuffer)
@@ -880,17 +902,17 @@ void Image::loadCubeMap(std::string path, CommandBuffer* transferCommandBuffer)
 
 
 
-	//tex.sampler = new ImageSampler(
-	//	VK_FILTER_LINEAR,
-	//	VK_FILTER_LINEAR,
-	//	VK_SAMPLER_MIPMAP_MODE_LINEAR,
-	//	VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-	//	VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-	//	VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-	//	16,
-	//	VK_BORDER_COLOR_INT_OPAQUE_BLACK,
-	//	1
-	//);
+	m_sampler = new ImageSampler(
+		VK_FILTER_LINEAR,
+		VK_FILTER_LINEAR,
+		VK_SAMPLER_MIPMAP_MODE_LINEAR,
+		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+		VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+		16,
+		VK_BORDER_COLOR_INT_OPAQUE_BLACK,
+		m_mipmapLevelCount
+	);
 }
 
 

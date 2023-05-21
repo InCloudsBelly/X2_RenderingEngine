@@ -141,7 +141,7 @@ RenderFeatureDataBase* PrefilteredEnvironmentMap_RenderFeature::createRenderFeat
 		VK_SAMPLE_COUNT_1_BIT
 	);
 
-	featureData->m_environmentImageSampler = new ImageSampler(
+	featureData->m_targetCubeImage->m_sampler = new ImageSampler(
 		VK_FILTER_LINEAR,
 		VK_FILTER_LINEAR,
 		VK_SAMPLER_MIPMAP_MODE_LINEAR,
@@ -184,7 +184,7 @@ RenderFeatureDataBase* PrefilteredEnvironmentMap_RenderFeature::createRenderFeat
 	}
 
 	featureData->m_generateMaterial = new Material(featureData->m_generateShader);
-	featureData->m_generateMaterial->setSampledImageCube("environmentImage", Instance::g_backgroundImage, featureData->m_environmentImageSampler);
+	featureData->m_generateMaterial->setSampledImageCube("environmentImage", Instance::g_backgroundImage, Instance::g_backgroundImage->getSampler());
 
 	return featureData;
 }

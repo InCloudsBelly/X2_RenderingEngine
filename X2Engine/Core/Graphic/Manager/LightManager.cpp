@@ -1,30 +1,34 @@
 #include "LightManager.h"
 #include "Core/Graphic/Instance/Buffer.h"
+#include "Core/Graphic/Instance/Image.h"
 #include "Core/Graphic/Command/CommandBuffer.h"
 #include "Core/Logic/Component/Base/LightBase.h"
 #include <map>
 #include <vma/vk_mem_alloc.h>
 #include "Light/AmbientLight.h"
+#include "Light/DirectionalLight.h"
+
 
 LightManager::LightManager()
 	: m_forwardLightInfosBuffer(nullptr)
 	, m_tileBasedForwardLightInfosBuffer(nullptr)
-	, m_irradianceCubeImage(nullptr)
-	, m_prefilteredCubeImage(nullptr)
-	, m_lutImage(nullptr)
 	, m_ambientLightInfo()
 	, m_mainLightInfo()
 	, m_ortherLightInfos()
 	, m_ortherLightCount()
 	, m_ortherLightBoundingBoxInfos()
 {
-	//m_forwardLightInfosBuffer = new Buffer(sizeof(ForwardLightInfos), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,VMA_MEMORY_USAGE_CPU_ONLY);
+	m_forwardLightInfosBuffer = new Buffer(sizeof(ForwardLightInfos), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,VMA_MEMORY_USAGE_CPU_ONLY);
 	//m_tileBasedForwardLightInfosBuffer = new Buffer(sizeof(TileBasedForwardLightInfos), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
 	//m_tileBasedForwardLightBoundingBoxInfosBuffer = new Buffer(sizeof(TileBasedForwardLightBoundingBoxInfos), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
 }
 
 LightManager::~LightManager()
 {
+	delete m_forwardLightInfosBuffer;
+	//delete m_tileBasedForwardLightInfosBuffer;
+	//delete m_tileBasedForwardLightInfosBuffer;
+
 }
 
 void LightManager::setLightInfo(std::vector<Component*> lights)
@@ -50,6 +54,7 @@ void LightManager::setLightInfo(std::vector<Component*> lights)
 		case LightBase::LightType::AMBIENT:
 		{
 			unqiueLights.emplace(std::make_pair(light->lightType, light));
+			m_ambientLight = light;
 			break;
 		}
 		case LightBase::LightType::SPOT:
@@ -68,9 +73,6 @@ void LightManager::setLightInfo(std::vector<Component*> lights)
 	{
 		auto data = skyBoxIterator->second->getLightInfo();
 		m_ambientLightInfo = *reinterpret_cast<const LightInfo*>(data);
-		m_irradianceCubeImage = static_cast<AmbientLight*>(skyBoxIterator->second)->m_irradianceCubeImage;
-		m_prefilteredCubeImage = static_cast<AmbientLight*>(skyBoxIterator->second)->m_prefilteredCubeImage;
-		m_lutImage = static_cast<AmbientLight*>(skyBoxIterator->second)->m_lutImage;
 	}
 	else
 	{
@@ -118,34 +120,34 @@ void LightManager::setLightInfo(std::vector<Component*> lights)
 		}
 	);
 
-	m_tileBasedForwardLightInfosBuffer->WriteData(
-		[this](void* pointer) -> void
-		{
-			int ortherLightCount = std::min(m_ortherLightCount, MAX_TILE_BASED_FORWARD_ORTHER_LIGHT_COUNT);
+	//m_tileBasedForwardLightInfosBuffer->WriteData(
+	//	[this](void* pointer) -> void
+	//	{
+	//		int ortherLightCount = std::min(m_ortherLightCount, MAX_TILE_BASED_FORWARD_ORTHER_LIGHT_COUNT);
 
-			auto offset = reinterpret_cast<char*>(pointer);
-			memcpy(offset + offsetof(TileBasedForwardLightInfos, ortherLightCount), &ortherLightCount, sizeof(int));
-			memcpy(offset + offsetof(TileBasedForwardLightInfos, ambientLightInfo), &m_ambientLightInfo, sizeof(LightInfo));
-			memcpy(offset + offsetof(TileBasedForwardLightInfos, mainLightInfo), &m_mainLightInfo, sizeof(LightInfo));
-			memcpy(offset + offsetof(TileBasedForwardLightInfos, ortherLightInfos), m_ortherLightInfos.data(), sizeof(LightInfo) * ortherLightCount);
-		}
-	);
+	//		auto offset = reinterpret_cast<char*>(pointer);
+	//		memcpy(offset + offsetof(TileBasedForwardLightInfos, ortherLightCount), &ortherLightCount, sizeof(int));
+	//		memcpy(offset + offsetof(TileBasedForwardLightInfos, ambientLightInfo), &m_ambientLightInfo, sizeof(LightInfo));
+	//		memcpy(offset + offsetof(TileBasedForwardLightInfos, mainLightInfo), &m_mainLightInfo, sizeof(LightInfo));
+	//		memcpy(offset + offsetof(TileBasedForwardLightInfos, ortherLightInfos), m_ortherLightInfos.data(), sizeof(LightInfo) * ortherLightCount);
+	//	}
+	//);
 
-	m_tileBasedForwardLightBoundingBoxInfosBuffer->WriteData(
-		[this](void* pointer) -> void
-		{
-			int ortherLightCount = std::min(m_ortherLightCount, MAX_TILE_BASED_FORWARD_ORTHER_LIGHT_COUNT);
+	//m_tileBasedForwardLightBoundingBoxInfosBuffer->WriteData(
+	//	[this](void* pointer) -> void
+	//	{
+	//		int ortherLightCount = std::min(m_ortherLightCount, MAX_TILE_BASED_FORWARD_ORTHER_LIGHT_COUNT);
 
-			auto offset = reinterpret_cast<char*>(pointer);
-			memcpy(offset + offsetof(TileBasedForwardLightBoundingBoxInfos, lightCount), &ortherLightCount, sizeof(int));
-			memcpy(offset + offsetof(TileBasedForwardLightBoundingBoxInfos, lightBoundingBoxInfos), m_ortherLightBoundingBoxInfos.data(), sizeof(LightBoundingBox) * ortherLightCount);
-		}
-	);
+	//		auto offset = reinterpret_cast<char*>(pointer);
+	//		memcpy(offset + offsetof(TileBasedForwardLightBoundingBoxInfos, lightCount), &ortherLightCount, sizeof(int));
+	//		memcpy(offset + offsetof(TileBasedForwardLightBoundingBoxInfos, lightBoundingBoxInfos), m_ortherLightBoundingBoxInfos.data(), sizeof(LightBoundingBox) * ortherLightCount);
+	//	}
+	//);
 }
 
-Image* LightManager::getAmbientTextureCube()
+AmbientLight* LightManager::getAmbientLight()
 {
-	return m_irradianceCubeImage;
+	return static_cast<AmbientLight*>(m_ambientLight);
 }
 
 Buffer* LightManager::getForwardLightInfosBuffer()
@@ -168,14 +170,15 @@ LightManager::LightInfo LightManager::getMainLightInfo()
 	return m_mainLightInfo;
 }
 
-LightBase* LightManager::getMainLight()
+DirectionalLight* LightManager::getMainLight()
 {
-	return m_mainLight;
+	return static_cast<DirectionalLight*>(m_mainLight);
 }
 
-void LightManager::setAmbientLightParameters(Material* material, ImageSampler* sampler) const
+void LightManager::setAmbientLightParameters(Material* material) const
 {
-	material->setSampledImageCube("irradianceCubeImage", m_irradianceCubeImage, sampler);
-	material->setSampledImageCube("prefilteredCubeImage", m_prefilteredCubeImage, sampler);
-	material->setSampledImage2D("lutImage", m_lutImage, sampler);
+	AmbientLight* ambient = static_cast<AmbientLight*>(m_ambientLight);
+	material->setSampledImageCube("irradianceCubeImage", ambient->m_irradianceCubeImage, ambient->m_irradianceCubeImage->getSampler());
+	material->setSampledImageCube("prefilteredCubeImage", ambient->m_prefilteredCubeImage, ambient->m_prefilteredCubeImage->getSampler());
+	material->setSampledImage2D("lutImage", ambient->m_lutImage, ambient->m_lutImage->getSampler());
 }
