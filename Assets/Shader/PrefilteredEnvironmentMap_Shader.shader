@@ -5,7 +5,7 @@
   "blendEnable": 0,
   "colorBlendOp": 0,
   "colorWriteMask": 15,
-  "cullMode": 2,
+  "cullMode": 0,
   "dstAlphaBlendFactor": 0,
   "dstColorBlendFactor": 0,
   "shaderPaths": ["..\\Assets\\Shader\\Spv\\PrefilteredEnvironmentMap_Shader.vert.spv", "..\\Assets\\Shader\\Spv\\PrefilteredEnvironmentMap_Shader.frag.spv"],

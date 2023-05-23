@@ -20,6 +20,8 @@
 #include "Core/Graphic/Rendering/RendererBase.h"
 #include "Core/Graphic/CoreObject/Swapchain.h"
 
+#include "Rendering/RenderFeature/CSM_ShadowCaster_RenderFeature.h"
+
 #include "Core/Graphic/Rendering/Shader.h"
 
 RTTR_REGISTRATION
@@ -201,6 +203,8 @@ void SimpleForward_RenderFeature::excute(RenderFeatureDataBase* renderFeatureDat
 	{
 		commandBuffer->beginRenderPass(m_renderPass, featureData->frameBuffer);
 
+		CSM_ShadowCaster_RenderFeature::CSM_ShadowCaster_RenderFeatureData* shadowRenderFeatureData = static_cast<CSM_ShadowCaster_RenderFeature::CSM_ShadowCaster_RenderFeatureData*>(featureData->csmShadowMapRenderFeatureData);
+
 		auto viewMatrix = camera->getViewMatrix();
 
 		for (const auto& rendererComponent : *rendererComponents)
@@ -212,6 +216,11 @@ void SimpleForward_RenderFeature::excute(RenderFeatureDataBase* renderFeatureDat
 			material->setUniformBuffer("meshObjectInfo", rendererComponent->getObjectInfoBuffer());
 			material->setUniformBuffer("lightInfos", Instance::getLightManager().getForwardLightInfosBuffer());
 			Instance::getLightManager().setAmbientLightParameters(material);
+
+			if (shadowRenderFeatureData)
+			{
+				shadowRenderFeatureData->setShadowReceiverMaterialParameters(material);
+			}
 			
 			commandBuffer->drawMesh(rendererComponent->mesh, material);
 		}

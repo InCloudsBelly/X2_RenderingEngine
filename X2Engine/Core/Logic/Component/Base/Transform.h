@@ -8,6 +8,7 @@
 class GameObject;
 class Transform final : public Component, public ChildBrotherTree<Transform>
 {
+	friend class Engine;
 private:
 	bool active();
 	void setActive(bool);

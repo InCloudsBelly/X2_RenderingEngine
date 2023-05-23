@@ -40,7 +40,7 @@ void SimpleForwardRenderer_Behaviour::onStart()
 		auto renderer = meshGo->getComponent<Renderer>();
 
 		auto material = new Material(shader);
-		
+
 
 		material->setSampledImage2D("albedoTexture", pair.second->albedo, pair.second->albedo->getSampler());
 		material->setSampledImage2D("metallicRoughnessTexture", pair.second->metallicRoughness, pair.second->metallicRoughness->getSampler());
@@ -50,6 +50,13 @@ void SimpleForwardRenderer_Behaviour::onStart()
 
 		renderer->addMaterial(material);
 		renderer->mesh = pair.first;
+
+		{
+			auto shadowCasterShader = Instance::getAssetManager()->load<Shader>(std::string(SHADER_DIR) + "CSM_ShadowCaster_Shader.shader");
+			auto shadowCasterMaterial = new Material(shadowCasterShader);
+			renderer->addMaterial(shadowCasterMaterial);
+		}
+		meshId++;
 	}
 }
 

@@ -5,7 +5,7 @@
   "blendEnable": 0,
   "colorBlendOp": 0,
   "colorWriteMask": 15,
-  "cullMode": 2,
+  "cullMode": 0,
   "dstAlphaBlendFactor": 0,
   "dstColorBlendFactor": 0,
   "shaderPaths": ["..\\Assets\\Shader\\Spv\\PrefilteredIrradiance_Shader.vert.spv", "..\\Assets\\Shader\\Spv\\PrefilteredIrradiance_Shader.frag.spv"],

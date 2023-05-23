@@ -32,6 +32,8 @@ public:
 		bool needClearDepthAttachment;
 		Image* defaultAlbedoTexture;
 
+		RenderFeatureDataBase* csmShadowMapRenderFeatureData;
+
 		CONSTRUCTOR(SimpleForward_RenderFeatureData)
 		RTTR_ENABLE(RenderFeatureDataBase)
 	};

@@ -9,6 +9,9 @@
 
 #define MAX_ORTHER_LIGHT_COUNT 4
 
+#define CSM_SHADOW_RECEIVER_DESCRIPTOR_START_INDEX 11
+#include "CSM_ShadowReceiver.glsl"
+
 layout(set = 0, binding = 0) uniform _CameraInfo
 {
     CameraInfo info;
@@ -167,11 +170,15 @@ void main()
         float mipCount = float(textureQueryLevels(prefilteredCubeImage));
         float lod = pbrInfo.perceptualRoughness * mipCount;
 
-        iblInfo.brdf = texture(lutImage, vec2( max(pbrInfo.NdotV, 0.0), pbrInfo.perceptualRoughness)).rg;
+        iblInfo.brdf = texture(lutImage, vec2(max(pbrInfo.NdotV, 0.0),  pbrInfo.perceptualRoughness)).rg;
         iblInfo.specularLight = textureLod(prefilteredCubeImage,reflection.xyz,lod).rgb;
    }
 
     vec3 color = getIBLcontribution(pbrInfo, iblInfo, material);
+
+   float shadowIntensity = GetShadowIntensity((cameraInfo.info.view * vec4(inWorldPosition, 1)).xyz, normal);
+
+   color += (1 - shadowIntensity) * PbrLighting(lightInfos.mainLightInfo, inWorldPosition, view, normal, pbrInfo.diffuseColor, pbrInfo.perceptualRoughness, material.metallicFactor);
 
 //    for(int i = 0 ; i < ubo.lightsCount; ++i)
 //    {
@@ -204,7 +211,7 @@ void main()
     color = pow(color,vec3(1.0 / 2.2));
 
     ColorAttachment = ambient * vec4(color, 1.0);
-//    ColorAttachment = vec4(iblInfo.diffuseLight * pbrInfo.diffuseColor, 1.0f);
+   //ColorAttachment = vec4(normal, 1.0f);
 
 //    ColorAttachment =  vec4(iblInfo.specularLight * (pbrInfo.specularColor* iblInfo.brdf.x + iblInfo.brdf.y) , 1.0);
     

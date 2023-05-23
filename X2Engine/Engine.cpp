@@ -108,6 +108,7 @@ void Engine::prepareData()
     CameraBase::mainCamera = camera;
     cameraGo->addComponent(camera);
     cameraGo->addComponent(new CameraMoveBehaviour());
+    cameraGo->transform.setTranslation(glm::vec3(0,0, 0));
 
 
 
@@ -123,15 +124,6 @@ void Engine::prepareData()
         backgroundRendererGo->addComponent(new BackgroundRenderer_Behaviour());
     } 
 
-    ////SimpleMesh
-    //{
-    //    GameObject* SimpleForwardRendererGo = new GameObject("SimpleForwardRendererGameObject");
-    //    renderers->addChild(SimpleForwardRendererGo);
-    //    SimpleForwardRendererGo->addComponent(new Renderer());
-    //    SimpleForwardRendererGo->addComponent(new SimpleForwardRenderer_Behaviour());
-    //    SimpleForwardRendererGo->transform.setTranslation(glm::vec3(0, 0, 0));
-    //    SimpleForwardRendererGo->transform.setScale(glm::vec3(0.5,0.5,0.5));
-    //}
 
     // Present
     {
@@ -152,9 +144,19 @@ void Engine::prepareData()
         GameObject* damaged_helmet = new GameObject("damaged_helmet_Model");
         models->addChild(damaged_helmet);
         damaged_helmet->addComponent(new SimpleForwardRenderer_Behaviour(std::string(MODEL_DIR) + "damagedHelmet/DamagedHelmet.gltf"));
-        damaged_helmet->transform.setTranslation(glm::vec3(0, 0, 0));
-        damaged_helmet->transform.setScale(glm::vec3(0.5,0.5,0.5));
+        damaged_helmet->transform.setTranslation(glm::vec3(-10, 1, -3));
+        damaged_helmet->transform.setScale(glm::vec3(5,5,5));
     }
+
+
+    {
+        GameObject* mrBalls = new GameObject("mrBalls");
+        models->addChild(mrBalls);
+        mrBalls->addComponent(new SimpleForwardRenderer_Behaviour(std::string(MODEL_DIR) + "MetalRoughSpheres/MetalRoughSpheres.gltf"));
+        mrBalls->transform.setTranslation(glm::vec3(3, 1, -2.5));
+        mrBalls->transform.setScale(glm::vec3(1.5, 1.5, 1.5));
+    }
+
 
 
 
@@ -164,7 +166,7 @@ void Engine::prepareData()
 
     GameObject* directionalLightGo = new GameObject("DirectionalLight");
     lights->addChild(directionalLightGo);
-    directionalLightGo->transform.setEulerRotation(glm::vec3(-30, 0, 0));
+    directionalLightGo->transform.setEulerRotation(glm::vec3(-60, 0, 0));
     auto directionalLight = new DirectionalLight();
     directionalLight->color = { 1, 239.0 / 255, 213.0 / 255, 1 };
     directionalLight->intensity = 8;
@@ -207,13 +209,7 @@ void Engine::mainLoop()
         Instance::getWindow()->pollEvents();
 
         iterateByDynamicBfs(Component::ComponentType::BEHAVIOUR);
-
-
-        //IterateByDynamicBfs(Component::ComponentType::BEHAVIOUR);
-        auto cameras = std::vector<Component*>();
-
-
-
+        LogicInstance::rootObject.m_gameObject.transform.updateModelMatrix(glm::mat4(1.0));
 
         std::vector<Renderer*> rendererComponents = std::vector<Renderer*>(Instance::g_renderers.size());
         for (size_t i = 0; i < rendererComponents.size(); i++)
@@ -287,7 +283,13 @@ void Engine::cleanup()
     //    delete  m_imageAvailableSemaphores[i];
     //    delete  m_renderFinishedSemaphores[i];
     //}
+    Instance::getAssetManager()->unload(Instance::getLightManager().getAmbientLight()->m_lutImage);
+
     destroyByStaticBfs( { Component::ComponentType::BEHAVIOUR, Component::ComponentType::CAMERA, Component::ComponentType::RENDERER });
+
+    Instance::getDescriptorSetManager().collect();
+    Instance::getRenderPassManager().collect();
+    Instance::getAssetManager()->collect();
 
     Instance::destroy();
     LogicInstance::destroy();

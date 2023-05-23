@@ -124,7 +124,7 @@ void Model::processNode(CommandBuffer * transferCommandBuffer, aiNode * node, co
 
 void Model::onLoad(CommandBuffer* transferCommandBuffer)
 {
-    unsigned int flags = (aiProcess_Triangulate  |
+    unsigned int flags = (aiProcess_Triangulate | aiProcess_FlipUVs |
         aiProcess_CalcTangentSpace | aiProcess_PreTransformVertices);
 
     Assimp::Importer importer;
