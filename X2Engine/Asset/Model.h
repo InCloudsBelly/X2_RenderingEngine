@@ -24,7 +24,8 @@ class Image;
 struct PBR_Textures
 {
 	Image* albedo;
-	Image* metallicRoughness;
+	Image* metallic;
+	Image* roughness;
 	Image* emissive;
 	Image* ao;
 	Image* normal;

@@ -140,14 +140,22 @@ void Engine::prepareData()
     LogicInstance::rootObject.addChild(models);
 
 
-    {
-        GameObject* damaged_helmet = new GameObject("damaged_helmet_Model");
-        models->addChild(damaged_helmet);
-        damaged_helmet->addComponent(new SimpleForwardRenderer_Behaviour(std::string(MODEL_DIR) + "damagedHelmet/DamagedHelmet.gltf"));
-        damaged_helmet->transform.setTranslation(glm::vec3(-10, 1, -3));
-        damaged_helmet->transform.setScale(glm::vec3(5,5,5));
-    }
+    //{
+    //    GameObject* damaged_helmet = new GameObject("damaged_helmet_Model");
+    //    models->addChild(damaged_helmet);
+    //    damaged_helmet->addComponent(new SimpleForwardRenderer_Behaviour(std::string(MODEL_DIR) + "damagedHelmet/DamagedHelmet.gltf"));
+    //    damaged_helmet->transform.setTranslation(glm::vec3(-10, 1, -3));
+    //    damaged_helmet->transform.setScale(glm::vec3(5,5,5));
+    //}
 
+
+    {
+        GameObject* sponza = new GameObject("sponza");
+        models->addChild(sponza);
+        sponza->addComponent(new SimpleForwardRenderer_Behaviour(std::string(MODEL_DIR) + "sponzaTGA/SponzaPBR.obj"));
+        sponza->transform.setTranslation(glm::vec3(0, -3, -2.5));
+        sponza->transform.setScale(glm::vec3(1.5, 1.5, 1.5));
+    }
 
     {
         GameObject* mrBalls = new GameObject("mrBalls");

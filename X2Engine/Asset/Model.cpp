@@ -23,7 +23,8 @@ RTTR_REGISTRATION
 
 static std::unordered_map<aiTextureType, std::string> defaultTexturePathMap{
     {aiTextureType_DIFFUSE,std::string(MODEL_DIR) + "defaultTexture/DefaultTexture.png" },
-    {aiTextureType_UNKNOWN, std::string(MODEL_DIR) + "defaultTexture/DefaultMetallicRoughness.png"},
+    {aiTextureType_METALNESS, std::string(MODEL_DIR) + "defaultTexture/DefaultMetallic.png"},
+    {aiTextureType_SHININESS, std::string(MODEL_DIR) + "defaultTexture/DefaultRoughness.png"},
     {aiTextureType_EMISSIVE, std::string(MODEL_DIR) + "defaultTexture/DefaultAmbientOcclusion.png"},
     {aiTextureType_LIGHTMAP, std::string(MODEL_DIR) + "defaultTexture/DefaultEmissiveColor.png"},
     {aiTextureType_NORMALS,std::string(MODEL_DIR) + "defaultTexture/DefaultNormal.png" }
@@ -44,7 +45,19 @@ Image* Model::getTextureByType(aiMaterial* material, aiTextureType type)
         material->GetTexture(type, 0, &str);
         texPath = dirPath + "/" + str.C_Str();
     }
-    else
+    else if (type == aiTextureType_SHININESS && material->GetTextureCount(aiTextureType_DIFFUSE_ROUGHNESS) > 0)
+    {
+        aiString str;
+        material->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &str);
+        texPath = dirPath + "/" + str.C_Str();
+    }
+    else if (type == aiTextureType_METALNESS && material->GetTextureCount(aiTextureType_UNKNOWN) > 0)
+    {
+        aiString str;
+        material->GetTexture(aiTextureType_UNKNOWN, 0, &str);
+        texPath = dirPath + "/" + str.C_Str();
+    }
+    else 
         texPath = defaultTexturePathMap[type];
 
     return Instance::getAssetManager()->load<Image>(texPath);
@@ -107,11 +120,12 @@ void Model::processNode(CommandBuffer * transferCommandBuffer, aiNode * node, co
 
         PBR_Textures* pbrTextures = new PBR_Textures;
         {
-            pbrTextures->albedo              = getTextureByType(aiMaterial, aiTextureType_DIFFUSE);
-            pbrTextures->metallicRoughness   = getTextureByType(aiMaterial, aiTextureType_UNKNOWN);
-            pbrTextures->emissive            = getTextureByType(aiMaterial, aiTextureType_EMISSIVE);
-            pbrTextures->ao                  = getTextureByType(aiMaterial, aiTextureType_LIGHTMAP);
-            pbrTextures->normal              = getTextureByType(aiMaterial, aiTextureType_NORMALS);
+            pbrTextures->albedo             = getTextureByType(aiMaterial, aiTextureType_DIFFUSE);
+            pbrTextures->metallic           = getTextureByType(aiMaterial, aiTextureType_METALNESS);
+            pbrTextures->roughness          = getTextureByType(aiMaterial, aiTextureType_SHININESS);
+            pbrTextures->emissive           = getTextureByType(aiMaterial, aiTextureType_EMISSIVE);
+            pbrTextures->ao                 = getTextureByType(aiMaterial, aiTextureType_LIGHTMAP);
+            pbrTextures->normal             = getTextureByType(aiMaterial, aiTextureType_NORMALS);
         }
 
         m_meshTextureMap.insert(std::pair< Mesh*, PBR_Textures*>(newMesh, pbrTextures));
@@ -144,7 +158,8 @@ Model::~Model()
         delete pair.first;
 
         Instance::getAssetManager()->unload(pair.second->albedo);
-        Instance::getAssetManager()->unload(pair.second->metallicRoughness);
+        Instance::getAssetManager()->unload(pair.second->metallic);
+        Instance::getAssetManager()->unload(pair.second->roughness);
         Instance::getAssetManager()->unload(pair.second->emissive);
         Instance::getAssetManager()->unload(pair.second->ao);
         Instance::getAssetManager()->unload(pair.second->normal);

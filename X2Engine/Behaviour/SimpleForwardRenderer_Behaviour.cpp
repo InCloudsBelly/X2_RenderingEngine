@@ -43,7 +43,8 @@ void SimpleForwardRenderer_Behaviour::onStart()
 
 
 		material->setSampledImage2D("albedoTexture", pair.second->albedo, pair.second->albedo->getSampler());
-		material->setSampledImage2D("metallicRoughnessTexture", pair.second->metallicRoughness, pair.second->metallicRoughness->getSampler());
+		material->setSampledImage2D("metallicTexture", pair.second->metallic, pair.second->metallic->getSampler());
+		material->setSampledImage2D("roughnessTexture", pair.second->roughness, pair.second->roughness->getSampler());
 		material->setSampledImage2D("emissiveTexture", pair.second->emissive, pair.second->emissive->getSampler());
 		material->setSampledImage2D("ambientOcclusionTexture", pair.second->ao, pair.second->ao->getSampler());
 		material->setSampledImage2D("normalTexture", pair.second->normal, pair.second->normal->getSampler());

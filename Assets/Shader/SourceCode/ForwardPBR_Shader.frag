@@ -9,7 +9,7 @@
 
 #define MAX_ORTHER_LIGHT_COUNT 4
 
-#define CSM_SHADOW_RECEIVER_DESCRIPTOR_START_INDEX 11
+#define CSM_SHADOW_RECEIVER_DESCRIPTOR_START_INDEX 12
 #include "CSM_ShadowReceiver.glsl"
 
 layout(set = 0, binding = 0) uniform _CameraInfo
@@ -33,15 +33,16 @@ layout(set = 2, binding = 0) uniform LightInfos
 } lightInfos;
 
 layout(set = 3, binding = 0) uniform sampler2D albedoTexture;
-layout(set = 4, binding = 0) uniform sampler2D metallicRoughnessTexture;
-layout(set = 5, binding = 0) uniform sampler2D emissiveTexture;
-layout(set = 6, binding = 0) uniform sampler2D ambientOcclusionTexture;
-layout(set = 7, binding = 0) uniform sampler2D normalTexture;
+layout(set = 4, binding = 0) uniform sampler2D metallicTexture;
+layout(set = 5, binding = 0) uniform sampler2D roughnessTexture;
+layout(set = 6, binding = 0) uniform sampler2D emissiveTexture;
+layout(set = 7, binding = 0) uniform sampler2D ambientOcclusionTexture;
+layout(set = 8, binding = 0) uniform sampler2D normalTexture;
 
 // IBL Samplers
-layout(set = 8, binding = 0) uniform samplerCube irradianceCubeImage;
-layout(set = 9, binding = 0) uniform sampler2D lutImage;
-layout(set = 10, binding = 0) uniform samplerCube prefilteredCubeImage;
+layout(set = 9, binding = 0) uniform samplerCube irradianceCubeImage;
+layout(set = 10, binding = 0) uniform sampler2D lutImage;
+layout(set = 11, binding = 0) uniform samplerCube prefilteredCubeImage;
 
 layout(location = 0) in vec2 inTexCoords;
 layout(location = 1) in vec3 inWorldPosition;
@@ -121,16 +122,16 @@ float ambient = 0.5;
 void main()
 {
     vec3 normal = calculateNormal();
-    vec3 view = CameraWObserveDirection(inWorldPosition, cameraInfo.info);
-    vec3 reflection = normalize(reflect(view, normal));
+    vec3 view =  - CameraWObserveDirection(inWorldPosition, cameraInfo.info);
+    vec3 reflection = normalize(reflect( - view, normal));
     reflection.y = reflection.y;
 
     Material material;
     {
         material.albedo = texture(albedoTexture, inTexCoords).rgb;
         
-        material.metallicFactor = texture(metallicRoughnessTexture, inTexCoords).b;
-        material.roughnessFactor = texture(metallicRoughnessTexture, inTexCoords).g;
+        material.metallicFactor = texture(metallicTexture, inTexCoords).b;
+        material.roughnessFactor = texture(roughnessTexture, inTexCoords).g;
         
         material.AO = texture(ambientOcclusionTexture, inTexCoords).r;
         material.AO = (material.AO < 0.01) ? 1.0 : material.AO;
