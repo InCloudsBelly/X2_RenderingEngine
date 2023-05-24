@@ -153,7 +153,7 @@ void Engine::prepareData()
         GameObject* sponza = new GameObject("sponza");
         models->addChild(sponza);
         sponza->addComponent(new SimpleForwardRenderer_Behaviour(std::string(MODEL_DIR) + "sponzaTGA/SponzaPBR.obj"));
-        sponza->transform.setTranslation(glm::vec3(0, -3, -2.5));
+        sponza->transform.setTranslation(glm::vec3(0, 4, 10));
         sponza->transform.setScale(glm::vec3(1.5, 1.5, 1.5));
     }
 
@@ -161,8 +161,16 @@ void Engine::prepareData()
         GameObject* mrBalls = new GameObject("mrBalls");
         models->addChild(mrBalls);
         mrBalls->addComponent(new SimpleForwardRenderer_Behaviour(std::string(MODEL_DIR) + "MetalRoughSpheres/MetalRoughSpheres.gltf"));
-        mrBalls->transform.setTranslation(glm::vec3(3, 1, -2.5));
+        mrBalls->transform.setTranslation(glm::vec3(10, 10, -2.5));
         mrBalls->transform.setScale(glm::vec3(1.5, 1.5, 1.5));
+    }
+
+    {
+        GameObject* plane = new GameObject("plane");
+        models->addChild(plane);
+        plane->addComponent(new SimpleForwardRenderer_Behaviour(std::string(MODEL_DIR) + "default/LargeQuad.ply"));
+        plane->transform.setTranslation(glm::vec3(3, 0, -2.5));
+        plane->transform.setScale(glm::vec3(100, 1, 100));
     }
 
 

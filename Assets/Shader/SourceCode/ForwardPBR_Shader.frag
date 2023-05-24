@@ -122,8 +122,8 @@ float ambient = 0.5;
 void main()
 {
     vec3 normal = calculateNormal();
-    vec3 view =  - CameraWObserveDirection(inWorldPosition, cameraInfo.info);
-    vec3 reflection = normalize(reflect( - view, normal));
+    vec3 view =  CameraWObserveDirection(inWorldPosition, cameraInfo.info);
+    vec3 reflection = normalize(reflect( view, normal));
     reflection.y = reflection.y;
 
     Material material;
@@ -142,7 +142,7 @@ void main()
     {
         float F0 = 0.04;
 
-        pbrInfo.NdotV = clamp(dot(normal, view), 0.001, 1.0);
+        pbrInfo.NdotV = clamp(dot(normal, -view), 0.001, 1.0);
         
         pbrInfo.diffuseColor = material.albedo.rgb * (vec3(1.0) - vec3(F0));
         pbrInfo.diffuseColor *= 1.0 - material.metallicFactor;
@@ -181,27 +181,6 @@ void main()
 
    color += (1 - shadowIntensity) * PbrLighting(lightInfos.mainLightInfo, inWorldPosition, view, normal, pbrInfo.diffuseColor, pbrInfo.perceptualRoughness, material.metallicFactor);
 
-//    for(int i = 0 ; i < ubo.lightsCount; ++i)
-//    {
-//        // Directional Light
-//        if (lights[i].type == 0)
-//        {
-//            float shadow = (1.0 - filterPCF(inShadowCoords.xyz / inShadowCoords.w));
-//            color += calculateDirLight(i,normal,view,material,pbrInfo) * shadow;
-//
-//        // Point Light
-//        } 
-//        else if(lights[i].type == 1)
-//        {
-//            color += calculatePointLight(i,normal,view,material,pbrInfo);
-//        } 
-//        else
-//        {
-//            color += calculateSpotLight(i,normal, view, material, pbrInfo
-//         );
-//      }
-//    }
-//
 
     // AO
     color = material.AO * color;
@@ -212,7 +191,8 @@ void main()
     color = pow(color,vec3(1.0 / 2.2));
 
     ColorAttachment = ambient * vec4(color, 1.0);
-   //ColorAttachment = vec4(normal, 1.0f);
+
+   //ColorAttachment = vec4(PbrLighting(lightInfos.mainLightInfo, inWorldPosition, view, normal, pbrInfo.diffuseColor, pbrInfo.perceptualRoughness, material.metallicFactor), 1.0f);
 
 //    ColorAttachment =  vec4(iblInfo.specularLight * (pbrInfo.specularColor* iblInfo.brdf.x + iblInfo.brdf.y) , 1.0);
     
