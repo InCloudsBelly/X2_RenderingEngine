@@ -23,6 +23,8 @@ public:
 	void createRendererData(CameraBase* camera);
 	void refreshRendererData(CameraBase* camera);
 	void destroyRendererData(CameraBase* camera);
+	void destroyRenderer(CameraBase* camera);
+
 	RenderPipelineBase* getRenderPipeline();
 	RendererBase* getRenderer(std::string rendererName);
 	RendererDataBase* getRendererData(CameraBase* camera);

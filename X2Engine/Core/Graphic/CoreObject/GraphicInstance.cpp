@@ -300,9 +300,15 @@ void Instance::destroy()
 
     delete g_swapchain;
 
-    delete g_assetManager;
     delete g_renderPipelineManager;
     delete g_lightManager;
+
+
+    g_assetManager->collect();
+    g_descriptorSetManager->collect();
+    g_renderPassManager->collect();
+
+    delete g_assetManager;
     delete g_descriptorSetManager;
     delete g_renderPassManager;
     

@@ -1,5 +1,6 @@
 #include "RenderPipelineManager.h"
 //#include "Utils/Log.h"
+#include "Core/Graphic/Rendering/RendererBase.h"
 #include "Core/Graphic/Rendering/RenderPipelineBase.h"
 #include "Core/Graphic/Rendering/RendererBase.h"
 #include "Core/Logic/Component/Base/CameraBase.h"
@@ -73,8 +74,11 @@ void RenderPipelineManager::destroyRendererData(CameraBase* camera)
 		throw(std::runtime_error("Camera does not have a renderer data."));
 
 	m_renderPipeline->getRenderer(camera->getRendererName())->destroyRendererData(m_rendererDatas[camera]);
-
 	m_rendererDatas.erase(camera);
+}
+
+void RenderPipelineManager::destroyRenderer(CameraBase* camera)
+{
 }
 
 RenderPipelineBase* RenderPipelineManager::getRenderPipeline()

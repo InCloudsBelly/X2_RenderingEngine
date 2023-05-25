@@ -40,6 +40,7 @@ public:
 
 class RendererBase : public Object
 {
+	friend class RenderPipelineBase;
 private:
 	std::map<std::string, RenderFeatureBase*> m_renderFeatures;
 	std::vector<std::string> m_renderFeatureUseOrder;

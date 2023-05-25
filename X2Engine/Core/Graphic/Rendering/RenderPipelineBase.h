@@ -19,6 +19,7 @@ protected:
 	void useRenderer(std::string rendererName, RendererBase* renderer);
 public:
 	RendererBase* getRenderer(std::string rendererName);
+	void destroyRenderer(std::string rendererName);
 
 	RTTR_ENABLE(Object)
 };

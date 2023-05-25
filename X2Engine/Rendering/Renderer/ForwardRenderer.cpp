@@ -6,6 +6,7 @@
 #include "Rendering/RenderFeature/PrefilteredIrradiance_RenderFeature.h"
 #include "Rendering/RenderFeature/PrefilteredEnvironmentMap_RenderFeature.h"
 #include "Rendering/RenderFeature/CSM_ShadowCaster_RenderFeature.h"
+#include "Rendering/RenderFeature/CascadeEVSM_ShadowCaster_RenderFeature.h"
 
 #include "Core/Logic/Component/Base/CameraBase.h"
 
@@ -29,6 +30,7 @@ ForwardRenderer::ForwardRenderer()
 	pushPreliminaryRenderFeature("PrefilteredEnvironmentMap_RenderFeature", new PrefilteredEnvironmentMap_RenderFeature());
 
 	pushRenderFeature("CSM_ShadowCaster_RenderFeature", new CSM_ShadowCaster_RenderFeature());
+	pushRenderFeature("CascadeEVSM_ShadowCaster_RenderFeature", new CascadeEVSM_ShadowCaster_RenderFeature());
 	pushRenderFeature("Background_RenderFeature", new Background_RenderFeature());
 	pushRenderFeature("SimpleForward_RenderFeature", new SimpleForward_RenderFeature());
 	pushRenderFeature("Present_RenderFeature", new Present_RenderFeature());
@@ -42,7 +44,10 @@ ForwardRenderer::~ForwardRenderer()
 
 	delete static_cast<Background_RenderFeature*>(getRenderFeature("Background_RenderFeature"));
 	delete static_cast<SimpleForward_RenderFeature*>(getRenderFeature("SimpleForward_RenderFeature"));
+	
 	delete static_cast<CSM_ShadowCaster_RenderFeature*>(getRenderFeature("CSM_ShadowCaster_RenderFeature"));
+	delete static_cast<CascadeEVSM_ShadowCaster_RenderFeature*>(getRenderFeature("CascadeEVSM_ShadowCaster_RenderFeature"));
+
 	delete static_cast<Present_RenderFeature*>(getRenderFeature("Present_RenderFeature"));
 }
 
@@ -76,19 +81,34 @@ void ForwardRenderer::onResolveRendererData(RendererDataBase* rendererData, Came
 	//backgroundData->backgroundImage = prefilteredIrradianceData->m_targetCubeImage;
 	//backgroundData->backgroundImage = prefilteredEnvData->m_targetCubeImage;
 
-	auto csmShadowMapFeatureData = static_cast<CSM_ShadowCaster_RenderFeature::CSM_ShadowCaster_RenderFeatureData*>(rendererData->getRenderFeatureData("CSM_ShadowCaster_RenderFeature"));
-	csmShadowMapFeatureData->frustumSegmentScales = { 0.1, 0.2, 0.3, 0.4 };
-	csmShadowMapFeatureData->lightCameraCompensationDistances = { 5, 5, 5, 5 };
-	csmShadowMapFeatureData->shadowImageResolutions = 2048;
-	csmShadowMapFeatureData->sampleHalfWidth = 2;
-	csmShadowMapFeatureData->bias = {
-		glm::vec2{ 0.0000f, 0.0075f },
-		glm::vec2{ 0.0000f, 0.0095f },
-		glm::vec2{ 0.0005f, 0.0105f },
-		glm::vec2{ 0.0005f, 0.0115f },
-	};
+	if (forwardFeatureData->shadowType == ShadowType::CSM)
+	{
+		auto csmShadowMapFeatureData = static_cast<CSM_ShadowCaster_RenderFeature::CSM_ShadowCaster_RenderFeatureData*>(rendererData->getRenderFeatureData("CSM_ShadowCaster_RenderFeature"));
+		csmShadowMapFeatureData->frustumSegmentScales = { 0.1, 0.2, 0.3, 0.4 };
+		csmShadowMapFeatureData->lightCameraCompensationDistances = { 5, 5, 5, 5 };
+		csmShadowMapFeatureData->shadowImageResolutions = 2048;
+		csmShadowMapFeatureData->sampleHalfWidth = 2;
+		csmShadowMapFeatureData->bias = {
+			glm::vec2{ 0.0000f, 0.0075f },
+			glm::vec2{ 0.0000f, 0.0095f },
+			glm::vec2{ 0.0005f, 0.0105f },
+			glm::vec2{ 0.0005f, 0.0115f },
+		};
 
-	forwardFeatureData->csmShadowMapRenderFeatureData = csmShadowMapFeatureData;
+		forwardFeatureData->shadowFeatureData = csmShadowMapFeatureData;
+	}
+	else if (forwardFeatureData->shadowType == ShadowType::CASCADED_EVSM)
+	{
+		auto cevsmShadowMapFeatureData = static_cast<CascadeEVSM_ShadowCaster_RenderFeature::CascadeEVSM_ShadowCaster_RenderFeatureData*>(rendererData->getRenderFeatureData("CascadeEVSM_ShadowCaster_RenderFeature"));
+		cevsmShadowMapFeatureData->frustumSegmentScales = { 0.1, 0.2, 0.3, 0.4 };
+		cevsmShadowMapFeatureData->lightCameraCompensationDistances = { 5, 5, 5, 5 };
+		cevsmShadowMapFeatureData->shadowImageResolutions = { 2048, 2048, 1024, 1024 };
+		cevsmShadowMapFeatureData->blurOffsets = { 1.5, 1.25, 1.0, 0.5 };
+		cevsmShadowMapFeatureData->iterateCount = 2;
+		cevsmShadowMapFeatureData->threshold = 0.5;
+
+		forwardFeatureData->shadowFeatureData = cevsmShadowMapFeatureData;
+	}
 }
 
 void ForwardRenderer::onDestroyRendererData(RendererDataBase* rendererData)

@@ -27,3 +27,5 @@ RendererBase* RenderPipelineBase::getRenderer(std::string rendererName)
 {
 	return g_renderers[rendererName];
 }
+
+

@@ -21,6 +21,7 @@
 #include "Core/Graphic/CoreObject/Swapchain.h"
 
 #include "Rendering/RenderFeature/CSM_ShadowCaster_RenderFeature.h"
+#include "Rendering/RenderFeature/CascadeEVSM_ShadowCaster_RenderFeature.h"
 
 #include "Core/Graphic/Rendering/Shader.h"
 
@@ -202,9 +203,7 @@ void SimpleForward_RenderFeature::excute(RenderFeatureDataBase* renderFeatureDat
 	///Render
 	{
 		commandBuffer->beginRenderPass(m_renderPass, featureData->frameBuffer);
-
-		CSM_ShadowCaster_RenderFeature::CSM_ShadowCaster_RenderFeatureData* shadowRenderFeatureData = static_cast<CSM_ShadowCaster_RenderFeature::CSM_ShadowCaster_RenderFeatureData*>(featureData->csmShadowMapRenderFeatureData);
-
+		
 		auto viewMatrix = camera->getViewMatrix();
 
 		for (const auto& rendererComponent : *rendererComponents)
@@ -217,9 +216,12 @@ void SimpleForward_RenderFeature::excute(RenderFeatureDataBase* renderFeatureDat
 			material->setUniformBuffer("lightInfos", Instance::getLightManager().getForwardLightInfosBuffer());
 			Instance::getLightManager().setAmbientLightParameters(material);
 
-			if (shadowRenderFeatureData)
+			if (featureData->shadowFeatureData)
 			{
-				shadowRenderFeatureData->setShadowReceiverMaterialParameters(material);
+				if(featureData->shadowType == ShadowType::CSM)
+					static_cast<CSM_ShadowCaster_RenderFeature::CSM_ShadowCaster_RenderFeatureData*>(featureData->shadowFeatureData)->setShadowReceiverMaterialParameters(material);
+				else if (featureData->shadowType == ShadowType::CASCADED_EVSM)
+					static_cast<CascadeEVSM_ShadowCaster_RenderFeature::CascadeEVSM_ShadowCaster_RenderFeatureData*>(featureData->shadowFeatureData)->setShadowReceiverMaterialParameters(material);
 			}
 			
 			commandBuffer->drawMesh(rendererComponent->mesh, material);

@@ -303,10 +303,6 @@ void Engine::cleanup()
 
     destroyByStaticBfs( { Component::ComponentType::BEHAVIOUR, Component::ComponentType::CAMERA, Component::ComponentType::RENDERER });
 
-    Instance::getDescriptorSetManager().collect();
-    Instance::getRenderPassManager().collect();
-    Instance::getAssetManager()->collect();
-
     Instance::destroy();
     LogicInstance::destroy();
 }

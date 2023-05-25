@@ -9,6 +9,12 @@ class ImageSampler;
 class Renderer;
 class Buffer;
 
+enum class ShadowType
+{
+	CSM = 0,
+	CASCADED_EVSM,
+};
+
 class SimpleForward_RenderFeature final : public RenderFeatureBase
 {
 public:
@@ -32,7 +38,9 @@ public:
 		bool needClearDepthAttachment;
 		Image* defaultAlbedoTexture;
 
-		RenderFeatureDataBase* csmShadowMapRenderFeatureData;
+		ShadowType shadowType = ShadowType::CASCADED_EVSM;
+
+		RenderFeatureDataBase* shadowFeatureData;
 
 		CONSTRUCTOR(SimpleForward_RenderFeatureData)
 		RTTR_ENABLE(RenderFeatureDataBase)

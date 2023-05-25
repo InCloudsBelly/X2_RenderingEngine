@@ -6,11 +6,20 @@
 #include "Object.glsl"
 #include "Light.glsl"
 
+#define SHADOW_CEVSM
+
 
 #define MAX_ORTHER_LIGHT_COUNT 4
 
-#define CSM_SHADOW_RECEIVER_DESCRIPTOR_START_INDEX 12
-#include "CSM_ShadowReceiver.glsl"
+#ifdef SHADOW_CSM
+   #define CSM_SHADOW_RECEIVER_DESCRIPTOR_START_INDEX 12
+   #include "CSM_ShadowReceiver.glsl"
+#endif
+
+#ifdef SHADOW_CEVSM
+   #define CASCADE_EVSM_SHADOW_RECEIVER_DESCRIPTOR_START_INDEX 12
+   #include "CascadeEVSM_ShadowReceiver.glsl"
+#endif
 
 layout(set = 0, binding = 0) uniform _CameraInfo
 {
@@ -177,7 +186,14 @@ void main()
 
     vec3 color = getIBLcontribution(pbrInfo, iblInfo, material);
 
-   float shadowIntensity = GetShadowIntensity((cameraInfo.info.view * vec4(inWorldPosition, 1)).xyz, normal);
+   float shadowIntensity = 0;
+#ifdef SHADOW_CSM
+   shadowIntensity = GetShadowIntensity((cameraInfo.info.view * vec4(inWorldPosition, 1)).xyz, normal);
+#endif
+
+#ifdef SHADOW_CEVSM
+   shadowIntensity = GetShadowIntensity((cameraInfo.info.view * vec4(inWorldPosition, 1)).xyz);
+#endif
 
    color += (1 - shadowIntensity) * PbrLighting(lightInfos.mainLightInfo, inWorldPosition, view, normal, pbrInfo.diffuseColor, pbrInfo.perceptualRoughness, material.metallicFactor);
 

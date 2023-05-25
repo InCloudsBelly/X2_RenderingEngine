@@ -53,10 +53,17 @@ void SimpleForwardRenderer_Behaviour::onStart()
 		renderer->mesh = pair.first;
 
 		{
-			auto shadowCasterShader = Instance::getAssetManager()->load<Shader>(std::string(SHADER_DIR) + "CSM_ShadowCaster_Shader.shader");
-			auto shadowCasterMaterial = new Material(shadowCasterShader);
-			renderer->addMaterial(shadowCasterMaterial);
+			auto csm_casterShader = Instance::getAssetManager()->load<Shader>(std::string(SHADER_DIR) + "CSM_ShadowCaster_Shader.shader");
+			auto csm_casterMaterial = new Material(csm_casterShader);
+			renderer->addMaterial(csm_casterMaterial);
 		}
+
+		{
+			auto cascaded_evsm_casterShader = Instance::getAssetManager()->load<Shader>(std::string(SHADER_DIR) + "CascadeEVSM_ShadowCaster_Shader.shader");
+			auto cascaded_evsm_casterMaterial = new Material(cascaded_evsm_casterShader);
+			renderer->addMaterial(cascaded_evsm_casterMaterial);
+		}
+
 		meshId++;
 	}
 }
