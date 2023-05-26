@@ -237,7 +237,7 @@ vec3 calculateNormal()
 	vec2 st1 = dFdx(inTexCoords);
 	vec2 st2 = dFdy(inTexCoords);
 
-    vec3 N = normalize(inWorldNormal);
+   vec3 N = normalize(inWorldNormal);
 	vec3 T = normalize(q1 * st2.t - q2 * st1.t);
 	vec3 B = -normalize(cross(N, T));
 	mat3 TBN = mat3(T, B, N);

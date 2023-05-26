@@ -39,6 +39,8 @@
 #include "Core/Graphic/Command/CommandBuffer.h"
 
 #include "Rendering/RenderPipeline/ForwardRenderPipeline.h"
+#include "Rendering/RenderPipeline/AmbientOcclusionRenderPipeline.h"
+
 #include "Rendering/Renderer/ForwardRenderer.h"
 
 #include "Asset/Mesh.h"
@@ -51,6 +53,7 @@
 #include "Behaviour/BackgroundRenderer_Behaviour.h"
 #include "Behaviour/PresentRenderer_Behaviour.h"
 #include "Behaviour/SimpleForwardRenderer_Behaviour.h"
+#include "Behaviour/AOVisualizationRenderer_Behaviour.h"
 
 #include "Rendering/RenderFeature/PrefilteredEnvironmentMap_RenderFeature.h"
 #include "Rendering/RenderFeature/PrefilteredIrradiance_RenderFeature.h"
@@ -79,7 +82,7 @@ void Engine::init()
 
 void Engine::prepareData()
 {
-   Instance::getRenderPipelineManager()->switchRenderPipeline(new ForwardRenderPipeline());
+   Instance::getRenderPipelineManager()->switchRenderPipeline(new AmbientOcclusionRenderPipeline());
 
 
    Instance::getDescriptorSetManager().addDescriptorSetPool(ShaderSlotType::UNIFORM_BUFFER, { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER }, 10);
@@ -98,8 +101,15 @@ void Engine::prepareData()
     //Camera
     GameObject* cameraGo = new GameObject("Camera");
     LogicInstance::rootObject.addChild(cameraGo);
+    //auto camera = new PerspectiveCamera(
+    //    "ForwardRenderer",
+    //    {
+    //        {"ColorAttachment", Image::Create2DImage(Instance::g_swapchain->getExtent(), VK_FORMAT_R8G8B8A8_SRGB, VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT)},
+    //        {"DepthAttachment", Image::Create2DImage(Instance::g_swapchain->getExtent(), VK_FORMAT_D32_SFLOAT, VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT)}
+    //    }
+    //); 
     auto camera = new PerspectiveCamera(
-        "ForwardRenderer",
+        "AmbientOcclusionVisualizationRenderer",
         {
             {"ColorAttachment", Image::Create2DImage(Instance::g_swapchain->getExtent(), VK_FORMAT_R8G8B8A8_SRGB, VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT)},
             {"DepthAttachment", Image::Create2DImage(Instance::g_swapchain->getExtent(), VK_FORMAT_D32_SFLOAT, VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT)}
@@ -152,7 +162,7 @@ void Engine::prepareData()
     {
         GameObject* sponza = new GameObject("sponza");
         models->addChild(sponza);
-        sponza->addComponent(new SimpleForwardRenderer_Behaviour(std::string(MODEL_DIR) + "sponzaTGA/SponzaPBR.obj"));
+        sponza->addComponent(new AOVisualizationRenderer_Behaviour(std::string(MODEL_DIR) + "sponzaTGA/SponzaPBR.obj"));
         sponza->transform.setTranslation(glm::vec3(0, 4, 10));
         sponza->transform.setScale(glm::vec3(1.5, 1.5, 1.5));
     }
@@ -160,7 +170,7 @@ void Engine::prepareData()
     {
         GameObject* mrBalls = new GameObject("mrBalls");
         models->addChild(mrBalls);
-        mrBalls->addComponent(new SimpleForwardRenderer_Behaviour(std::string(MODEL_DIR) + "MetalRoughSpheres/MetalRoughSpheres.gltf"));
+        mrBalls->addComponent(new AOVisualizationRenderer_Behaviour(std::string(MODEL_DIR) + "MetalRoughSpheres/MetalRoughSpheres.gltf"));
         mrBalls->transform.setTranslation(glm::vec3(10, 10, -2.5));
         mrBalls->transform.setScale(glm::vec3(1.5, 1.5, 1.5));
     }
@@ -168,7 +178,7 @@ void Engine::prepareData()
     {
         GameObject* plane = new GameObject("plane");
         models->addChild(plane);
-        plane->addComponent(new SimpleForwardRenderer_Behaviour(std::string(MODEL_DIR) + "default/LargeQuad.ply"));
+        plane->addComponent(new AOVisualizationRenderer_Behaviour(std::string(MODEL_DIR) + "default/LargeQuad.ply"));
         plane->transform.setTranslation(glm::vec3(3, 0, -2.5));
         plane->transform.setScale(glm::vec3(100, 1, 100));
     }
@@ -188,16 +198,16 @@ void Engine::prepareData()
     directionalLight->intensity = 8;
     directionalLightGo->addComponent(directionalLight);
    
-    GameObject* iblGo = new GameObject("SkyBox");
-    lights->addChild(iblGo);
-    auto iblLight = new AmbientLight();
-    iblLight->color = { 1, 1, 1, 1 };
-    iblLight->intensity = 0.5f;
-    iblLight->m_lutImage = Instance::getAssetManager()->load<Image>(std::string(MODEL_DIR) + "defaultTexture/BRDF_LUT.png");
-    iblLight->m_irradianceCubeImage = static_cast<PrefilteredIrradiance_RenderFeature::PrefilteredIrradiance_RenderFeatureData*>(camera->getRendererData()->getRenderFeatureData("PrefilteredIrradiance_RenderFeature"))->m_targetCubeImage;
-    iblLight->m_prefilteredCubeImage = static_cast<PrefilteredEnvironmentMap_RenderFeature::PrefilteredEnvironmentMap_RenderFeatureData*>(camera->getRendererData()->getRenderFeatureData("PrefilteredEnvironmentMap_RenderFeature"))->m_targetCubeImage;
+    //GameObject* iblGo = new GameObject("SkyBox");
+    //lights->addChild(iblGo);
+    //auto iblLight = new AmbientLight();
+    //iblLight->color = { 1, 1, 1, 1 };
+    //iblLight->intensity = 0.5f;
+    //iblLight->m_lutImage = Instance::getAssetManager()->load<Image>(std::string(MODEL_DIR) + "defaultTexture/BRDF_LUT.png");
+    //iblLight->m_irradianceCubeImage = static_cast<PrefilteredIrradiance_RenderFeature::PrefilteredIrradiance_RenderFeatureData*>(camera->getRendererData()->getRenderFeatureData("PrefilteredIrradiance_RenderFeature"))->m_targetCubeImage;
+    //iblLight->m_prefilteredCubeImage = static_cast<PrefilteredEnvironmentMap_RenderFeature::PrefilteredEnvironmentMap_RenderFeatureData*>(camera->getRendererData()->getRenderFeatureData("PrefilteredEnvironmentMap_RenderFeature"))->m_targetCubeImage;
 
-    iblGo->addComponent(iblLight);
+    //iblGo->addComponent(iblLight);
 
 
 
@@ -299,7 +309,7 @@ void Engine::cleanup()
     //    delete  m_imageAvailableSemaphores[i];
     //    delete  m_renderFinishedSemaphores[i];
     //}
-    Instance::getAssetManager()->unload(Instance::getLightManager().getAmbientLight()->m_lutImage);
+    //Instance::getAssetManager()->unload(Instance::getLightManager().getAmbientLight()->m_lutImage);
 
     destroyByStaticBfs( { Component::ComponentType::BEHAVIOUR, Component::ComponentType::CAMERA, Component::ComponentType::RENDERER });
 
