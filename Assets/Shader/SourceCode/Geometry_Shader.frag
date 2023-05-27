@@ -1,7 +1,13 @@
 #version 450
 #extension GL_GOOGLE_include_directive: enable
 
+#include "Camera.glsl"
 #include "Object.glsl"
+
+layout(set = 0, binding = 0) uniform _CameraInfo
+{
+    CameraInfo info;
+} cameraInfo;
 
 layout(set = 2, binding = 0) uniform sampler2D normalTexture;
 
@@ -10,14 +16,16 @@ layout(location = 1) in vec3 inWorldPosition;
 layout(location = 2) in vec3 inWorldNormal;
 
 layout(location = 0) out float Depth;
-layout(location = 1) out vec3 Normal;
+layout(location = 1) out vec3 vPosition;
+layout(location = 2) out vec3 vNormal;
 
 vec3 calculateNormal();
 
 void main() 
 {
     Depth = gl_FragCoord.z;
-    Normal = calculateNormal();
+    vPosition = (cameraInfo.info.view * vec4(inWorldPosition,1.0)).rgb;
+    vNormal = calculateNormal();
 }
 
 

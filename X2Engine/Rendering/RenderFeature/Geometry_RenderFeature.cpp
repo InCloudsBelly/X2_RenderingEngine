@@ -47,7 +47,7 @@ void Geometry_RenderFeature::Geometry_RenderPass::populateRenderPassSettings(Ren
 		VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 	);
 	settings.addColorAttachment(
-		"Normal",
+		"vPosition",
 		VK_FORMAT_R16G16B16A16_SFLOAT,
 		VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT,
 		VK_ATTACHMENT_LOAD_OP_CLEAR,
@@ -55,6 +55,18 @@ void Geometry_RenderFeature::Geometry_RenderPass::populateRenderPassSettings(Ren
 		VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED,
 		VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 	);
+
+	settings.addColorAttachment(
+		"vNormal",
+		VK_FORMAT_R16G16B16A16_SFLOAT,
+		VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT,
+		VK_ATTACHMENT_LOAD_OP_CLEAR,
+		VK_ATTACHMENT_STORE_OP_STORE,
+		VkImageLayout::VK_IMAGE_LAYOUT_UNDEFINED,
+		VkImageLayout::VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+	);
+
+
 	settings.addDepthAttachment(
 		"DepthAttachment",
 		VK_FORMAT_D32_SFLOAT,
@@ -67,7 +79,7 @@ void Geometry_RenderFeature::Geometry_RenderPass::populateRenderPassSettings(Ren
 	settings.addSubpass(
 		"DrawSubpass",
 		VK_PIPELINE_BIND_POINT_GRAPHICS,
-		{ "Depth", "Normal" },
+		{ "Depth","vPosition", "vNormal" },
 		"DepthAttachment"
 	);
 	settings.addDependency(
@@ -140,11 +152,19 @@ RenderFeatureDataBase* Geometry_RenderFeature::createRenderFeatureData(CameraBas
 		VMA_MEMORY_USAGE_GPU_ONLY,
 		VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT
 	);
+	featureData->positionTexture = Image::Create2DImage(
+		extent,
+		VkFormat::VK_FORMAT_R16G16B16A16_SFLOAT,
+		VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VkImageUsageFlagBits::VK_IMAGE_USAGE_SAMPLED_BIT,
+		VMA_MEMORY_USAGE_GPU_ONLY,
+		VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT
+	);
 	featureData->frameBuffer = new FrameBuffer(
 		m_geometryRenderPass,
 		{
 			{"Depth", featureData->depthTexture},
-			{"Normal", featureData->normalTexture},
+			{"vPosition", featureData->positionTexture},
+			{"vNormal", featureData->normalTexture},
 			{"DepthAttachment", camera->attachments["DepthAttachment"]},
 		}
 	);
@@ -162,6 +182,7 @@ void Geometry_RenderFeature::destroyRenderFeatureData(RenderFeatureDataBase* ren
 	delete featureData->frameBuffer;
 	delete featureData->depthTexture;
 	delete featureData->normalTexture;
+	delete featureData->positionTexture;
 	delete featureData;
 }
 
@@ -187,7 +208,8 @@ void Geometry_RenderFeature::excute(RenderFeatureDataBase* renderFeatureData, Co
 			featureData->frameBuffer,
 			{
 				{"Depth", depthClearValue},
-				{"Normal", normalClearValue},
+				{"vNormal", normalClearValue},
+				{"vPosition", normalClearValue},
 				{"DepthAttachment", depthClearValue}
 			}
 		);

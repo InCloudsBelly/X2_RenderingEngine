@@ -85,8 +85,8 @@ vec3 OrthographicCameraPositionN2V(in vec3 ndcPosition, in CameraInfo cameraInfo
 
 vec3 PerspectiveCameraPositionN2V(in vec3 ndcPosition, in CameraInfo cameraInfo)
 {
-    vec3 nearFlatPosition = vec3(ndcPosition.xy * cameraInfo.halfSize, -cameraInfo.nearFlat);
-    vec3 farFlatPosition = vec3(ndcPosition.xy * cameraInfo.halfSize * cameraInfo.farFlat / cameraInfo.nearFlat, -cameraInfo.farFlat);
+    vec3 nearFlatPosition = vec3(ndcPosition.xy * cameraInfo.halfSize, cameraInfo.nearFlat);
+    vec3 farFlatPosition = vec3(ndcPosition.xy * cameraInfo.halfSize * cameraInfo.farFlat / cameraInfo.nearFlat, cameraInfo.farFlat);
     float linearDepth = cameraInfo.nearFlat * ndcPosition.z / (ndcPosition.z * (cameraInfo.nearFlat - cameraInfo.farFlat) + cameraInfo.farFlat);
     return nearFlatPosition * (1 - linearDepth) + farFlatPosition * linearDepth;
 }
@@ -109,28 +109,28 @@ vec3 PositionN2V(in vec3 ndcPosition, in CameraInfo cameraInfo)
 vec2 PositionS2N(in vec2 imagePosition)
 {
     float x = clamp((2 * imagePosition.x  - 1), -1, 1);
-    float y = clamp((1 - 2 * imagePosition.y), -1, 1);
+    float y = clamp((2 * imagePosition.y  - 1), -1, 1);
     return vec2(x, y);
 }
 
 vec2 PositionN2S(in vec2 ndcPosition)
 {
     float x = (clamp(ndcPosition.x, -1, 1) + 1) / 2;
-    float y = (clamp(ndcPosition.y, -1, 1) - 1) / -2;
+    float y = (clamp(ndcPosition.y, -1, 1) + 1) / 2;
     return vec2(x, y);
 }
 
 vec2 PositionA2N(in vec2 attachmentPosition)
 {
     float x = clamp((2 * attachmentPosition.x  - 1), -1, 1);
-    float y = clamp((1 - 2 * attachmentPosition.y), -1, 1);
+    float y = clamp((2 * attachmentPosition.y  - 1), -1, 1);
     return vec2(x, y);
 }
 
 vec2 PositionN2A(in vec2 ndcPosition)
 {
     float x = (clamp(ndcPosition.x, -1, 1) + 1) / 2;
-    float y = (clamp(ndcPosition.y, -1, 1) - 1) / -2;
+    float y = (clamp(ndcPosition.y, -1, 1) + 1) / 2;
     return vec2(x, y);
 }
 #define IMAGE_TO_NDC_SPACE(imagePosition, depth) (vec3(2 * (imagePosition).x - 1, 1 - 2 * (imagePosition).y, (depth)))
