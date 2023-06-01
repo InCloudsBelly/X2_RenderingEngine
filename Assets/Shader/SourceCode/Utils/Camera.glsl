@@ -133,6 +133,7 @@ vec2 PositionN2A(in vec2 ndcPosition)
     float y = (clamp(ndcPosition.y, -1, 1) + 1) / 2;
     return vec2(x, y);
 }
+
 #define IMAGE_TO_NDC_SPACE(imagePosition, depth) (vec3(2 * (imagePosition).x - 1, 1 - 2 * (imagePosition).y, (depth)))
 
 vec3 PositionN2W(in vec3 ndcPosition, in CameraInfo cameraInfo)

@@ -168,12 +168,21 @@ void Engine::prepareData()
     }
 
     {
-        GameObject* mrBalls = new GameObject("mrBalls");
-        models->addChild(mrBalls);
-        mrBalls->addComponent(new AOVisualizationRenderer_Behaviour(std::string(MODEL_DIR) + "MetalRoughSpheres/MetalRoughSpheres.gltf"));
-        mrBalls->transform.setTranslation(glm::vec3(10, 10, -2.5));
-        mrBalls->transform.setScale(glm::vec3(1.5, 1.5, 1.5));
+        GameObject* damaged_helmet = new GameObject("damaged_helmet_Model");
+        models->addChild(damaged_helmet);
+        damaged_helmet->addComponent(new AOVisualizationRenderer_Behaviour(std::string(MODEL_DIR) + "damagedHelmet/DamagedHelmet.gltf"));
+        damaged_helmet->transform.setTranslation(glm::vec3(-10, 1, -3));
+        damaged_helmet->transform.setScale(glm::vec3(5, 5, 5));
     }
+
+
+    //{
+    //    GameObject* mrBalls = new GameObject("mrBalls");
+    //    models->addChild(mrBalls);
+    //    mrBalls->addComponent(new AOVisualizationRenderer_Behaviour(std::string(MODEL_DIR) + "MetalRoughSpheres/MetalRoughSpheres.gltf"));
+    //    mrBalls->transform.setTranslation(glm::vec3(10, 10, -2.5));
+    //    mrBalls->transform.setScale(glm::vec3(1.5, 1.5, 1.5));
+    //}
 
     {
         GameObject* plane = new GameObject("plane");
