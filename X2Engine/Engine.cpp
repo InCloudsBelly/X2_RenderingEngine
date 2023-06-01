@@ -38,8 +38,7 @@
 #include "Core/Graphic/Command/CommandPool.h"
 #include "Core/Graphic/Command/CommandBuffer.h"
 
-#include "Rendering/RenderPipeline/ForwardRenderPipeline.h"
-#include "Rendering/RenderPipeline/AmbientOcclusionRenderPipeline.h"
+#include "Rendering/RenderPipeline/EnumRenderPipeline.h"
 
 #include "Rendering/Renderer/ForwardRenderer.h"
 
@@ -82,7 +81,7 @@ void Engine::init()
 
 void Engine::prepareData()
 {
-   Instance::getRenderPipelineManager()->switchRenderPipeline(new AmbientOcclusionRenderPipeline());
+   Instance::getRenderPipelineManager()->switchRenderPipeline(new EnumRenderPipeline());
 
 
    Instance::getDescriptorSetManager().addDescriptorSetPool(ShaderSlotType::UNIFORM_BUFFER, { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER }, 10);
@@ -101,15 +100,9 @@ void Engine::prepareData()
     //Camera
     GameObject* cameraGo = new GameObject("Camera");
     LogicInstance::rootObject.addChild(cameraGo);
-    //auto camera = new PerspectiveCamera(
-    //    "ForwardRenderer",
-    //    {
-    //        {"ColorAttachment", Image::Create2DImage(Instance::g_swapchain->getExtent(), VK_FORMAT_R8G8B8A8_SRGB, VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT)},
-    //        {"DepthAttachment", Image::Create2DImage(Instance::g_swapchain->getExtent(), VK_FORMAT_D32_SFLOAT, VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT)}
-    //    }
-    //); 
+
     auto camera = new PerspectiveCamera(
-        "AmbientOcclusionVisualizationRenderer",
+        "SSAOVisualizationRenderer",
         {
             {"ColorAttachment", Image::Create2DImage(Instance::g_swapchain->getExtent(), VK_FORMAT_R8G8B8A8_SRGB, VkImageUsageFlagBits::VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VkImageAspectFlagBits::VK_IMAGE_ASPECT_COLOR_BIT)},
             {"DepthAttachment", Image::Create2DImage(Instance::g_swapchain->getExtent(), VK_FORMAT_D32_SFLOAT, VkImageUsageFlagBits::VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VMA_MEMORY_USAGE_GPU_ONLY, VkImageAspectFlagBits::VK_IMAGE_ASPECT_DEPTH_BIT)}

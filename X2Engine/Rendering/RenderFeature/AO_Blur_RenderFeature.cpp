@@ -128,13 +128,13 @@ AO_Blur_RenderFeature::AO_Blur_RenderFeature()
 		)
 	)
 {
-
 }
 
 AO_Blur_RenderFeature::~AO_Blur_RenderFeature()
 {
 	Instance::getRenderPassManager().unloadRenderPass<AO_Blur_RenderPass>();
 	Instance::getAssetManager()->unload(m_fullScreenMesh);
+	Instance::getAssetManager()->unload(m_blurShader);
 	delete m_textureSampler;
 }
 
@@ -204,8 +204,6 @@ void AO_Blur_RenderFeature::resolveRenderFeatureData(RenderFeatureDataBase* rend
 void AO_Blur_RenderFeature::destroyRenderFeatureData(RenderFeatureDataBase* renderFeatureData)
 {
 	auto featureData = static_cast<AO_Blur_RenderFeatureData*>(renderFeatureData);
-	delete featureData->horizontalMaterial;
-	delete featureData->verticalMaterial;
 	delete featureData->horizontalFrameBuffer;
 	delete featureData->verticalFrameBuffer;
 	delete featureData->horizontalBlurInfoBuffer;

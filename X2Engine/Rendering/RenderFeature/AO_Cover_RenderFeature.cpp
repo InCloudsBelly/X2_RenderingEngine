@@ -128,6 +128,8 @@ AO_Cover_RenderFeature::~AO_Cover_RenderFeature()
 {
 	Instance::getRenderPassManager().unloadRenderPass<AO_Cover_RenderPass>();
 	Instance::getAssetManager()->unload(m_fullScreenMesh);
+	
+	Instance::getAssetManager()->unload(m_coverShader);
 
 	delete m_textureSampler;
 }
@@ -173,7 +175,6 @@ void AO_Cover_RenderFeature::destroyRenderFeatureData(RenderFeatureDataBase* ren
 	auto featureData = static_cast<AO_Cover_RenderFeatureData*>(renderFeatureData);
 	delete featureData->frameBuffer;
 	delete featureData->coverInfoBuffer;
-	delete featureData->material;
 
 	delete featureData;
 }

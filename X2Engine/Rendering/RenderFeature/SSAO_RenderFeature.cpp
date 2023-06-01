@@ -138,6 +138,7 @@ SSAO_RenderFeature::~SSAO_RenderFeature()
 	Instance::getRenderPassManager().unloadRenderPass<SSAO_RenderPass>();
 	Instance::getAssetManager()->unload(m_fullScreenMesh);
 	Instance::getAssetManager()->unload(m_ssaoShader);
+
 	delete m_textureSampler;
 }
 
@@ -146,7 +147,6 @@ RenderFeatureDataBase* SSAO_RenderFeature::createRenderFeatureData(CameraBase* c
 	auto featureData = new SSAO_RenderFeatureData();
 
 	auto extent = VkExtent2D{ camera->attachments["ColorAttachment"]->getExtent2D().width / 2, camera->attachments["ColorAttachment"]->getExtent2D().height / 2 };
-	//auto extent = VkExtent2D{ camera->attachments["ColorAttachment"]->getExtent2D().width , camera->attachments["ColorAttachment"]->getExtent2D().height  };
 
 	///Occlusion texture
 	{
@@ -162,7 +162,6 @@ RenderFeatureDataBase* SSAO_RenderFeature::createRenderFeatureData(CameraBase* c
 	///Frame buffer
 	{
 		featureData->frameBuffer = new FrameBuffer(m_renderPass, { {"OcclusionTexture", featureData->occlusionTexture} });
-		//featureData->frameBuffer = new FrameBuffer(m_renderPass, { {"OcclusionTexture", camera->attachments["ColorAttachment"]} });
 	}
 
 	return featureData;
@@ -247,8 +246,6 @@ void SSAO_RenderFeature::destroyRenderFeatureData(RenderFeatureDataBase* renderF
 	delete featureData->samplePointInfoBuffer;
 	delete featureData->noiseStagingBuffer;
 	delete featureData->noiseTexture;
-
-	delete featureData->material;
 
 	delete featureData;
 }

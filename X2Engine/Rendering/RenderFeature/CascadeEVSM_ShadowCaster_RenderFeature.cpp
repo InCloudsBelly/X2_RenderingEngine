@@ -257,6 +257,8 @@ CascadeEVSM_ShadowCaster_RenderFeature::~CascadeEVSM_ShadowCaster_RenderFeature(
 	Instance::getRenderPassManager().unloadRenderPass(m_blitRenderPass);
 	Instance::getRenderPassManager().unloadRenderPass(m_blurRenderPass);
 
+	Instance::getAssetManager()->unload(m_blitShader);
+	Instance::getAssetManager()->unload(m_blurShader);
 	Instance::getAssetManager()->unload(m_fullScreenMesh);
 
 	delete m_pointSampler;

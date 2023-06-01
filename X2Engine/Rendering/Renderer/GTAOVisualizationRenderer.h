@@ -5,18 +5,18 @@
 class Renderer;
 
 
-class AmbientOcclusionVisualizationRenderer final : public RendererBase
+class GTAOVisualizationRenderer final : public RendererBase
 {
 public:
-	class AmbientOcclusionVisualizationRendererData final : public RendererDataBase
+	class GTAOVisualizationRendererData final : public RendererDataBase
 	{
 	public:
-		CONSTRUCTOR(AmbientOcclusionVisualizationRendererData)
+		CONSTRUCTOR(GTAOVisualizationRendererData)
 
 			RTTR_ENABLE(RendererDataBase)
 	};
 
-	CONSTRUCTOR(AmbientOcclusionVisualizationRenderer)
+	CONSTRUCTOR(GTAOVisualizationRenderer)
 
 private:
 	RendererDataBase* onCreateRendererData(CameraBase* camera)override;

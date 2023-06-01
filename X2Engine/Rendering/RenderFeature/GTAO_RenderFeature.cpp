@@ -240,8 +240,6 @@ void GTAO_RenderFeature::destroyRenderFeatureData(RenderFeatureDataBase* renderF
 	delete featureData->noiseStagingBuffer;
 	delete featureData->noiseTexture;
 
-	delete featureData->material;
-
 	delete featureData;
 }
 
