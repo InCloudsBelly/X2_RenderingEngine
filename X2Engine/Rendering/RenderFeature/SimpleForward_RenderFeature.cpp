@@ -218,6 +218,7 @@ void SimpleForward_RenderFeature::excute(RenderFeatureDataBase* renderFeatureDat
 
 			if (featureData->shadowFeatureData)
 			{
+				//Dont forget to change #define in Forward shader when change Shadow Type 
 				if(featureData->shadowType == ShadowType::CSM)
 					static_cast<CSM_ShadowCaster_RenderFeature::CSM_ShadowCaster_RenderFeatureData*>(featureData->shadowFeatureData)->setShadowReceiverMaterialParameters(material);
 				else if (featureData->shadowType == ShadowType::CASCADED_EVSM)

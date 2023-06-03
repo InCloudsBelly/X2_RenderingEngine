@@ -48,23 +48,23 @@ void CameraBase::refreshCameraInfo()
 	onSetSize(m_cameraInfo.halfSize);
 	//m_cameraInfo.forward = glm::normalize(m_cameraInfo.forward);
 	//m_cameraInfo.right = glm::normalize(m_cameraInfo.right);
-	
+
 	glm::vec3 rotation = getGameObject()->transform.getRotation();
 	float yaw = rotation.y;
 	float pitch = rotation.x;
 
-	m_cameraInfo.forward = glm::normalize(glm::vec3{ glm::cos(pitch)* glm::cos(yaw), glm::sin(pitch), glm::cos(pitch)* glm::sin(yaw) });
+	m_cameraInfo.forward = glm::normalize(glm::vec3{ glm::cos(pitch) * glm::cos(yaw), glm::sin(pitch), glm::cos(pitch) * glm::sin(yaw) });
 	m_cameraInfo.right = glm::normalize(glm::cross(glm::vec3(0, 1, 0), -m_cameraInfo.forward));
 	//m_cameraInfo.right = getGameObject()->transform.getModelMatrix() * glm::vec4(1, 0, 0, 0);
 	////std::cout << "right : " << m_cameraInfo.right.x << ", " << m_cameraInfo.right.y << ", " << m_cameraInfo.right.z << std::endl;
 	//m_cameraInfo.right = glm::cross(m_cameraInfo.forward, glm::vec3(0, 1, 0));
-	
+
 
 	onSetClipPlanes(m_cameraInfo.clipPlanes);
 	onSetProjectionMatrix(m_cameraInfo.projection);
 
 	glm::vec3 eyePos = m_cameraInfo.position;
-	glm::vec3 targetPos = eyePos+ m_cameraInfo.forward;
+	glm::vec3 targetPos = eyePos + m_cameraInfo.forward;
 	glm::vec3 up = glm::normalize(glm::cross(m_cameraInfo.right, m_cameraInfo.forward));
 	m_cameraInfo.view = glm::lookAt(eyePos, targetPos, up);
 
@@ -138,7 +138,7 @@ void CameraBase::refreshRenderer()
 
 CameraBase::CameraData* CameraBase::getCameraData()
 {
-	 return &m_cameraInfo; 
+	return &m_cameraInfo;
 }
 
 RendererDataBase* CameraBase::getRendererData()
@@ -167,7 +167,7 @@ void CameraBase::onDestroy()
 		delete attachment.second;
 }
 
-CameraBase::CameraBase(CameraType cameraType, std::string rendererName, std::map<std::string,Image*> attachments)
+CameraBase::CameraBase(CameraType cameraType, std::string rendererName, std::map<std::string, Image*> attachments)
 	: Component(ComponentType::CAMERA)
 	, attachments(attachments)
 	, cameraType(cameraType)
@@ -185,7 +185,7 @@ CameraBase::CameraBase(CameraType cameraType, std::string rendererName, std::map
 
 CameraBase::~CameraBase()
 {
-	
+
 }
 
 void CameraBase::onSetParameter(glm::vec4& parameter)

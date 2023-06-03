@@ -417,11 +417,8 @@ void CascadeEVSM_ShadowCaster_RenderFeature::destroyRenderFeatureData(RenderFeat
 		delete featureData->shadowTextures[i];
 		delete featureData->blitInfoBuffers[i];
 		delete featureData->blitFrameBuffers[i];
-		delete featureData->blitMaterials[i];
 
 		delete featureData->temporaryShadowTextures[i];
-		delete featureData->blurMaterials[i];
-		delete featureData->blurMaterials[i + CASCADE_COUNT];
 		delete featureData->blurInfoBuffers[i];
 		delete featureData->blurInfoBuffers[i + CASCADE_COUNT];
 		delete featureData->blurFrameBuffers[i];

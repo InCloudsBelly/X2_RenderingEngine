@@ -28,9 +28,6 @@ void SimpleForwardRenderer_Behaviour::onAwake()
 
 void SimpleForwardRenderer_Behaviour::onStart()
 {
-	shader = Instance::getAssetManager()->load<Shader>(std::string(SHADER_DIR) + "ForwardPBR_Shader.shader");
-
-
 	static int meshId = 0;
 	for (auto pair : m_model->m_meshTextureMap)
 	{
@@ -39,8 +36,8 @@ void SimpleForwardRenderer_Behaviour::onStart()
 		meshGo->addComponent(new Renderer());
 		auto renderer = meshGo->getComponent<Renderer>();
 
+		shader = Instance::getAssetManager()->load<Shader>(std::string(SHADER_DIR) + "ForwardPBR_Shader.shader");
 		auto material = new Material(shader);
-
 
 		material->setSampledImage2D("albedoTexture", pair.second->albedo, pair.second->albedo->getSampler());
 		material->setSampledImage2D("metallicTexture", pair.second->metallic, pair.second->metallic->getSampler());

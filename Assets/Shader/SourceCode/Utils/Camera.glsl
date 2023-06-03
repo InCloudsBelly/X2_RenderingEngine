@@ -85,8 +85,8 @@ vec3 OrthographicCameraPositionN2V(in vec3 ndcPosition, in CameraInfo cameraInfo
 
 vec3 PerspectiveCameraPositionN2V(in vec3 ndcPosition, in CameraInfo cameraInfo)
 {
-    vec3 nearFlatPosition = vec3(ndcPosition.xy * cameraInfo.halfSize, cameraInfo.nearFlat);
-    vec3 farFlatPosition = vec3(ndcPosition.xy * cameraInfo.halfSize * cameraInfo.farFlat / cameraInfo.nearFlat, cameraInfo.farFlat);
+    vec3 nearFlatPosition = vec3(ndcPosition.xy * cameraInfo.halfSize, -cameraInfo.nearFlat);
+    vec3 farFlatPosition = vec3(ndcPosition.xy * cameraInfo.halfSize * cameraInfo.farFlat / cameraInfo.nearFlat, -cameraInfo.farFlat);
     float linearDepth = cameraInfo.nearFlat * ndcPosition.z / (ndcPosition.z * (cameraInfo.nearFlat - cameraInfo.farFlat) + cameraInfo.farFlat);
     return nearFlatPosition * (1 - linearDepth) + farFlatPosition * linearDepth;
 }
