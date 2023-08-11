@@ -1,0 +1,472 @@
+Assets:
+  - Handle: 61145607591733384
+    FilePath: Meshes/Source/Sponza/9288698199695299068.jpg
+    Type: Texture
+  - Handle: 84512615794478083
+    FilePath: Meshes/Default/Capsule.xsmesh
+    Type: StaticMesh
+  - Handle: 94030502098353208
+    FilePath: Meshes/RenderingTests/cerberus.xsmesh
+    Type: StaticMesh
+  - Handle: 150542852744255466
+    FilePath: Meshes/Source/Sponza/2775690330959970771.jpg
+    Type: Texture
+  - Handle: 223175474887404475
+    FilePath: Meshes/SponzaDemo/Sponza.xmesh
+    Type: Mesh
+  - Handle: 443375761357462203
+    FilePath: Meshes/Source/Tests/TransformTest.gltf
+    Type: MeshSource
+  - Handle: 494223981549864003
+    FilePath: Meshes/Source/Sponza/white.png
+    Type: Texture
+  - Handle: 577500246248396451
+    FilePath: Meshes/Source/MetalRoughSpheres/MetalRoughSpheres.gltf
+    Type: MeshSource
+  - Handle: 777251276366641442
+    FilePath: Meshes/Source/Default/Cone.gltf
+    Type: MeshSource
+  - Handle: 864084181430578966
+    FilePath: Meshes/Source/Default/Capsule.gltf
+    Type: MeshSource
+  - Handle: 907935510652667010
+    FilePath: Meshes/Source/Sponza/715093869573992647.jpg
+    Type: Texture
+  - Handle: 1318322250733558743
+    FilePath: Meshes/Source/Ramp.gltf
+    Type: MeshSource
+  - Handle: 1336879366591181287
+    FilePath: Meshes/Source/Sponza/6772804448157695701.jpg
+    Type: Texture
+  - Handle: 1430470023973701390
+    FilePath: env/birchwood_4k.hdr
+    Type: EnvMap
+  - Handle: 1530365804990225472
+    FilePath: Meshes/Source/Sponza/17556969131407844942.jpg
+    Type: Texture
+  - Handle: 1759594633716355450
+    FilePath: Meshes/Source/damagedHelmet/DamagedHelmet.gltf
+    Type: MeshSource
+  - Handle: 1876974160638781435
+    FilePath: Meshes/Source/Sponza/Sponza.gltf
+    Type: MeshSource
+  - Handle: 2012944145589733457
+    FilePath: Meshes/Source/Sponza/2051777328469649772.jpg
+    Type: Texture
+  - Handle: 2421719153667662125
+    FilePath: scenes/Pbr_test.xscene
+    Type: Scene
+  - Handle: 2433630295986898321
+    FilePath: env/powerPlant.hdr
+    Type: EnvMap
+  - Handle: 2565416773234249942
+    FilePath: Meshes/Source/Sponza/8783994986360286082.jpg
+    Type: Texture
+  - Handle: 2615217193029824764
+    FilePath: Materials/M_Red.xmaterial
+    Type: Material
+  - Handle: 2649061090826260900
+    FilePath: Meshes/Source/Sponza/14118779221266351425.jpg
+    Type: Texture
+  - Handle: 2703226356353050176
+    FilePath: Meshes/Source/Sponza/8481240838833932244.jpg
+    Type: Texture
+  - Handle: 2834043777060150576
+    FilePath: m1911/m1911_metalness-m1911_roughness.png
+    Type: Texture
+  - Handle: 3356660258577775286
+    FilePath: Meshes/Source/damagedHelmet/textures/Default_metallic_roughness.jpg
+    Type: Texture
+  - Handle: 3698786400043251102
+    FilePath: Materials/M_Blue.xmaterial
+    Type: Material
+  - Handle: 3745429374563167893
+    FilePath: Meshes/Source/Sponza/5792855332885324923.jpg
+    Type: Texture
+  - Handle: 3808263817684695813
+    FilePath: Meshes/Source/Sponza/6151467286084645207.jpg
+    Type: Texture
+  - Handle: 4291087116627725743
+    FilePath: Meshes/Source/stormtrooper/Stormtrooper_D.png
+    Type: Texture
+  - Handle: 4413609607008278934
+    FilePath: Meshes/RenderingTests/MetalRoughSpheres.xsmesh
+    Type: StaticMesh
+  - Handle: 4547503775255768340
+    FilePath: Meshes/Source/Sponza/11968150294050148237.jpg
+    Type: Texture
+  - Handle: 4597854379687411892
+    FilePath: Materials/M_Crosshair.xmaterial
+    Type: Material
+  - Handle: 4831527302905400356
+    FilePath: Meshes/Source/cerberus/cerberus.gltf
+    Type: MeshSource
+  - Handle: 5018182795031714796
+    FilePath: Meshes/Source/Sponza/4910669866631290573.jpg
+    Type: Texture
+  - Handle: 5417602134236134909
+    FilePath: Meshes/Source/Sponza/11474523244911310074.jpg
+    Type: Texture
+  - Handle: 5531272614398433796
+    FilePath: Meshes/Source/Sponza/15295713303328085182.jpg
+    Type: Texture
+  - Handle: 5870740051302829803
+    FilePath: Meshes/Source/Sponza/2299742237651021498.jpg
+    Type: Texture
+  - Handle: 6025765268294017671
+    FilePath: Meshes/Source/TestScene.gltf
+    Type: MeshSource
+  - Handle: 6067319704924855696
+    FilePath: Meshes/Source/damagedHelmet/textures/Default_emissive.jpg
+    Type: Texture
+  - Handle: 6367016167751792735
+    FilePath: Meshes/Source/Sponza/9916269861720640319.jpg
+    Type: Texture
+  - Handle: 6374070085888972355
+    FilePath: Meshes/Source/sci-fi_helmet/textures/helmet_emissive.png
+    Type: Texture
+  - Handle: 6409828991023522236
+    FilePath: Meshes/Source/Sponza/8006627369776289000.png
+    Type: Texture
+  - Handle: 6686175148727890332
+    FilePath: Meshes/Source/damagedHelmet/Default_metalRoughness.jpg
+    Type: Texture
+  - Handle: 6709914577934288701
+    FilePath: Meshes/Source/Sponza/10388182081421875623.jpg
+    Type: Texture
+  - Handle: 7121780174045307941
+    FilePath: Meshes/Source/Default/Plane.gltf
+    Type: MeshSource
+  - Handle: 7307214364197012525
+    FilePath: Meshes/Source/damagedHelmet/DamagedHelmet.glb
+    Type: MeshSource
+  - Handle: 7368014500662505876
+    FilePath: Meshes/Source/Sponza/4477655471536070370.jpg
+    Type: Texture
+  - Handle: 7560597934993027931
+    FilePath: Materials/M_RedGlow.xmaterial
+    Type: Material
+  - Handle: 7888482404489261184
+    FilePath: Meshes/Source/cerberus/CerberusMaterials.gltf
+    Type: MeshSource
+  - Handle: 8124616881842156001
+    FilePath: Meshes/RenderingTests/CerberusMaterials.xsmesh
+    Type: StaticMesh
+  - Handle: 8126994734059042047
+    FilePath: Meshes/Default/Cube.xsmesh
+    Type: StaticMesh
+  - Handle: 8269280852534988198
+    FilePath: Meshes/Source/Sponza/11872827283454512094.jpg
+    Type: Texture
+  - Handle: 8339673178359601877
+    FilePath: env/neonStudio.hdr
+    Type: EnvMap
+  - Handle: 8397839668322215782
+    FilePath: Meshes/Source/Sponza/8114461559286000061.jpg
+    Type: Texture
+  - Handle: 8552759383811361073
+    FilePath: Materials/GreenEmission.xmaterial
+    Type: Material
+  - Handle: 8598212236503205942
+    FilePath: Meshes/Source/cerberus/Cerberus_M-Cerberus_R.png
+    Type: Texture
+  - Handle: 8669452817019455054
+    FilePath: Meshes/Source/Sponza/14650633544276105767.jpg
+    Type: Texture
+  - Handle: 8876157979240380608
+    FilePath: Meshes/RenderingTests/MetalRoughSpheres.xsmesh
+    Type: StaticMesh
+  - Handle: 8897749312999178854
+    FilePath: Meshes/Source/Sponza/6593109234861095314.jpg
+    Type: Texture
+  - Handle: 8945823106269993388
+    FilePath: Meshes/Source/Sponza/16299174074766089871.jpg
+    Type: Texture
+  - Handle: 9035680585060615452
+    FilePath: scenes/LightCulling.xscene
+    Type: Scene
+  - Handle: 9302742890112089311
+    FilePath: Meshes/Source/Sponza/4675343432951571524.jpg
+    Type: Texture
+  - Handle: 9414137067233326742
+    FilePath: Meshes/Source/Sponza/2185409758123873465.jpg
+    Type: Texture
+  - Handle: 9436797961022250707
+    FilePath: Meshes/Source/Sponza/3827035219084910048.jpg
+    Type: Texture
+  - Handle: 9475529204613929645
+    FilePath: Meshes/Source/Sponza/16885566240357350108.jpg
+    Type: Texture
+  - Handle: 9886386778658896210
+    FilePath: Meshes/Default/Sphere.xsmesh
+    Type: StaticMesh
+  - Handle: 9979768022001787803
+    FilePath: Meshes/Source/Sponza/2969916736137545357.jpg
+    Type: Texture
+  - Handle: 10368411330512147873
+    FilePath: Meshes/Default/Cone.xsmesh
+    Type: StaticMesh
+  - Handle: 10380089238709584959
+    FilePath: env/rooitou_park_4k.hdr
+    Type: EnvMap
+  - Handle: 10532781107863019326
+    FilePath: Meshes/Source/Sponza/8747919177698443163.jpg
+    Type: Texture
+  - Handle: 10602649569153478348
+    FilePath: Meshes/Source/Sponza/7815564343179553343.jpg
+    Type: Texture
+  - Handle: 10611573953318762705
+    FilePath: env/shangai.hdr
+    Type: EnvMap
+  - Handle: 10654887029150203521
+    FilePath: Meshes/TransformTest.xmesh
+    Type: Mesh
+  - Handle: 10720747155960360480
+    FilePath: env/venice_dawn_1_4k.hdr
+    Type: EnvMap
+  - Handle: 10735274028664689362
+    FilePath: Meshes/Default/Cylinder.xsmesh
+    Type: StaticMesh
+  - Handle: 10765141514441461692
+    FilePath: Meshes/Source/Default/Sphere.gltf
+    Type: MeshSource
+  - Handle: 10779745369290411721
+    FilePath: Meshes/Source/CubeScene.gltf
+    Type: MeshSource
+  - Handle: 11133627408825651586
+    FilePath: Meshes/Source/Sponza/2374361008830720677.jpg
+    Type: Texture
+  - Handle: 11198126152541417022
+    FilePath: Meshes/Source/Sponza/4975155472559461469.jpg
+    Type: Texture
+  - Handle: 11214808565492272670
+    FilePath: Meshes/Default/Torus.xsmesh
+    Type: StaticMesh
+  - Handle: 11302008192498094011
+    FilePath: Meshes/Bloom/BloomText.xmesh
+    Type: Mesh
+  - Handle: 11392530276467328388
+    FilePath: Materials/Rough.xmaterial
+    Type: Material
+  - Handle: 11427567363131426878
+    FilePath: Meshes/Source/damagedHelmet/textures/Default_AO.jpg
+    Type: Texture
+  - Handle: 11608548935869989088
+    FilePath: Materials/M_Green.xmaterial
+    Type: Material
+  - Handle: 11673519747397675434
+    FilePath: Meshes/Source/cerberus/Cerberus_A.png
+    Type: Texture
+  - Handle: 11786786583265732632
+    FilePath: Meshes/Source/Sponza/6047387724914829168.jpg
+    Type: Texture
+  - Handle: 11787805304627912693
+    FilePath: m1911/m1911_color.png
+    Type: Texture
+  - Handle: 11927444359410695178
+    FilePath: Meshes/Source/Bloom/BloomText.glb
+    Type: MeshSource
+  - Handle: 12039927915305459184
+    FilePath: Meshes/Source/Sponza/14170708867020035030.jpg
+    Type: Texture
+  - Handle: 12190767050637799107
+    FilePath: env/countryClub.hdr
+    Type: EnvMap
+  - Handle: 12363233624960282991
+    FilePath: Meshes/Default/Plane.xsmesh
+    Type: StaticMesh
+  - Handle: 12384690408049686350
+    FilePath: Meshes/Source/sci-fi_helmet/textures/helmet_baseColor.png
+    Type: Texture
+  - Handle: 12398958862992908237
+    FilePath: Meshes/Source/Sponza/13824894030729245199.jpg
+    Type: Texture
+  - Handle: 12612157257694078234
+    FilePath: Materials/M_ExplosiveParticle.xmaterial
+    Type: Material
+  - Handle: 12711553336575251616
+    FilePath: Meshes/Source/Sponza/759203620573749278.jpg
+    Type: Texture
+  - Handle: 12898934209385060934
+    FilePath: Meshes/Source/Default/Torus.gltf
+    Type: MeshSource
+  - Handle: 13148797068676246067
+    FilePath: Meshes/Source/stanford-bunny/stanford-bunny.obj
+    Type: MeshSource
+  - Handle: 13169160293155087505
+    FilePath: Meshes/Source/sci-fi_helmet/textures/helmet_normal.png
+    Type: Texture
+  - Handle: 13222578049304863235
+    FilePath: Meshes/RenderingTests/DamagedHelmet.xsmesh
+    Type: StaticMesh
+  - Handle: 13224879802376429545
+    FilePath: Meshes/Source/Sponza/14267839433702832875.jpg
+    Type: Texture
+  - Handle: 13297106367096658648
+    FilePath: Meshes/Source/Sponza/3628158980083700836.jpg
+    Type: Texture
+  - Handle: 13458632791164181876
+    FilePath: Meshes/Source/Sponza/755318871556304029.jpg
+    Type: Texture
+  - Handle: 13527406928430992559
+    FilePath: Meshes/Source/Sponza/11490520546946913238.jpg
+    Type: Texture
+  - Handle: 13558798853011843326
+    FilePath: Meshes/Source/Sponza/466164707995436622.jpg
+    Type: Texture
+  - Handle: 13691774436878258852
+    FilePath: Meshes/Source/damagedHelmet/Default_AO.jpg
+    Type: Texture
+  - Handle: 13712476291031164119
+    FilePath: Meshes/SponzaDemo/Sponza.xsmesh
+    Type: StaticMesh
+  - Handle: 13776553484123797850
+    FilePath: Meshes/Source/Sponza/4601176305987539675.jpg
+    Type: Texture
+  - Handle: 14016089534289346446
+    FilePath: Meshes/Source/Sponza/17876391417123941155.jpg
+    Type: Texture
+  - Handle: 14095323571515651927
+    FilePath: Meshes/Source/Sponza/1219024358953944284.jpg
+    Type: Texture
+  - Handle: 14223303314052332800
+    FilePath: Meshes/Source/Sponza/13196865903111448057.jpg
+    Type: Texture
+  - Handle: 14227014530609781026
+    FilePath: Meshes/Source/sci-fi_helmet/textures/helmet_metallicRoughness.png
+    Type: Texture
+  - Handle: 14318382737235236985
+    FilePath: Meshes/Source/damagedHelmet/textures/Default_normal.jpg
+    Type: Texture
+  - Handle: 14437242704216057945
+    FilePath: Meshes/Source/Sponza/8773302468495022225.jpg
+    Type: Texture
+  - Handle: 14600032679914194029
+    FilePath: Meshes/Source/Default/Cylinder.gltf
+    Type: MeshSource
+  - Handle: 14689814025321129809
+    FilePath: Meshes/Source/Sponza/4871783166746854860.jpg
+    Type: Texture
+  - Handle: 14715082688388346809
+    FilePath: Meshes/Source/Sponza/10381718147657362067.jpg
+    Type: Texture
+  - Handle: 14715667453970286582
+    FilePath: Meshes/Source/SubmeshCubeTest.gltf
+    Type: MeshSource
+  - Handle: 14719885197918323371
+    FilePath: Meshes/Source/damagedHelmet/textures/Default_albedo.jpg
+    Type: Texture
+  - Handle: 14726136496470307700
+    FilePath: Meshes/Source/Sponza/8051790464816141987.jpg
+    Type: Texture
+  - Handle: 14772952959475516185
+    FilePath: Meshes/Source/sci-fi_helmet/scene.gltf
+    Type: MeshSource
+  - Handle: 14884043744902672547
+    FilePath: Meshes/Source/teapot/teapot.obj
+    Type: MeshSource
+  - Handle: 14952173228952914510
+    FilePath: Materials/M_Ground.xmaterial
+    Type: Material
+  - Handle: 15135614390888957911
+    FilePath: env/pink_sunrise_4k.hdr
+    Type: EnvMap
+  - Handle: 15360572724650302727
+    FilePath: Meshes/Source/cerberus/Cerberus_N.png
+    Type: Texture
+  - Handle: 15483988285699618097
+    FilePath: Meshes/Source/Sponza/8750083169368950601.jpg
+    Type: Texture
+  - Handle: 15546472925459279844
+    FilePath: env/dikhololo_night_4k.hdr
+    Type: EnvMap
+  - Handle: 15645219971788278502
+    FilePath: Meshes/Source/Sponza/16275776544635328252.png
+    Type: Texture
+  - Handle: 16082962571370269090
+    FilePath: Meshes/Source/Sponza/8503262930880235456.jpg
+    Type: Texture
+  - Handle: 16179135429813279163
+    FilePath: Meshes/Source/Sponza/15722799267630235092.jpg
+    Type: Texture
+  - Handle: 16203566241224795550
+    FilePath: Meshes/Source/Sponza/7056944414013900257.jpg
+    Type: Texture
+  - Handle: 16305444775261492127
+    FilePath: Meshes/Source/Sponza/3371964815757888145.jpg
+    Type: Texture
+  - Handle: 16347029052434286285
+    FilePath: Meshes/Source/Sponza/7441062115984513793.jpg
+    Type: Texture
+  - Handle: 16379490372590824530
+    FilePath: Meshes/CubeScene.xmesh
+    Type: Mesh
+  - Handle: 16436641178160579139
+    FilePath: Meshes/Source/Sponza/332936164838540657.jpg
+    Type: Texture
+  - Handle: 16786193437636009052
+    FilePath: Meshes/Source/MetalRoughSpheres/textures/Spheres_MetalRough.png
+    Type: Texture
+  - Handle: 16932478854063683588
+    FilePath: Meshes/Source/Sponza/2411100444841994089.jpg
+    Type: Texture
+  - Handle: 17172777870850473680
+    FilePath: m1911/m1911_normal.png
+    Type: Texture
+  - Handle: 17180281405590932341
+    FilePath: Meshes/Source/Sponza/12501374198249454378.jpg
+    Type: Texture
+  - Handle: 17263006471192570113
+    FilePath: Meshes/Source/Default/Cube.gltf
+    Type: MeshSource
+  - Handle: 17317565190056334234
+    FilePath: Meshes/Source/damagedHelmet/Default_albedo.jpg
+    Type: Texture
+  - Handle: 17372787996731474066
+    FilePath: Meshes/Source/stormtrooper/stormtrooper.gltf
+    Type: MeshSource
+  - Handle: 17389036537752446231
+    FilePath: Meshes/Source/damagedHelmet/Default_emissive.jpg
+    Type: Texture
+  - Handle: 17513338097293101965
+    FilePath: Meshes/Source/damagedHelmet/Default_normal.jpg
+    Type: Texture
+  - Handle: 17557872516266878973
+    FilePath: Materials/Reflective.xmaterial
+    Type: Material
+  - Handle: 17565720699935609186
+    FilePath: Meshes/Source/Sponza/3455394979645218238.jpg
+    Type: Texture
+  - Handle: 17641098006002529904
+    FilePath: Meshes/Source/Sponza/7645212358685992005.jpg
+    Type: Texture
+  - Handle: 17665704995939891278
+    FilePath: Meshes/Source/Sponza/5823059166183034438.jpg
+    Type: Texture
+  - Handle: 17737207081801100004
+    FilePath: Meshes/Source/Sponza/13982482287905699490.jpg
+    Type: Texture
+  - Handle: 17990772787190744807
+    FilePath: Materials/Capsule.xmaterial
+    Type: Material
+  - Handle: 18037528564344925920
+    FilePath: Meshes/Source/Sponza/5061699253647017043.png
+    Type: Texture
+  - Handle: 18159050027469365453
+    FilePath: env/Apartment.hdr
+    Type: EnvMap
+  - Handle: 18192838836860821503
+    FilePath: Meshes/Source/MetalRoughSpheres/textures/Spheres_BaseColor.png
+    Type: Texture
+  - Handle: 18223144476608475708
+    FilePath: scenes/Sandbox.xscene
+    Type: Scene
+  - Handle: 18319244342020719880
+    FilePath: m1911/m1911.gltf
+    Type: MeshSource
+  - Handle: 18335274948091093754
+    FilePath: Meshes/Source/Sponza/7268504077753552595.jpg
+    Type: Texture
+  - Handle: 18412673892461998990
+    FilePath: Meshes/Source/Sponza/6667038893015345571.jpg
+    Type: Texture

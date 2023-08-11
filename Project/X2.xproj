@@ -1,0 +1,39 @@
+Project:
+  Name: Sandbox
+  AssetDirectory: Assets
+  AssetRegistry: Assets/AssetRegistry.xzr
+  MeshPath: Assets/Meshes
+  MeshSourcePath: Assets/Meshes/Source
+  DefaultNamespace: X2
+  StartScene: scenes/Sandbox.xscene
+  AutomaticallyReloadAssembly: true
+  AutoSave: false
+  AutoSaveInterval: 300
+  Log:
+    AssetManager:
+      Enabled: true
+      LevelFilter: Fatal
+    Assimp:
+      Enabled: true
+      LevelFilter: Fatal
+    Core:
+      Enabled: true
+      LevelFilter: Trace
+    GLFW:
+      Enabled: true
+      LevelFilter: Trace
+    Memory:
+      Enabled: true
+      LevelFilter: Error
+    Mesh:
+      Enabled: true
+      LevelFilter: Error
+    Renderer:
+      Enabled: true
+      LevelFilter: Error
+    Scene:
+      Enabled: true
+      LevelFilter: Trace
+    TIMER:
+      Enabled: true
+      LevelFilter: Trace

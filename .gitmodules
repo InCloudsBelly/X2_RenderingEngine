@@ -10,9 +10,3 @@
 [submodule "3rdParty/imgui"]
 	path = 3rdParty/imgui
 	url = https://gitee.com/fghydx-osc_admin/imgui.git
-[submodule "3rdParty/NlohmannJson"]
-	path = 3rdParty/NlohmannJson
-	url = https://gitee.com/haha-web/nlohmannjson.git
-[submodule "3rdParty/VulkanMemoryAllocator"]
-	path = 3rdParty/VulkanMemoryAllocator
-	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git

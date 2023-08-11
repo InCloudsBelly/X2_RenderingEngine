@@ -9,12 +9,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set(PROJECT_OUTPUT_DIR "${CMAKE_BINARY_DIR}/../bin")
 set(PROJECT_BIN_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_OUTPUT_DIR})
-set(PROJECT_SOURCE_DIR "${CMAKE_SOURCE_DIR}/X2Engine")
-set(SHADER_DIR "${CMAKE_SOURCE_DIR}/Assets/Shader")
-set(SHADER_SOURCE_DIR "${SHADER_DIR}/SourceCode")
+set(PROJECT_SOURCE_DIR "${CMAKE_SOURCE_DIR}/Engine")
 set(PROJECT_LIBRARIES_DIR "${CMAKE_SOURCE_DIR}/3rdParty")
-set(MODEL_DIR "${CMAKE_SOURCE_DIR}/Assets/Model")
-set(SKYBOX_DIR  "${CMAKE_SOURCE_DIR}/Assets/SkyBox")
+set(RESOURCE_DIR  "${CMAKE_SOURCE_DIR}/Resources")
 
 # 递归查找文件夹下的 .h .hpp. ini 文件保存到 HEADER_FILES
 file(GLOB_RECURSE HEADER_FILES  ${PROJECT_SOURCE_DIR}/*.h ${PROJECT_SOURCE_DIR}/*.hpp ${PROJECT_SOURCE_DIR}/*.ini) 
@@ -34,6 +31,8 @@ else ()
    set(CMAKE_CXX_FLAGS_RELEASE_INIT "-Wall")
    add_definitions(-DRELEASE_MODE_ON=0)
 endif ()
+
+
 
 #####################################Libs######################################
 
@@ -87,38 +86,44 @@ add_subdirectory(${ASSIMP_DIR})
 set(THREADS_PREFER_PTRHEAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-# - RTTR
-set(RTTR_DIR "${PROJECT_LIBRARIES_DIR}/rttr")
-add_subdirectory(${RTTR_DIR} EXCLUDE_FROM_ALL)
 
 # - VMA
 set(VMA_DIR "${PROJECT_LIBRARIES_DIR}/VulkanMemoryAllocator")
 add_subdirectory(${VMA_DIR} EXCLUDE_FROM_ALL)
 
-# - JSON
-set(JSON_DIR "${PROJECT_LIBRARIES_DIR}/NlohmannJson")
-add_subdirectory(${JSON_DIR} EXCLUDE_FROM_ALL)
+set(SPIRV_Cross_DIR "${PROJECT_LIBRARIES_DIR}/SPIRV-Cross")
+add_subdirectory(${SPIRV_Cross_DIR} EXCLUDE_FROM_ALL)
+
+set(SHADERC_DIR "${PROJECT_LIBRARIES_DIR}/shaderc")
+set(SHADERC_SKIP_TESTS ON)
+add_subdirectory(${SHADERC_DIR} EXCLUDE_FROM_ALL)
+
+set(YAML_DIR "${PROJECT_LIBRARIES_DIR}/yaml-cpp")
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory(${YAML_DIR} EXCLUDE_FROM_ALL)
+
+set(OPTOCL_DIR "${PROJECT_LIBRARIES_DIR}/optick")
+add_subdirectory(${OPTOCL_DIR} EXCLUDE_FROM_ALL)
+
+set(MSDF_FONT_DIR "${PROJECT_LIBRARIES_DIR}/msdf-atlas-gen")
+add_subdirectory(${MSDF_FONT_DIR} EXCLUDE_FROM_ALL)
 
 
-set_target_properties(glfw assimp imgui UpdateAssimpLibsDebugSymbolsAndDLLs VulkanMemoryAllocator zlibstatic
+
+
+
+set_target_properties(glfw assimp imgui UpdateAssimpLibsDebugSymbolsAndDLLs zlibstatic yaml-cpp OptickCore msdf-atlas-gen shaderc spirv-cross-core spirv-cross-glsl VulkanMemoryAllocator
     PROPERTIES 
     FOLDER 
     "ThirdParty"
 )
 
-##################################Shaders######################################
-
-# - Compilation of shaders
-add_subdirectory(${SHADER_DIR})
-
-
 
 ################################Definitions####################################
 
-add_definitions(-DTEXTURES_DIR="${TEXTURES_DIR}/")
-add_definitions(-DMODEL_DIR="${MODEL_DIR}/")
-add_definitions(-DSKYBOX_DIR="${SKYBOX_DIR}/")
-add_definitions(-DSHADER_DIR="${SHADER_DIR}/")
+add_definitions(-DPROJECT_ROOT="${CMAKE_SOURCE_DIR}/")
+add_definitions(-DX2_DEBUG)
+add_definitions(-DX2_TRACK_MEMORY)
 
 #################################Executable####################################
 
@@ -127,30 +132,44 @@ add_executable(${PROJECT_NAME} ${SOURCE_FILES} ${HEADER_FILES})
 target_include_directories(
    ${PROJECT_NAME}
    PUBLIC
+      "${VMA_DIR}/include"
       "${Vulkan_INCLUDE_DIRS}"
+      "${PROJECT_LIBRARIES_DIR}"
       "${GLFW_INCLUDE_DIRS}"
-      "${PROJECT_LIBRARIES_DIR}/rttr"
-      ${NLOHMANN_JSON_INCLUDE_BUILD_DIR}
+      "${IMGUI_DIR}"
+      "${VOLK_DIR}"
+      "${SHADERC_DIR}/libshaderc_util/include"
+      "${SHADERC_DIR}/libshaderc/include"
+      "${SHADERC_DIR}/glslc/src"
+      "${YAML_DIR}/include"
+      "${OPTOCL_DIR}/src"
+      "${MSDF_FONT_DIR}/msdf-atlas-gen"
    PRIVATE
       "${PROJECT_SOURCE_DIR}"
 )
-message(" NLOHMANN_JSON ${NLOHMANN_JSON_INCLUDE_BUILD_DIR}")
 
 target_link_libraries(${PROJECT_NAME} 
-   PUBLIC
-   glfw 
+PRIVATE
+    VulkanMemoryAllocator
+PUBLIC
+   glfw
    ${Vulkan_LIBRARIES}
    Threads::Threads  # Needed by GLFW.
    glm
    stb_image
    assimp
    imgui
-   VulkanMemoryAllocator 
-   rttr
-   nlohmann_json::nlohmann_json
+   shaderc 
+   yaml-cpp
+   OptickCore
+   msdf-atlas-gen
+   spirv-cross-core
+   spirv-cross-glsl
    PRIVATE
    ${CMAKE_DL_LIBS}
 )
+
+target_precompile_headers(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/Engine/Precompiled.h)
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
 # CMAKE_DL_LIBS -> is the library libdl which helps to link dynamic
