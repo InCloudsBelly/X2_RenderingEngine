@@ -10,72 +10,61 @@ A rendering engine based on Vulkan, designed to implement various graphics algor
 git clone --recursive https://github.com/InCloudsBelly/X2_RenderingEngine.git
 cd X2_RenderingEngine
 run Build.bat
-
-** 每次修改shader的源文件也可以通过Build.bat计算生成新的spv文件。
 ```
+
 ### Platform: &nbsp;Only Windows yet.
 ### Rendering API: Vulkan 
 <br>
 
 ## Engine Features:
 - [x] **Vulkan Rendering System**
-- [x] **Asset Manager**
-- [x] **DescriptorSet Manager**
-- [x] **RenderPass Manager**
-- [x] **Command System**
-- [x] **Logic System (Manager Scene with Game Objects & Components (Simple ECS))**
+- [x] **Asset Manager (Including Serilization Manager)**
+- [x] **Simple ECS (using entt)**
+- [x] **Simple Material System (Dynamic loading, Mainly used for PBR)**
+- [x] **Multi-Layer (now only Editor Rendering Layer & ImGuiLayer)**
+- [x] **Shader Compilation (now only support glsl)**
 - [x] **Input Manager (KeyBoard, Mouse, Stroll and etc.)**
-- [x] **Camera & Controller**
-- [x] **Lights & Manager**
-- [x] **Behaviours**
-- [x] **Simple Material System**
+- [x] **ImGui UI & UI Control**
+
 
 TODO:
-- [ ] **ECS**
-- [ ] **ImGui UI & UI Control**
-- [ ] **Switching Renderers Online**
-- [ ] **Material Visualization**
-- [ ] **Scene Serialization & Deserialization**
-- [ ] **...**
+- [ ] **Animation**
+- [ ] **Introducing new Layers & new Components to implement new features, such as Physics, Audio, ScriptSystem & etc.**
+- [ ] **Optimize Compilation and Code**
 <br>
 
 ## Rendering Features:
 - [x] **SwapChain**
-- [x] **Background Rendering**
-- [x] **Prefiltered EnvironmentMap**
-- [x] **Prefiltered Irradiance**
-- [x] **Hdr to 6-layer VkImage**
+- [x] **Skybox Rendering**
+- [x] **Prefiltered EnvironmentMap & IrradianceMap**
 - [x] **IBL(Image Based Lighting)**
-- [x] **Forward PBR(Physical Based Rendering)**
-- [x] **Geometry Buffer**
+- [x] **Deffered Rendering (NormalMap & DepthMap can be used for Algos)**
+- [x] **PBR (Physical Based Rendering)**
 - [x] **CSM(Cascaded Shadow Map)**
-- [x] **Cascaded EVSM(Exponential Variance Shadow Maps)**
-
-*To tell the truth, light cameras move with center of Cascaded frustum will cause Shadow edge flickering in EVSM*
-
-- [x] **SSAO(Screen-Space Ambient Occlusion)**
 - [x] **HBAO(Horizon-Based Ambient Occlusion)**
 - [x] **GTAO(Ground-Truth Ambient Occlusion)**
+- [x] **Pre-Depth peeling**
+- [x] **Blooming**
+- [x] **Deinterleaving & Reinterleaving**
+- [x] **Tile Based LightCulling**
+
+
 
 
 TODO: 
-- [ ] **MSAA，Multisample Anti-Aliasing**
-- [ ] **SSAA，Supersample Anti-Aliasing**
-- [ ] **SMAA，Subpixel Morphological Anti-Aliasing**
-- [ ] **FXAA（Fast Approximate Anti-Aliasing）**
-- [ ] **TXAA（Temporal Anti-Aliasing）**
+- [ ] **SMAA(Subpixel Morphological Anti-Aliasing)**
+- [ ] **FXAA(Fast Approximate Anti-Aliasing)**
+- [ ] **TXAA(Temporal Anti-Aliasing)**
 - [ ] **SSR Screen Space Reflections**
 - [ ] **SH Spherical Harmonic Lighting**
 - [ ] **Tile Based Rendering**
-- [ ] **PostProcess**
-- [ ] **Depth Pelling**
 - [ ] **...**
 
 <br>
 
 ### 代码规范
 
-1. 变量和函数一律小写字母开头
+1. 变量一律小写字开头，函数则以大写字母开头，此两者中完整单词以大写开头作为间隔
 1. 全局变量以g_开头
 1. 独立单词以首字母大写间隔
 1. 仍需要进一步规范化
@@ -83,67 +72,88 @@ TODO:
 <br>
 
 # 具体实现图片
+## 系统主界面 
+
+<div align=center>
+<img src="Pictures/主界面.png">
+
+ 图1 系统主界面
+</div>
+主要界面如图所示，文件浏览器可以拖动到一定位置进行交互以进行动态修改，目前主要应用到的Component主要是Transform和static Mesh Component，其对应的编辑逻辑也在图中进行展示，而左侧则是一些渲染的信息以及渲染选项调节，同样可以进行动态调节，下边展示的各种渲染算法也都可以在左侧UI界面进行调节。
+
 ## ForwardPBR 
 
 <div align=center>
-<img src="Pictures/PBR_damagedHelmet.png">
+<img src="Pictures/PBR1.png">
 
- 图1 PBR_damagedHelmet
+ 图2 PBR1
 </div>
 
 
 <div align=center>
-<img src="Pictures/PBR_mr_Balls.png">
+<img src="Pictures/PBR2.png">
 
- 图2 PBR_MetallicRoughness_Balls
+ 图3 PBR2
 </div>
 
 ## Shadow
 
 <div align=center>
-<img src="Pictures/CSM(with PCF).png">
+<img src="Pictures/CSM0.png">
 
- 图3 CSM(with PCF)
+ 图4 CSM级联
 </div>
 
 <div align=center>
-<img src="Pictures/CSM(Sponza).png">
+<img src="Pictures/CSM1.png">
 
- 图4 CSM(Sponza)
+ 图5 CSM效果
 </div>
 
-
-<br> 
 <div align=center>
-<img src="Pictures/Cascaded_EVSM(sponza).png" > 
+<img src="Pictures/CSM3.0.png">
+<img src="Pictures/CSM3.1.png">
 
-图5 Cascaded_EVSM(sponza)
+<img src="Pictures/CSM3.2.png">
+<img src="Pictures/CSM3.3.png">
+
+ 图6 CSM各个级联的阴影贴图
 </div>
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 图5中看到Cascaded EVSM效果似乎也是不错的，但实际上个人认为Cascaded思路和EVSM确实不搭，因为Cascaded中为了保障阴影贴图像素质量稳定，常采用各个级联的光源相机跟随级联视锥体中心移动，但光源移动对于使用深度方差为参考的VSM（EVSM中的一部分）是有些致命的，（由于深度方差会频繁变化）。但EVSM在光源相机不变的时候效果还是很不错的。
 
 
 ## Ambient Occlusion
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 以下的环境光遮蔽的效果图均以高斯滤波横向纵向各两次的效果为准。
 
 <div align=center>
-<img src="Pictures/SSAO.png"> 
+<img src="Pictures/WithoutAO.png"> 
 
-图6 SSAO
+图7 WithoutAO
 </div>
 
 <div align=center>
 <img src="Pictures/HBAO.png"> 
 
-图7 HBAO
+图8 HBAO
 </div>
 
 <div align=center>
 <img src="Pictures/GTAO.png"> 
 
-图8 GTAO
+图9 GTAO
 </div>
 
+
+## Tile Based LightingCulling
+
+<div align=center>
+<img src="Pictures/LightCulling1.png"> 
+
+图10 多光源下的Sponza
+</div>
+
+<div align=center>
+<img src="Pictures/LightCulling2.png"> 
+
+图11 各个Tile的点光源计算复杂度
 
 
 # 总结与评价
