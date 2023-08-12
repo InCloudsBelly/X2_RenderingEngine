@@ -16,6 +16,8 @@
 #include "X2/Vulkan/VulkanRenderer.h"
 #include "X2/Vulkan/VulkanContext.h"
 #include "X2/Project/Project.h"
+#include "X2/Utilities/SMAAAreaTex.h"
+#include "X2/Utilities/SMAASearchTex.h"
 
 #include <filesystem>
 
@@ -109,6 +111,8 @@ namespace X2 {
 		Ref<VulkanTexture2D> BlackTexture;
 		Ref<VulkanTexture2D> BRDFLutTexture;
 		Ref<VulkanTexture2D> HilbertLut;
+		Ref<VulkanTexture2D> SMAASearchLut;
+		Ref<VulkanTexture2D> SMAAAreaLut;
 		Ref<VulkanTextureCube> BlackCubeTexture;
 
 		Ref<Environment> EmptyEnvironment;
@@ -208,6 +212,11 @@ namespace X2 {
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/SelectedGeometry_Anim.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/TexturePass.glsl");
 
+		//SMAA
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/PostProcessing/SMAAEdgeDetect.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/PostProcessing/SMAABlendWeight.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/PostProcessing/SMAANeighborBlend.glsl");
+
 		// Compile shaders
 		Application::Get().GetRenderThread().Pump();
 
@@ -225,6 +234,10 @@ namespace X2 {
 			TextureSpecification spec;
 			spec.SamplerWrap = TextureWrap::Clamp;
 			s_Data->BRDFLutTexture = Ref<VulkanTexture2D>::Create(spec, std::filesystem::path(std::string(PROJECT_ROOT)+"Resources/Renderer/BRDF_LUT.tga"));
+
+			s_Data->SMAAAreaLut = Ref<VulkanTexture2D>::Create(spec, std::filesystem::path(std::string(PROJECT_ROOT) + "Resources/Renderer/AreaTex.png") ,true);
+
+			s_Data->SMAASearchLut = Ref<VulkanTexture2D>::Create(spec, std::filesystem::path(std::string(PROJECT_ROOT) + "Resources/Renderer/SearchTex.png"), true);
 		}
 
 		constexpr uint32_t blackCubeTextureData[6] = { 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000 };
@@ -542,6 +555,15 @@ namespace X2 {
 	Ref<VulkanTexture2D> Renderer::GetBlackTexture()
 	{
 		return s_Data->BlackTexture;
+	}
+
+	Ref<VulkanTexture2D> Renderer::GetSMAAAreaLut()
+	{
+		return s_Data->SMAAAreaLut;
+	}
+	Ref<VulkanTexture2D> Renderer::GetSMAASearchLut()
+	{
+		return s_Data->SMAASearchLut;
 	}
 
 	Ref<VulkanTexture2D> Renderer::GetHilbertLut()

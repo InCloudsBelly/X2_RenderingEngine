@@ -74,6 +74,33 @@ layout(std140, binding = 18) uniform HBAOData
 	float	ShadowTolerance;
 } u_HBAO;
 
+struct SMAAParameters {
+	float threshold;
+	float depthThreshold;
+	uint  maxSearchSteps;
+	uint  maxSearchStepsDiag;
+
+	uint  cornerRounding;
+	uint  pad0;
+	uint  pad1;
+	uint  pad2;
+};
+
+layout(std140, binding = 24) uniform SMAAUBO
+{
+	SMAAParameters  smaaParameters;
+
+	vec4 subsampleIndices;
+
+	float predicationThreshold;
+	float predicationScale;
+	float predicationStrength;
+	float reprojWeigthScale;
+
+} u_SMAA;
+
+
+
 struct PointLight
 {
 	vec3 Position;

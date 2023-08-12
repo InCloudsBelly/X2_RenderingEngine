@@ -100,6 +100,19 @@ namespace X2
 		float BlurSize = 1.0f;
 	};
 
+	struct SMAAParameters {
+		float threshold;
+		float depthThreshold;
+		uint32_t  maxSearchSteps;
+		uint32_t  maxSearchStepsDiag;
+
+		uint32_t  cornerRounding;
+		uint32_t  pad0;
+		uint32_t  pad1;
+		uint32_t  pad2;
+	};
+
+
 	struct SceneRendererSpecification
 	{
 		Tiering::Renderer::RendererTieringSettings Tiering;
@@ -266,6 +279,7 @@ namespace X2
 		void SSRCompositePass();
 		void EdgeDetectionPass();
 		void CompositePass();
+		void SMAAPass();
 
 		struct CascadeData
 		{
@@ -419,6 +433,19 @@ namespace X2
 			char Padding3[3] = { 0,0,0 };
 		} RendererDataUB;
 
+		struct UBSMAAData
+		{
+			SMAAParameters  smaaParameters;
+
+			glm::vec4 subsampleIndices;
+
+			float predicationThreshold;
+			float predicationScale;
+			float predicationStrength;
+			float reprojWeigthScale;
+
+		} SMAADataUB;
+
 		// GTAO
 		Ref<VulkanImage2D> m_GTAOOutputImage;
 		Ref<VulkanImage2D> m_GTAODenoiseImage;
@@ -488,6 +515,15 @@ namespace X2
 		Ref<VulkanMaterial> m_HierarchicalDepthMaterial;
 		Ref<VulkanMaterial> m_PreIntegrationMaterial;
 		glm::uvec3 m_SSRWorkGroups{ 1 };
+
+
+		//SMAA
+		Ref<VulkanPipeline> m_SMAAEdgeDetectionPipeline;
+		Ref<VulkanMaterial> m_SMAAEdgeDetectionMaterial;
+		Ref<VulkanPipeline> m_SMAABlendWeightPipeline;
+		Ref<VulkanMaterial> m_SMAABlendWeightMaterial;
+		Ref<VulkanPipeline> m_SMAANeighborBlendPipeline;
+		Ref<VulkanMaterial> m_SMAANeighborBlendMaterial;
 
 
 		glm::vec2 FocusPoint = { 0.5f, 0.5f };
@@ -666,6 +702,9 @@ namespace X2
 			uint32_t SSRQuery = 0;
 			uint32_t SSRCompositeQuery = 0;
 			uint32_t BloomComputePassQuery = 0;
+			uint32_t SMAAEdgeDetectPassQuery = 0;
+			uint32_t SMAABlendWeightPassQuery = 0;
+			uint32_t SMAANeighborBlendPassQuery = 0;
 			uint32_t JumpFloodPassQuery = 0;
 			uint32_t CompositePassQuery = 0;
 		} m_GPUTimeQueries;

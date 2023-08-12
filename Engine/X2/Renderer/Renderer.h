@@ -133,6 +133,8 @@ namespace X2 {
 		static Ref<VulkanTexture2D> GetBlackTexture();
 		static Ref<VulkanTexture2D> GetHilbertLut();
 		static Ref<VulkanTexture2D> GetBRDFLutTexture();
+		static Ref<VulkanTexture2D> GetSMAAAreaLut();
+		static Ref<VulkanTexture2D> GetSMAASearchLut();
 		static Ref<VulkanTextureCube> GetBlackCubeTexture();
 		static Ref<Environment> GetEmptyEnvironment();
 

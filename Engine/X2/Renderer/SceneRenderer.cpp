@@ -41,7 +41,8 @@ namespace X2 {
 		VisibleSpotLightIndicesBuffer = 23,
 
 		ScreenData = 17,
-		HBAOData = 18
+		HBAOData = 18,
+		SMAAData = 24
 	};
 
 	static std::vector<std::thread> s_ThreadPool;
@@ -104,6 +105,7 @@ namespace X2 {
 		m_UniformBufferSet->Create(sizeof(UBSpotLights), 19);
 		m_UniformBufferSet->Create(sizeof(UBHBAOData), 18);
 		m_UniformBufferSet->Create(sizeof(UBSpotShadowData), 20);
+		m_UniformBufferSet->Create(sizeof(UBSMAAData), 24);
 
 
 		m_Renderer2D = Ref<Renderer2D>::Create();
@@ -764,6 +766,99 @@ namespace X2 {
 			m_CompositePipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
 		}
 
+
+
+		//SMAA EdgeDetection
+		{
+			PipelineSpecification pipelineSpecification;
+			pipelineSpecification.Layout = {
+				{ ShaderDataType::Float3, "a_Position" },
+				{ ShaderDataType::Float2, "a_TexCoord" },
+			};
+			pipelineSpecification.BackfaceCulling = false;
+			pipelineSpecification.DepthTest = false;
+			pipelineSpecification.DepthWrite = false;
+			pipelineSpecification.DebugName = "SMAA-EdgeDetection";
+			auto shader = Renderer::GetShaderLibrary()->Get("SMAAEdgeDetect");
+			pipelineSpecification.Shader = shader;
+
+			FramebufferSpecification framebufferSpec;
+			framebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+			framebufferSpec.Attachments.Attachments.emplace_back(ImageFormat::RGBA32F);
+			framebufferSpec.DebugName = "SMAA-EdgeDetection";
+			framebufferSpec.BlendMode = FramebufferBlendMode::OneZero;
+			framebufferSpec.ClearColorOnLoad = true;
+
+			RenderPassSpecification renderPassSpec;
+			renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
+			renderPassSpec.DebugName = framebufferSpec.DebugName;
+			pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+
+			m_SMAAEdgeDetectionPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+			m_SMAAEdgeDetectionMaterial = Ref<VulkanMaterial>::Create(shader, "SMAA-EdgeDetection");
+		}
+
+		//SMAA Weight
+		{
+			PipelineSpecification pipelineSpecification;
+			pipelineSpecification.Layout = {
+				{ ShaderDataType::Float3, "a_Position" },
+				{ ShaderDataType::Float2, "a_TexCoord" },
+			};
+			pipelineSpecification.BackfaceCulling = false;
+			pipelineSpecification.DepthTest = false;
+			pipelineSpecification.DepthWrite = false;
+			pipelineSpecification.DebugName = "SMAA-BlendWeight";
+			auto shader = Renderer::GetShaderLibrary()->Get("SMAABlendWeight");
+			pipelineSpecification.Shader = shader;
+
+			FramebufferSpecification framebufferSpec;
+			framebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+			framebufferSpec.Attachments.Attachments.emplace_back(ImageFormat::RGBA32F);
+			framebufferSpec.DebugName = "SMAA-BlendWeight";
+			framebufferSpec.BlendMode = FramebufferBlendMode::OneZero;
+			framebufferSpec.ClearColorOnLoad = false;
+
+			RenderPassSpecification renderPassSpec;
+			renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
+			renderPassSpec.DebugName = framebufferSpec.DebugName;
+			pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+
+			m_SMAABlendWeightPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+			m_SMAABlendWeightMaterial = Ref<VulkanMaterial>::Create(shader, "SMAA-BlendWeight");
+		}
+
+		//SMAA Blend
+		{
+			PipelineSpecification pipelineSpecification;
+			pipelineSpecification.Layout = {
+				{ ShaderDataType::Float3, "a_Position" },
+				{ ShaderDataType::Float2, "a_TexCoord" },
+			};
+			pipelineSpecification.BackfaceCulling = false;
+			pipelineSpecification.DepthTest = false;
+			pipelineSpecification.DepthWrite = false;
+			pipelineSpecification.DebugName = "SMAA-NeighborBlend";
+			auto shader = Renderer::GetShaderLibrary()->Get("SMAANeighborBlend");
+			pipelineSpecification.Shader = shader;
+
+			FramebufferSpecification framebufferSpec;
+			framebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+			framebufferSpec.Attachments.Attachments.emplace_back(ImageFormat::RGBA32F);
+			framebufferSpec.ExistingImages[0] = m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage(0);
+			framebufferSpec.DebugName = "SMAA-NeighborBlend";
+			framebufferSpec.BlendMode = FramebufferBlendMode::OneZero;
+			framebufferSpec.ClearColorOnLoad = false;
+
+			RenderPassSpecification renderPassSpec;
+			renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
+			renderPassSpec.DebugName = framebufferSpec.DebugName;
+			pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+
+			m_SMAANeighborBlendPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+			m_SMAANeighborBlendMaterial = Ref<VulkanMaterial>::Create(shader, "SMAA-NeighborBlend");
+		}
+
 		// DOF
 		{
 			FramebufferSpecification compFramebufferSpec;
@@ -1173,6 +1268,11 @@ namespace X2 {
 
 			//Dependent on Geometry 
 			m_SSRCompositePipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+
+			m_SMAAEdgeDetectionPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+			m_SMAABlendWeightPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+			m_SMAANeighborBlendPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+
 
 			m_VisibilityTexture->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_ReinterleavingPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
@@ -3051,6 +3151,43 @@ namespace X2 {
 		}
 	}
 
+
+	void SceneRenderer::SMAAPass()
+	{
+		// Currently scales the SSR, renders with transparency.
+		// The alpha channel is the confidence.
+		m_SMAAEdgeDetectionMaterial->Set("colorTex", m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage());
+
+		m_GPUTimeQueries.SMAAEdgeDetectPassQuery = m_CommandBuffer->BeginTimestampQuery();
+		Renderer::BeginRenderPass(m_CommandBuffer, m_SMAAEdgeDetectionPipeline->GetSpecification().RenderPass);
+		Renderer::SubmitFullscreenQuad(m_CommandBuffer, m_SMAAEdgeDetectionPipeline, m_UniformBufferSet, m_SMAAEdgeDetectionMaterial);
+		Renderer::EndRenderPass(m_CommandBuffer);
+		m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.SMAAEdgeDetectPassQuery);
+
+
+		// Second Pass BlendWeight 
+		m_SMAABlendWeightMaterial->Set("edgesTex", m_SMAAEdgeDetectionPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage());
+		m_SMAABlendWeightMaterial->Set("areaTex", Renderer::GetSMAAAreaLut());
+		m_SMAABlendWeightMaterial->Set("searchTex", Renderer::GetSMAASearchLut());
+
+		m_GPUTimeQueries.SMAABlendWeightPassQuery = m_CommandBuffer->BeginTimestampQuery();
+		Renderer::BeginRenderPass(m_CommandBuffer, m_SMAABlendWeightPipeline->GetSpecification().RenderPass);
+		Renderer::SubmitFullscreenQuad(m_CommandBuffer, m_SMAABlendWeightPipeline, m_UniformBufferSet, m_SMAABlendWeightMaterial);
+		Renderer::EndRenderPass(m_CommandBuffer);
+		m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.SMAABlendWeightPassQuery);
+
+
+
+		m_SMAANeighborBlendMaterial->Set("colorTex", m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage());
+		m_SMAANeighborBlendMaterial->Set("blendTex", m_SMAABlendWeightPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage());
+
+		m_GPUTimeQueries.SMAANeighborBlendPassQuery = m_CommandBuffer->BeginTimestampQuery();
+		Renderer::BeginRenderPass(m_CommandBuffer, m_SMAANeighborBlendPipeline->GetSpecification().RenderPass);
+		Renderer::SubmitFullscreenQuad(m_CommandBuffer, m_SMAANeighborBlendPipeline, m_UniformBufferSet, m_SMAANeighborBlendMaterial);
+		Renderer::EndRenderPass(m_CommandBuffer);
+		m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.SMAANeighborBlendPassQuery);
+	}
+
 	void SceneRenderer::FlushDrawList()
 	{
 		if (m_ResourcesCreated && m_ViewportWidth > 0 && m_ViewportHeight > 0)
@@ -3102,7 +3239,7 @@ namespace X2 {
 				SSRCompute();
 				SSRCompositePass();
 			}
-
+			SMAAPass();
 			BloomCompute();
 			CompositePass();
 

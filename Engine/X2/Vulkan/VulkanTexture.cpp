@@ -71,12 +71,12 @@ namespace X2 {
 	// Texture2D
 	//////////////////////////////////////////////////////////////////////////////////
 
-	VulkanTexture2D::VulkanTexture2D(const TextureSpecification& specification, const std::filesystem::path& filepath)
+	VulkanTexture2D::VulkanTexture2D(const TextureSpecification& specification, const std::filesystem::path& filepath, bool flip)
 		: m_Path(filepath), m_Specification(specification)
 	{
 		Utils::ValidateSpecification(specification);
 
-		m_ImageData = TextureImporter::ToBufferFromFile(m_Path, m_Specification.Format, m_Specification.Width, m_Specification.Height);
+		m_ImageData = TextureImporter::ToBufferFromFile(m_Path, m_Specification.Format, m_Specification.Width, m_Specification.Height, flip);
 		if (!m_ImageData)
 		{
 			// TODO(Yan): move this to asset manager

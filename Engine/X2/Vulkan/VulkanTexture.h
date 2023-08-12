@@ -50,7 +50,7 @@ namespace X2 {
 	class VulkanTexture2D : public Texture
 	{
 	public:
-		VulkanTexture2D(const TextureSpecification& specification, const std::filesystem::path& filepath);
+		VulkanTexture2D(const TextureSpecification& specification, const std::filesystem::path& filepath, bool flip = false);
 		VulkanTexture2D(const TextureSpecification& specification, Buffer data = Buffer());
 		~VulkanTexture2D() override;
 		virtual void Resize(const glm::uvec2& size);

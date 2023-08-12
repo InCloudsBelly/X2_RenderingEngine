@@ -6,10 +6,16 @@
 
 namespace X2 {
 
-	Buffer TextureImporter::ToBufferFromFile(const std::filesystem::path& path, ImageFormat& outFormat, uint32_t& outWidth, uint32_t& outHeight)
+	Buffer TextureImporter::ToBufferFromFile(const std::filesystem::path& path, ImageFormat& outFormat, uint32_t& outWidth, uint32_t& outHeight, bool flip)
 	{
 		Buffer imageBuffer;
 		std::string pathString = path.string();
+
+		if(!flip)
+			stbi_set_flip_vertically_on_load(0);
+		else 
+			stbi_set_flip_vertically_on_load(1);
+		
 
 		int width, height, channels;
 		if (stbi_is_hdr(pathString.c_str()))
