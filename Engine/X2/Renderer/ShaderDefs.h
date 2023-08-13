@@ -32,4 +32,20 @@ namespace X2::ShaderDef {
 		else return AOMethod::None;
 	}
 
+
+	enum class AAMethod
+	{
+		SMAA = 0
+	};
+
+	enum class SMAAEdgeMethod
+	{
+		Color = 0, Lumen = 1, Depth = 2
+	};
+
+	enum class SMAAQuality
+	{
+		Ultra = 0, High = 1, Medium = 2, Low = 3
+	};
+
 }

@@ -146,22 +146,25 @@ namespace X2 {
 						Renderer::SetGlobalMacroInShaders("__X2_AO_METHOD", fmt::format("{}", ShaderDef::GetAOMethod(options.EnableGTAO, options.EnableHBAO)));
 						Renderer::SetGlobalMacroInShaders("__X2_REFLECTION_OCCLUSION_METHOD", std::to_string((int)options.ReflectionOcclusionMethod));
 					}
-					if (UI::Property("Bent Normals", options.GTAOBentNormals))
+					if (options.EnableGTAO)
 					{
-						Renderer::SetGlobalMacroInShaders("__X2_GTAO_COMPUTE_BENT_NORMALS", fmt::format("{}", (int)options.GTAOBentNormals));
-						m_Context->m_NeedsResize = true;
+						if (UI::Property("Bent Normals", options.GTAOBentNormals))
+						{
+							Renderer::SetGlobalMacroInShaders("__X2_GTAO_COMPUTE_BENT_NORMALS", fmt::format("{}", (int)options.GTAOBentNormals));
+							m_Context->m_NeedsResize = true;
+						}
+						UI::Property("Radius", m_Context->GTAODataCB.EffectRadius, 0.001f, 0.05f, 1.0f);
+						UI::Property("Falloff Range", m_Context->GTAODataCB.EffectFalloffRange, 0.001f, 0.01f, 1.0f);
+						UI::Property("Radius Multiplier", m_Context->GTAODataCB.RadiusMultiplier, 0.001f, 0.3f, 3.0f);
+						UI::Property("Sample Distribution Power", m_Context->GTAODataCB.SampleDistributionPower, 0.001f, 1.0f, 3.0f);
+						UI::Property("Thin Occluder Compensation", m_Context->GTAODataCB.ThinOccluderCompensation, 0.001f, 0.0f, 0.7f);
+						UI::Property("Final Value Power", m_Context->GTAODataCB.FinalValuePower, 0.001f, 0.0f, 5.f);
+						UI::Property("Denoise Blur Beta", m_Context->GTAODataCB.DenoiseBlurBeta, 0.001f, 0.0f, 30.f);
+						UI::Property("Depth MIP Sampling Offset", m_Context->GTAODataCB.DepthMIPSamplingOffset, 0.005f, 0.0f, 30.f);
+						UI::PropertySlider("Denoise Passes", options.GTAODenoisePasses, 0, 8);
+						if (UI::Property("Half Resolution", m_Context->GTAODataCB.HalfRes))
+							m_Context->m_NeedsResize = true;
 					}
-					UI::Property("Radius", m_Context->GTAODataCB.EffectRadius, 0.001f, 0.05f, 1.0f);
-					UI::Property("Falloff Range", m_Context->GTAODataCB.EffectFalloffRange, 0.001f, 0.01f, 1.0f);
-					UI::Property("Radius Multiplier", m_Context->GTAODataCB.RadiusMultiplier, 0.001f, 0.3f, 3.0f);
-					UI::Property("Sample Distribution Power", m_Context->GTAODataCB.SampleDistributionPower, 0.001f, 1.0f, 3.0f);
-					UI::Property("Thin Occluder Compensation", m_Context->GTAODataCB.ThinOccluderCompensation, 0.001f, 0.0f, 0.7f);
-					UI::Property("Final Value Power", m_Context->GTAODataCB.FinalValuePower, 0.001f, 0.0f, 5.f);
-					UI::Property("Denoise Blur Beta", m_Context->GTAODataCB.DenoiseBlurBeta, 0.001f, 0.0f, 30.f);
-					UI::Property("Depth MIP Sampling Offset", m_Context->GTAODataCB.DepthMIPSamplingOffset, 0.005f, 0.0f, 30.f);
-					UI::PropertySlider("Denoise Passes", options.GTAODenoisePasses, 0, 8);
-					if (UI::Property("Half Resolution", m_Context->GTAODataCB.HalfRes))
-						m_Context->m_NeedsResize = true;
 					UI::EndPropertyGrid();
 
 					UI::EndTreeNode();
@@ -176,26 +179,31 @@ namespace X2 {
 						Renderer::SetGlobalMacroInShaders("__X2_AO_METHOD", fmt::format("{}", ShaderDef::GetAOMethod(options.EnableGTAO, options.EnableHBAO)));
 						Renderer::SetGlobalMacroInShaders("__X2_REFLECTION_OCCLUSION_METHOD", std::to_string((int)options.ReflectionOcclusionMethod));
 					}
-					UI::Property("Intensity", options.HBAOIntensity, 0.05f, 0.1f, 6.0f);
-					UI::Property("Radius", options.HBAORadius, 0.05f, 0.0f, 8.0f);
-					UI::Property("Bias", options.HBAOBias, 0.02f, 0.0f, 0.95f);
-					UI::Property("Blur Sharpness", options.HBAOBlurSharpness, 0.5f, 0.0f, 100.f);
+					if (options.EnableHBAO)
+					{
+						UI::Property("Intensity", options.HBAOIntensity, 0.05f, 0.1f, 6.0f);
+						UI::Property("Radius", options.HBAORadius, 0.05f, 0.0f, 8.0f);
+						UI::Property("Bias", options.HBAOBias, 0.02f, 0.0f, 0.95f);
+						UI::Property("Blur Sharpness", options.HBAOBlurSharpness, 0.5f, 0.0f, 100.f);
+					}
 					UI::EndPropertyGrid();
 
-					float size = ImGui::GetContentRegionAvail().x;
-					if (UI::BeginTreeNode("Debug Views", false))
+					if(options.EnableHBAO)
 					{
-						if (m_Context->m_ResourcesCreated)
+						float size = ImGui::GetContentRegionAvail().x;
+						if (UI::BeginTreeNode("Debug Views", false))
 						{
-							float size = ImGui::GetContentRegionAvail().x;
-							auto image = m_Context->m_HBAOOutputImage;
-							static int32_t layer = 0;
-							UI::PropertySlider("Layer", layer, 0, 15);
-							UI::Image(image, layer, { size, size * (1.0f / image->GetAspectRatio()) }, { 0, 1 }, { 1, 0 });
+							if (m_Context->m_ResourcesCreated)
+							{
+								float size = ImGui::GetContentRegionAvail().x;
+								auto image = m_Context->m_HBAOOutputImage;
+								static int32_t layer = 0;
+								UI::PropertySlider("Layer", layer, 0, 15);
+								UI::Image(image, layer, { size, size * (1.0f / image->GetAspectRatio()) }, { 0, 1 }, { 1, 0 });
+							}
+							UI::EndTreeNode();
 						}
-						UI::EndTreeNode();
 					}
-
 					UI::EndTreeNode();
 				}
 				UI::EndTreeNode();
@@ -209,49 +217,98 @@ namespace X2 {
 
 				UI::BeginPropertyGrid();
 				UI::Property("Enable SSR", options.EnableSSR);
-				UI::Property("Enable Cone Tracing", ssrOptions.EnableConeTracing, "Enable rough reflections.");
+				if (options.EnableSSR) {
 
-				const static char* aoMethods[4] = { "Disabled", "Ground-Truth Ambient Occlusion", "Horizon-Based Ambient Occlusion", "All" };
+					UI::Property("Enable Cone Tracing", ssrOptions.EnableConeTracing, "Enable rough reflections.");
 
-				//TODO(Karim): Disable disabled methods in ImGui
-				int methodIndex = ShaderDef::GetMethodIndex(options.ReflectionOcclusionMethod);
-				if (UI::PropertyDropdown("Reflection Occlusion method", aoMethods, 4, methodIndex))
-				{
-					options.ReflectionOcclusionMethod = ShaderDef::ROMETHODS[methodIndex];
-					if ((int)options.ReflectionOcclusionMethod & (int)ShaderDef::AOMethod::GTAO)
-						options.EnableGTAO = true;
-					if ((int)options.ReflectionOcclusionMethod & (int)ShaderDef::AOMethod::HBAO)
-						options.EnableHBAO = true;
-					Renderer::SetGlobalMacroInShaders("__X2_REFLECTION_OCCLUSION_METHOD", fmt::format("{}", options.ReflectionOcclusionMethod));
-					Renderer::SetGlobalMacroInShaders("__X2_AO_METHOD", fmt::format("{}", ShaderDef::GetAOMethod(options.EnableGTAO, options.EnableHBAO)));
+					const static char* aoMethods[4] = { "Disabled", "Ground-Truth Ambient Occlusion", "Horizon-Based Ambient Occlusion", "All" };
+
+					//TODO(Karim): Disable disabled methods in ImGui
+					int methodIndex = ShaderDef::GetMethodIndex(options.ReflectionOcclusionMethod);
+					if (UI::PropertyDropdown("Reflection Occlusion method", aoMethods, 4, methodIndex))
+					{
+						options.ReflectionOcclusionMethod = ShaderDef::ROMETHODS[methodIndex];
+						if ((int)options.ReflectionOcclusionMethod & (int)ShaderDef::AOMethod::GTAO)
+							options.EnableGTAO = true;
+						if ((int)options.ReflectionOcclusionMethod & (int)ShaderDef::AOMethod::HBAO)
+							options.EnableHBAO = true;
+						Renderer::SetGlobalMacroInShaders("__X2_REFLECTION_OCCLUSION_METHOD", fmt::format("{}", options.ReflectionOcclusionMethod));
+						Renderer::SetGlobalMacroInShaders("__X2_AO_METHOD", fmt::format("{}", ShaderDef::GetAOMethod(options.EnableGTAO, options.EnableHBAO)));
+					}
+
+					UI::Property("Brightness", ssrOptions.Brightness, 0.001f, 0.0f, 1.0f);
+					UI::Property("Depth Tolerance", ssrOptions.DepthTolerance, 0.01f, 0.0f, std::numeric_limits<float>::max());
+					UI::Property("Roughness Depth Tolerance", ssrOptions.RoughnessDepthTolerance, 0.33f, 0.0f, std::numeric_limits<float>::max(),
+						"The higher the roughness the higher the depth tolerance.\nWorks best with cone tracing enabled.\nReduce as much as possible.");
+					UI::Property("Horizontal Fade In", ssrOptions.FadeIn.x, 0.005f, 0.0f, 10.0f);
+					UI::Property("Vertical Fade In", ssrOptions.FadeIn.y, 0.005f, 0.0f, 10.0f);
+					UI::Property("Facing Reflections Fading", ssrOptions.FacingReflectionsFading, 0.01f, 0.0f, 2.0f);
+					UI::Property("Luminance Factor", ssrOptions.LuminanceFactor, 0.001f, 0.0f, 2.0f, "Can break energy conservation law!");
+					UI::PropertySlider("Maximum Steps", ssrOptions.MaxSteps, 1, 200);
+					if (UI::Property("Half Resolution", ssrOptions.HalfRes))
+						m_Context->m_NeedsResize = true;
 				}
-
-				UI::Property("Brightness", ssrOptions.Brightness, 0.001f, 0.0f, 1.0f);
-				UI::Property("Depth Tolerance", ssrOptions.DepthTolerance, 0.01f, 0.0f, std::numeric_limits<float>::max());
-				UI::Property("Roughness Depth Tolerance", ssrOptions.RoughnessDepthTolerance, 0.33f, 0.0f, std::numeric_limits<float>::max(),
-					"The higher the roughness the higher the depth tolerance.\nWorks best with cone tracing enabled.\nReduce as much as possible.");
-				UI::Property("Horizontal Fade In", ssrOptions.FadeIn.x, 0.005f, 0.0f, 10.0f);
-				UI::Property("Vertical Fade In", ssrOptions.FadeIn.y, 0.005f, 0.0f, 10.0f);
-				UI::Property("Facing Reflections Fading", ssrOptions.FacingReflectionsFading, 0.01f, 0.0f, 2.0f);
-				UI::Property("Luminance Factor", ssrOptions.LuminanceFactor, 0.001f, 0.0f, 2.0f, "Can break energy conservation law!");
-				UI::PropertySlider("Maximum Steps", ssrOptions.MaxSteps, 1, 200);
-				if (UI::Property("Half Resolution", ssrOptions.HalfRes))
-					m_Context->m_NeedsResize = true;
 				UI::EndPropertyGrid();
 
-				if (UI::BeginTreeNode("Debug Views", false))
+				if (options.EnableSSR)
 				{
-					if (m_Context->m_ResourcesCreated)
+					if (UI::BeginTreeNode("Debug Views", false))
 					{
-						const float size = ImGui::GetContentRegionAvail().x;
-						UI::Image(m_Context->m_SSRImage, { size, size * (0.9f / 1.6f) }, { 0, 1 }, { 1, 0 });
-						static int32_t mip = 0;
-						UI::PropertySlider("Pre-convoluted Mip", mip, 0, (int)m_Context->m_PreConvolutedTexture->GetMipLevelCount() - 1);
-						UI::ImageMip(m_Context->m_PreConvolutedTexture->GetImage(), mip, { size, size * (0.9f / 1.6f) }, { 0, 1 }, { 1, 0 });
+						if (m_Context->m_ResourcesCreated)
+						{
+							const float size = ImGui::GetContentRegionAvail().x;
+							UI::Image(m_Context->m_SSRImage, { size, size * (0.9f / 1.6f) }, { 0, 1 }, { 1, 0 });
+							static int32_t mip = 0;
+							UI::PropertySlider("Pre-convoluted Mip", mip, 0, (int)m_Context->m_PreConvolutedTexture->GetMipLevelCount() - 1);
+							UI::ImageMip(m_Context->m_PreConvolutedTexture->GetImage(), mip, { size, size * (0.9f / 1.6f) }, { 0, 1 }, { 1, 0 });
 
+						}
+						UI::EndTreeNode();
 					}
-					UI::EndTreeNode();
 				}
+				UI::EndTreeNode();
+			}
+			else
+				UI::ShiftCursorY(headerSpacingOffset);
+
+			if (UI::PropertyGridHeader("Anti-Aliasing"))
+			{
+				UI::BeginPropertyGrid();
+				UI::Property("Enable Anti-Aliasing", options.EnableAA);
+
+				const static char* aaMethods[1] = { "SMAA" };
+
+				//TODO(Karim): Disable disabled methods in ImGui
+				int methodIndex = static_cast<int>(options.AAMethod);
+				if (UI::PropertyDropdown("Anti-Aliasing method", aaMethods,1, methodIndex))
+				{
+					options.AAMethod = static_cast<ShaderDef::AAMethod>(methodIndex);
+				}
+
+				if (options.AAMethod == ShaderDef::AAMethod::SMAA)
+				{
+					const static char* smaaEdgeMethods[3] = { "Color", "Lumen", "Depth (not fixed yet)"};
+
+					int smaaEdgeMethodIndex = static_cast<int>(options.SMAAEdgeMethod);
+					if (UI::PropertyDropdown("SMAA Edge Detect method", smaaEdgeMethods, 3, smaaEdgeMethodIndex))
+					{
+						options.SMAAEdgeMethod = static_cast<ShaderDef::SMAAEdgeMethod>(smaaEdgeMethodIndex);
+						
+						Renderer::SetGlobalMacroInShaders("__X2_EDGEMETHOD", fmt::format("{}", options.SMAAEdgeMethod));
+					}
+
+
+					const static char* smaaQuality[4] = { "Ultra", "High", "Medium", "Low"};
+
+					int smaaQualityIndex = static_cast<int>(options.SMAAQuality);
+					if (UI::PropertyDropdown("SMAA Quality", smaaQuality, 4, smaaQualityIndex))
+					{
+						options.SMAAQuality = static_cast<ShaderDef::SMAAQuality>(smaaQualityIndex);
+
+						Renderer::SetGlobalMacroInShaders("__X2_SMAAQUALITY", fmt::format("{}", options.SMAAQuality));
+					}
+				}
+				UI::EndPropertyGrid();
 				UI::EndTreeNode();
 			}
 			else

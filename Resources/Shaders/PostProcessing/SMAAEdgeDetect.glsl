@@ -49,8 +49,12 @@ void main()
 #define SMAA_FLIP_Y 0
 #endif
 
-#ifndef EDGEMETHOD
-#define EDGEMETHOD 1
+#ifndef __X2_EDGEMETHOD
+#define __X2_EDGEMETHOD 1
+#endif
+
+#ifndef __X2_SMAAQUALITY
+#define __X2_SMAAQUALITY 0
 #endif
 
 
@@ -68,21 +72,32 @@ void main()
 
 #endif  // SMAA_PRESET_CUSTOM
 
-#define SMAA_PRESET_ULTRA
+
+#if __X2_SMAAQUALITY == 0
+	#define SMAA_PRESET_ULTRA
+#elif __X2_SMAAQUALITY == 1
+	#define SMAA_PRESET_HIGH
+#elif __X2_SMAAQUALITY == 2
+	#define SMAA_PRESET_MEDIUM
+#elif __X2_SMAAQUALITY == 3
+	#define SMAA_PRESET_LOW
+#else
+	#error Bad SMAAQUALITY
+#endif
 
 
 #include <smaa_lib.glsl>
 
 
-#if EDGEMETHOD == 2
+#if __X2_EDGEMETHOD == 2
 
 layout( binding = 1) uniform SMAATexture2D(depthTex);
 
-#else  // EDGEMETHOD
+#else  // __X2_EDGEMETHOD
 
 layout( binding = 1) uniform sampler2D colorTex;
 
-#endif  // EDGEMETHOD
+#endif  // __X2_EDGEMETHOD
 
 #if SMAA_PREDICATION
 
@@ -100,7 +115,7 @@ layout (location = 1) in vec4 offsets[3];
 
 void main()
 {
-	#if EDGEMETHOD == 0
+	#if __X2_EDGEMETHOD == 0
 
 		#if SMAA_PREDICATION
 			outColor = vec4(SMAAColorEdgeDetectionPS(texcoord, offsets, colorTex, predicationTex), 0.0, 0.0);
@@ -108,14 +123,14 @@ void main()
 			outColor = vec4(SMAAColorEdgeDetectionPS(texcoord, offsets, colorTex), 0.0f, 1.0f);
 			// outColor = vec4(1.0f,1.0f,1.0f,1.0f);
 		#endif  // SMAA_PREDICATION
-	#elif EDGEMETHOD == 1
+	#elif __X2_EDGEMETHOD == 1
 		#if SMAA_PREDICATION
 			outColor = vec4(SMAALumaEdgeDetectionPS(texcoord, offsets, colorTex, predicationTex), 0.0, 0.0);
 		#else  // SMAA_PREDICATION
 			outColor = vec4(SMAALumaEdgeDetectionPS(texcoord, offsets, colorTex), 0.0, 1.0f);
 		#endif  // SMAA_PREDICATION
 
-	#elif EDGEMETHOD == 2
+	#elif __X2_EDGEMETHOD == 2
 		outColor = vec4(SMAADepthEdgeDetectionPS(texcoord, offsets, depthTex), 0.0, 0.0);
 	#else
 

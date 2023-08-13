@@ -3239,7 +3239,11 @@ namespace X2 {
 				SSRCompute();
 				SSRCompositePass();
 			}
-			SMAAPass();
+			if (m_Options.EnableAA)
+			{
+				if(m_Options.AAMethod == ShaderDef::AAMethod::SMAA)
+					SMAAPass();
+			}
 			BloomCompute();
 			CompositePass();
 

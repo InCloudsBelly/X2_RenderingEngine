@@ -55,6 +55,12 @@ namespace X2
 		// SSR
 		bool EnableSSR = false;
 		ShaderDef::AOMethod ReflectionOcclusionMethod = ShaderDef::AOMethod::None;
+
+		bool EnableAA = true;
+		ShaderDef::AAMethod AAMethod = ShaderDef::AAMethod::SMAA;
+		ShaderDef::SMAAEdgeMethod SMAAEdgeMethod = ShaderDef::SMAAEdgeMethod::Color;
+		ShaderDef::SMAAQuality SMAAQuality = ShaderDef::SMAAQuality::Ultra;
+
 	};
 
 	struct SSROptionsUB
