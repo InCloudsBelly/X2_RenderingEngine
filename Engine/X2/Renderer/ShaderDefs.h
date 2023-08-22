@@ -33,9 +33,11 @@ namespace X2::ShaderDef {
 	}
 
 
+
+
 	enum class AAMethod
 	{
-		SMAA = 0
+		SMAA = 0, TAA = 1, TAA_SMAA = 2,
 	};
 
 	enum class SMAAEdgeMethod
@@ -47,5 +49,15 @@ namespace X2::ShaderDef {
 	{
 		Ultra = 0, High = 1, Medium = 2, Low = 3
 	};
+
+	constexpr static bool IsUsingTAA(AAMethod method)
+	{
+		return method == AAMethod::TAA || method == AAMethod::TAA_SMAA;
+	}
+
+	constexpr static bool IsUsingSMAA(AAMethod method)
+	{
+		return method == AAMethod::SMAA || method == AAMethod::TAA_SMAA;
+	}
 
 }

@@ -100,6 +100,17 @@ layout(std140, binding = 24) uniform SMAAUBO
 } u_SMAA;
 
 
+layout(std140, binding = 25) uniform TAAUBO
+{
+	mat4 ViewProjectionMatrixHistory;
+	mat4 JitterdViewProjection;
+	mat4 InvJitteredProjection;
+	vec2 jitter;
+	float feedback;
+} u_TAA;
+
+
+
 
 struct PointLight
 {

@@ -25,9 +25,13 @@ layout(location = 5) in vec4 a_MRow0;
 layout(location = 6) in vec4 a_MRow1;
 layout(location = 7) in vec4 a_MRow2;
 
+layout(location = 8) 	in vec4 a_MRowPrev0;
+layout(location = 9) 	in vec4 a_MRowPrev1;
+layout(location = 10) 	in vec4 a_MRowPrev2;
+
 // Bone influences
-layout(location = 8) in ivec4 a_BoneIndices;
-layout(location = 9) in vec4 a_BoneWeights;
+layout(location = 11)  in ivec4 a_BoneIndices;
+layout(location = 12)  in vec4 a_BoneWeights;
 
 const int MAX_BONES = 100;
 const int MAX_ANIMATED_MESHES = 1024;
@@ -137,6 +141,7 @@ layout(location = 0) in VertexOutput Input;
 layout(location = 0) out vec4 color;
 layout(location = 1) out vec4 o_ViewNormalsLuminance;
 layout(location = 2) out vec4 o_MetalnessRoughness;
+layout(location = 3) out vec4 o_Velocity;
 
 // PBR texture inputs
 layout(set = 0, binding = 5) uniform sampler2D u_AlbedoTexture;
@@ -365,6 +370,8 @@ void main()
 			break;
 		}
 	}
+
+	o_Velocity = vec4(0.0f);
 }
 
 

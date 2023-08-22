@@ -217,6 +217,14 @@ namespace X2 {
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/PostProcessing/SMAABlendWeight.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/PostProcessing/SMAANeighborBlend.glsl");
 
+		//TAA
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/PostProcessing/TAA.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/TAA/PBR_Static_TAA.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/TAA/PreDepth_TAA.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/TAA/Skybox_TAA.glsl");
+
+
+
 		// Compile shaders
 		Application::Get().GetRenderThread().Pump();
 

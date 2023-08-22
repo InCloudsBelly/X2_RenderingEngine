@@ -70,12 +70,15 @@ void main()
 
 #include <smaa_lib.glsl>
 
-layout(set = 0, binding = 1) uniform SMAATexture2D(edgesTex);
-layout(set = 0, binding = 2) uniform SMAATexture2D(areaTex);
-layout(set = 0, binding = 3) uniform SMAATexture2D(searchTex);
+layout(set = 0, binding = 1) uniform SMAATexture2D(colorTex);
+layout(set = 0, binding = 2) uniform SMAATexture2D(edgesTex);
+layout(set = 0, binding = 3) uniform SMAATexture2D(areaTex);
+layout(set = 0, binding = 4) uniform SMAATexture2D(searchTex);
 
 
 layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 blendWeight;
+
 
 layout (location = 0) in vec2 texcoord;
 layout (location = 1) in vec2 pixcoord;
@@ -83,5 +86,6 @@ layout (location = 2) in vec4 offsets[3];
 
 void main()
 {
-	outColor = SMAABlendingWeightCalculationPS(texcoord, pixcoord, offsets, edgesTex, areaTex, searchTex, u_SMAA.subsampleIndices);
+    outColor = texture(colorTex, texcoord);
+	blendWeight = SMAABlendingWeightCalculationPS(texcoord, pixcoord, offsets, edgesTex, areaTex, searchTex, u_SMAA.subsampleIndices);
 }

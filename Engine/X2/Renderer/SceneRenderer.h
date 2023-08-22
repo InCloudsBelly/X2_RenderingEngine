@@ -57,9 +57,12 @@ namespace X2
 		ShaderDef::AOMethod ReflectionOcclusionMethod = ShaderDef::AOMethod::None;
 
 		bool EnableAA = true;
-		ShaderDef::AAMethod AAMethod = ShaderDef::AAMethod::SMAA;
+		ShaderDef::AAMethod AAMethod = ShaderDef::AAMethod::TAA;
 		ShaderDef::SMAAEdgeMethod SMAAEdgeMethod = ShaderDef::SMAAEdgeMethod::Color;
 		ShaderDef::SMAAQuality SMAAQuality = ShaderDef::SMAAQuality::Ultra;
+
+		//TAA
+		float TAAFeedback = 0.1f;
 
 	};
 
@@ -162,14 +165,14 @@ namespace X2
 		static void BeginGPUPerfMarker(Ref<VulkanRenderCommandBuffer> renderCommandBuffer, const std::string& label, const glm::vec4& markerColor = {});
 		static void EndGPUPerfMarker(Ref<VulkanRenderCommandBuffer> renderCommandBuffer);
 
-		void SubmitMesh(Ref<Mesh> mesh, uint32_t submeshIndex, Ref<MaterialTable> materialTable, const glm::mat4& transform = glm::mat4(1.0f), const std::vector<glm::mat4>& boneTransforms = {}, Ref<VulkanMaterial> overrideMaterial = nullptr);
-		void SubmitStaticMesh(Ref<StaticMesh> staticMesh, Ref<MaterialTable> materialTable, const glm::mat4& transform = glm::mat4(1.0f), Ref<VulkanMaterial> overrideMaterial = nullptr);
+		void SubmitMesh(uint64_t entityUUID, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<MaterialTable> materialTable, const glm::mat4& transform = glm::mat4(1.0f), const std::vector<glm::mat4>& boneTransforms = {}, Ref<VulkanMaterial> overrideMaterial = nullptr);
+		void SubmitStaticMesh(uint64_t entityUUID, Ref<StaticMesh> staticMesh, Ref<MaterialTable> materialTable, const glm::mat4& transform = glm::mat4(1.0f), Ref<VulkanMaterial> overrideMaterial = nullptr);
 
-		void SubmitSelectedMesh(Ref<Mesh> mesh, uint32_t submeshIndex, Ref<MaterialTable> materialTable, const glm::mat4& transform = glm::mat4(1.0f), const std::vector<glm::mat4>& boneTransforms = {}, Ref<VulkanMaterial> overrideMaterial = nullptr);
-		void SubmitSelectedStaticMesh(Ref<StaticMesh> staticMesh, Ref<MaterialTable> materialTable, const glm::mat4& transform = glm::mat4(1.0f), Ref<VulkanMaterial> overrideMaterial = nullptr);
+		void SubmitSelectedMesh(uint64_t entityUUID, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<MaterialTable> materialTable, const glm::mat4& transform = glm::mat4(1.0f), const std::vector<glm::mat4>& boneTransforms = {}, Ref<VulkanMaterial> overrideMaterial = nullptr);
+		void SubmitSelectedStaticMesh(uint64_t entityUUID, Ref<StaticMesh> staticMesh, Ref<MaterialTable> materialTable, const glm::mat4& transform = glm::mat4(1.0f), Ref<VulkanMaterial> overrideMaterial = nullptr);
 
-		void SubmitPhysicsDebugMesh(Ref<Mesh> mesh, uint32_t submeshIndex, const glm::mat4& transform = glm::mat4(1.0f));
-		void SubmitPhysicsStaticDebugMesh(Ref<StaticMesh> mesh, const glm::mat4& transform = glm::mat4(1.0f), const bool isPrimitiveCollider = true);
+		void SubmitPhysicsDebugMesh(uint64_t entityUUID, Ref<Mesh> mesh, uint32_t submeshIndex, const glm::mat4& transform = glm::mat4(1.0f));
+		void SubmitPhysicsStaticDebugMesh(uint64_t entityUUID, Ref<StaticMesh> mesh, const glm::mat4& transform = glm::mat4(1.0f), const bool isPrimitiveCollider = true);
 
 		Ref<VulkanPipeline> GetFinalPipeline();
 		Ref<VulkanRenderPass> GetFinalRenderPass();
@@ -220,18 +223,25 @@ namespace X2
 
 		struct MeshKey
 		{
+			uint64_t EntityUUID;
 			AssetHandle MeshHandle;
 			AssetHandle MaterialHandle;
 			uint32_t SubmeshIndex;
 			bool IsSelected;
 
-			MeshKey(AssetHandle meshHandle, AssetHandle materialHandle, uint32_t submeshIndex, bool isSelected)
-				: MeshHandle(meshHandle), MaterialHandle(materialHandle), SubmeshIndex(submeshIndex), IsSelected(isSelected)
+			MeshKey(uint64_t entityUUID, AssetHandle meshHandle, AssetHandle materialHandle, uint32_t submeshIndex, bool isSelected)
+				:EntityUUID(entityUUID), MeshHandle(meshHandle), MaterialHandle(materialHandle), SubmeshIndex(submeshIndex), IsSelected(isSelected)
 			{
 			}
 
 			bool operator<(const MeshKey& other) const
 			{
+				if (EntityUUID < other.EntityUUID)
+					return true;
+
+				if (EntityUUID > other.EntityUUID)
+					return false;
+
 				if (MeshHandle < other.MeshHandle)
 					return true;
 
@@ -286,6 +296,8 @@ namespace X2
 		void EdgeDetectionPass();
 		void CompositePass();
 		void SMAAPass();
+		void TAAPass();
+
 
 		struct CascadeData
 		{
@@ -452,6 +464,17 @@ namespace X2
 
 		} SMAADataUB;
 
+		struct UBTAAData
+		{
+			glm::mat4 ViewProjectionHistory;
+			glm::mat4 JitterdViewProjection;
+			glm::mat4 InvJitterdProjection;
+
+			glm::vec2 ScreenSpaceJitter;
+			float FeedBack;
+
+		} TAADataUB;
+
 		// GTAO
 		Ref<VulkanImage2D> m_GTAOOutputImage;
 		Ref<VulkanImage2D> m_GTAODenoiseImage;
@@ -531,6 +554,29 @@ namespace X2
 		Ref<VulkanPipeline> m_SMAANeighborBlendPipeline;
 		Ref<VulkanMaterial> m_SMAANeighborBlendMaterial;
 
+		//TAA
+		Ref<VulkanImage2D> m_TAAPreColorImage ;
+		Ref<VulkanImage2D> m_TAACurColorImage ;
+
+		Ref<VulkanImage2D> m_TAAVelocityImage = nullptr;
+		Ref<VulkanPipeline> m_TAAPipeline;
+		Ref<VulkanMaterial> m_TAAMaterial;
+		
+		uint32_t m_TAAJitterCounter = 0;
+
+		glm::vec2 m_TAAHaltonSequence[8] =
+		{
+			 glm::vec2(0.5f, 1.0f / 3),
+			 glm::vec2(0.25f, 2.0f / 3),
+			 glm::vec2(0.75f, 1.0f / 9),
+			 glm::vec2(0.125f, 4.0f / 9),
+			 glm::vec2(0.625f, 7.0f / 9),
+			 glm::vec2(0.375f, 2.0f / 9),
+			 glm::vec2(0.875f, 5.0f / 9),
+			 glm::vec2(0.0625f, 8.0f / 9),
+		};
+
+
 
 		glm::vec2 FocusPoint = { 0.5f, 0.5f };
 
@@ -538,6 +584,7 @@ namespace X2
 		Ref<VulkanMaterial> m_LightCullingMaterial;
 
 		Ref<VulkanPipeline> m_GeometryPipeline;
+		Ref<VulkanPipeline> m_GeometryTAAPipeline;
 		Ref<VulkanPipeline> m_TransparentGeometryPipeline;
 		Ref<VulkanPipeline> m_GeometryPipelineAnim;
 
@@ -553,9 +600,11 @@ namespace X2
 		Ref<VulkanMaterial> m_WireframeMaterial;
 
 		Ref<VulkanPipeline> m_PreDepthPipeline;
+		Ref<VulkanPipeline> m_PreDepthTAAPipeline;
 		Ref<VulkanPipeline> m_PreDepthTransparentPipeline;
 		Ref<VulkanPipeline> m_PreDepthPipelineAnim;
 		Ref<VulkanMaterial> m_PreDepthMaterial;
+		Ref<VulkanMaterial> m_PreDepthTAAMaterial;
 
 		Ref<VulkanPipeline> m_CompositePipeline;
 
@@ -644,7 +693,11 @@ namespace X2
 		//	uint32_t BoneTransformsBaseIndex = 0;
 		//};
 
-		std::map<MeshKey, TransformMapData> m_MeshTransformMap;
+		std::map<MeshKey, TransformMapData> m_MeshTransformMap[2];
+		std::map<MeshKey, TransformMapData> * m_CurTransformMap;
+		std::map<MeshKey, TransformMapData> * m_PrevTransformMap;
+
+
 		//std::map<MeshKey, BoneTransformsMapData> m_MeshBoneTransformsMap;
 
 		//std::vector<DrawCommand> m_DrawList;
@@ -711,6 +764,7 @@ namespace X2
 			uint32_t SMAAEdgeDetectPassQuery = 0;
 			uint32_t SMAABlendWeightPassQuery = 0;
 			uint32_t SMAANeighborBlendPassQuery = 0;
+			uint32_t TAAPassQuery = 0;
 			uint32_t JumpFloodPassQuery = 0;
 			uint32_t CompositePassQuery = 0;
 		} m_GPUTimeQueries;

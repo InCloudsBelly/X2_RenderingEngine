@@ -240,7 +240,7 @@ namespace X2 {
 		uint32_t binding = resource->GetRegister();
 		// Image is already set
 		// TODO(Karim): Shouldn't need to check resident descriptors..
-		if (binding < m_Images.size() && m_Images[binding] && m_ResidentDescriptors.find(binding) != m_ResidentDescriptors.end())
+		if (binding < m_Images.size() && m_Images[binding] && m_ResidentDescriptors.find(binding) != m_ResidentDescriptors.end() && m_Images[binding]->GetHash() == image->GetHash())
 			return;
 
 		if (resource->GetRegister() >= m_Images.size())

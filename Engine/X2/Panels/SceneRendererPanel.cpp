@@ -276,29 +276,32 @@ namespace X2 {
 				UI::BeginPropertyGrid();
 				UI::Property("Enable Anti-Aliasing", options.EnableAA);
 
-				const static char* aaMethods[1] = { "SMAA" };
+				const static char* aaMethods[3] = { "SMAA", "TAA", "TAA_SMAA"};
 
 				//TODO(Karim): Disable disabled methods in ImGui
 				int methodIndex = static_cast<int>(options.AAMethod);
-				if (UI::PropertyDropdown("Anti-Aliasing method", aaMethods,1, methodIndex))
+				if (UI::PropertyDropdown("Anti-Aliasing method", aaMethods,3, methodIndex))
 				{
 					options.AAMethod = static_cast<ShaderDef::AAMethod>(methodIndex);
 				}
-
-				if (options.AAMethod == ShaderDef::AAMethod::SMAA)
+				if (IsUsingTAA(options.AAMethod))
 				{
-					const static char* smaaEdgeMethods[3] = { "Color", "Lumen", "Depth (not fixed yet)"};
+					UI::Property("TAAFeedBack", options.TAAFeedback, 0.001f, 0.0f, 0.25f);
+				}
 
+				if (IsUsingSMAA(options.AAMethod))
+				{
+					const static char* smaaEdgeMethods[3] = { "Color", "Lumen", "Depth (not fixed yet)" };
+					
 					int smaaEdgeMethodIndex = static_cast<int>(options.SMAAEdgeMethod);
 					if (UI::PropertyDropdown("SMAA Edge Detect method", smaaEdgeMethods, 3, smaaEdgeMethodIndex))
 					{
 						options.SMAAEdgeMethod = static_cast<ShaderDef::SMAAEdgeMethod>(smaaEdgeMethodIndex);
-						
 						Renderer::SetGlobalMacroInShaders("__X2_EDGEMETHOD", fmt::format("{}", options.SMAAEdgeMethod));
 					}
 
 
-					const static char* smaaQuality[4] = { "Ultra", "High", "Medium", "Low"};
+					const static char* smaaQuality[4] = { "Ultra", "High", "Medium", "Low" };
 
 					int smaaQualityIndex = static_cast<int>(options.SMAAQuality);
 					if (UI::PropertyDropdown("SMAA Quality", smaaQuality, 4, smaaQualityIndex))

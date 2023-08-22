@@ -13,9 +13,13 @@ layout(location = 5) in vec4 a_MRow0;
 layout(location = 6) in vec4 a_MRow1;
 layout(location = 7) in vec4 a_MRow2;
 
+layout(location = 8) 	in vec4 a_MRowPrev0;
+layout(location = 9) 	in vec4 a_MRowPrev1;
+layout(location = 10) 	in vec4 a_MRowPrev2;
+
 // Bone influences
-layout(location = 8) in ivec4 a_BoneIndices;
-layout(location = 9) in vec4 a_BoneWeights;
+layout(location = 11) in ivec4 a_BoneIndices;
+layout(location = 12) in vec4 a_BoneWeights;
 
 layout (std140, binding = 0) uniform Camera
 {

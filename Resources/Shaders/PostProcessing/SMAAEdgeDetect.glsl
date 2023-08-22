@@ -107,7 +107,7 @@ layout( binding = 2) uniform SMAATexture2D(predicationTex);
 
 
 
-layout(location = 0) out vec4 outColor;
+layout(location = 0) out vec4 outEdge;
 
 layout (location = 0) in vec2 texcoord;
 layout (location = 1) in vec4 offsets[3];
@@ -118,22 +118,24 @@ void main()
 	#if __X2_EDGEMETHOD == 0
 
 		#if SMAA_PREDICATION
-			outColor = vec4(SMAAColorEdgeDetectionPS(texcoord, offsets, colorTex, predicationTex), 0.0, 0.0);
+			outEdge = vec4(SMAAColorEdgeDetectionPS(texcoord, offsets, colorTex, predicationTex), 0.0, 0.0);
 		#else  // SMAA_PREDICATION
-			outColor = vec4(SMAAColorEdgeDetectionPS(texcoord, offsets, colorTex), 0.0f, 1.0f);
+			outEdge = vec4(SMAAColorEdgeDetectionPS(texcoord, offsets, colorTex), 0.0f, 1.0f);
 			// outColor = vec4(1.0f,1.0f,1.0f,1.0f);
 		#endif  // SMAA_PREDICATION
 	#elif __X2_EDGEMETHOD == 1
 		#if SMAA_PREDICATION
-			outColor = vec4(SMAALumaEdgeDetectionPS(texcoord, offsets, colorTex, predicationTex), 0.0, 0.0);
+			outEdge = vec4(SMAALumaEdgeDetectionPS(texcoord, offsets, colorTex, predicationTex), 0.0, 0.0);
 		#else  // SMAA_PREDICATION
-			outColor = vec4(SMAALumaEdgeDetectionPS(texcoord, offsets, colorTex), 0.0, 1.0f);
+			outEdge = vec4(SMAALumaEdgeDetectionPS(texcoord, offsets, colorTex), 0.0, 1.0f);
 		#endif  // SMAA_PREDICATION
 
 	#elif __X2_EDGEMETHOD == 2
-		outColor = vec4(SMAADepthEdgeDetectionPS(texcoord, offsets, depthTex), 0.0, 0.0);
+		outEdge = vec4(SMAADepthEdgeDetectionPS(texcoord, offsets, depthTex), 0.0, 0.0);
 	#else
 
 	#error Bad EDGEMETHOD
 	#endif
+
+	
 }

@@ -104,7 +104,7 @@ namespace X2 {
 			if (Utils::IsDepthFormat(m_Specification.Format))
 				usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 			else
-				usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+				usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 		}
 		if (m_Specification.Transfer || m_Specification.Usage == ImageUsage::Texture)
 		{
@@ -114,6 +114,8 @@ namespace X2 {
 		{
 			usage |= VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		}
+		if(m_Specification.Usage == ImageUsage::HostRead)
+			usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
 		VkImageAspectFlags aspectMask = Utils::IsDepthFormat(m_Specification.Format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 		if (m_Specification.Format == ImageFormat::DEPTH24STENCIL8)
@@ -216,6 +218,25 @@ namespace X2 {
 			Utils::InsertImageMemoryBarrier(commandBuffer, m_Info.Image,
 				0, 0,
 				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+				subresourceRange);
+
+			VulkanContext::GetCurrentDevice()->FlushCommandBuffer(commandBuffer);
+		}
+		else if (m_Specification.Usage == ImageUsage::Texture)
+		{
+			// Transition image to TRANSFER_DST layout
+			VkCommandBuffer commandBuffer = VulkanContext::GetCurrentDevice()->GetCommandBuffer(true);
+
+			VkImageSubresourceRange subresourceRange = {};
+			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			subresourceRange.baseMipLevel = 0;
+			subresourceRange.levelCount = m_Specification.Mips;
+			subresourceRange.layerCount = m_Specification.Layers;
+
+			Utils::InsertImageMemoryBarrier(commandBuffer, m_Info.Image,
+				0, 0,
+				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
 				subresourceRange);
 

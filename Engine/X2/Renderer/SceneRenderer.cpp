@@ -42,7 +42,8 @@ namespace X2 {
 
 		ScreenData = 17,
 		HBAOData = 18,
-		SMAAData = 24
+		SMAAData = 24,
+		TAAData = 25
 	};
 
 	static std::vector<std::thread> s_ThreadPool;
@@ -106,6 +107,7 @@ namespace X2 {
 		m_UniformBufferSet->Create(sizeof(UBHBAOData), 18);
 		m_UniformBufferSet->Create(sizeof(UBSpotShadowData), 20);
 		m_UniformBufferSet->Create(sizeof(UBSMAAData), 24);
+		m_UniformBufferSet->Create(sizeof(UBTAAData), 25);
 
 
 		m_Renderer2D = Ref<Renderer2D>::Create();
@@ -137,6 +139,10 @@ namespace X2 {
 			{ ShaderDataType::Float4, "a_MRow0" },
 			{ ShaderDataType::Float4, "a_MRow1" },
 			{ ShaderDataType::Float4, "a_MRow2" },
+
+			{ ShaderDataType::Float4, "a_MRowPrev0" },
+			{ ShaderDataType::Float4, "a_MRowPrev1" },
+			{ ShaderDataType::Float4, "a_MRowPrev2" },
 		};
 
 		VertexBufferLayout boneInfluenceLayout = {
@@ -245,6 +251,10 @@ namespace X2 {
 				{ ShaderDataType::Float4, "a_MRow0" },
 				{ ShaderDataType::Float4, "a_MRow1" },
 				{ ShaderDataType::Float4, "a_MRow2" },
+
+				{ ShaderDataType::Float4, "a_MRowPrev0" },
+				{ ShaderDataType::Float4, "a_MRowPrev1" },
+				{ ShaderDataType::Float4, "a_MRowPrev2" },
 			};
 
 			RenderPassSpecification shadowMapRenderPassSpec;
@@ -286,6 +296,12 @@ namespace X2 {
 			pipelineSpec.RenderPass = Ref<VulkanRenderPass>::Create(preDepthRenderPassSpec);
 			m_PreDepthPipeline = Ref<VulkanPipeline>::Create(pipelineSpec);
 			m_PreDepthMaterial = Ref<VulkanMaterial>::Create(pipelineSpec.Shader, pipelineSpec.DebugName);
+
+			// TAA PreDepth;
+			pipelineSpec.DebugName = "PreDepth-TAA";
+			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("PreDepth_TAA");
+			m_PreDepthTAAPipeline = Ref<VulkanPipeline>::Create(pipelineSpec);
+			m_PreDepthTAAMaterial = Ref<VulkanMaterial>::Create(pipelineSpec.Shader, pipelineSpec.DebugName);
 
 			pipelineSpec.DebugName = "PreDepth-Anim";
 			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("PreDepth_Anim");
@@ -336,14 +352,29 @@ namespace X2 {
 			m_PreIntegrationMaterial = Ref<VulkanMaterial>::Create(shader, "Pre-Integration");
 		}
 
+		//TAA Velocity Texture
+		{
+			ImageSpecification imageSpec;
+			imageSpec.Format = ImageFormat::RG16F;
+			imageSpec.Layers = 1;
+			imageSpec.Usage = ImageUsage::Attachment;
+			imageSpec.DebugName = "TAA-Velocity";
+			m_TAAVelocityImage = Ref<VulkanImage2D>::Create(imageSpec);
+			m_TAAVelocityImage->Invalidate();
+			//m_TAAVelocityImage->CreatePerLayerImageViews();
+		}
+
 		// Geometry
 		{
 			FramebufferSpecification geoFramebufferSpec;
-			geoFramebufferSpec.Attachments = { ImageFormat::RGBA32F, ImageFormat::RGBA16F, ImageFormat::RGBA, ImageFormat::DEPTH32FSTENCIL8UINT };
-			geoFramebufferSpec.ExistingImages[3] = m_PreDepthPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage();
+
+			geoFramebufferSpec.Attachments = { ImageFormat::RGBA32F, ImageFormat::RGBA16F, ImageFormat::RGBA,ImageFormat::RG16F, ImageFormat::DEPTH32FSTENCIL8UINT };
+			geoFramebufferSpec.ExistingImages[3] = m_TAAVelocityImage;
+			geoFramebufferSpec.ExistingImages[4] = m_PreDepthPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage();
 
 			// Don't blend with luminance in the alpha channel.
 			geoFramebufferSpec.Attachments.Attachments[1].Blend = false;
+			geoFramebufferSpec.Attachments.Attachments[3].Blend = false; //Velocity need not blend
 			geoFramebufferSpec.Samples = 1;
 			geoFramebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 			geoFramebufferSpec.DebugName = "Geometry";
@@ -367,6 +398,15 @@ namespace X2 {
 			m_GeometryPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
 
 			//
+			// TAA Geometry
+			//
+			pipelineSpecification.DebugName = "PBR-STATIC-TAA";
+			pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("PBR_Static_TAA");
+			pipelineSpecification.DepthOperator = DepthCompareOperator::Equal;
+			m_GeometryTAAPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+
+
+			//
 			// Transparent Geometry
 			//
 			pipelineSpecification.DebugName = "PBR-Transparent";
@@ -386,6 +426,7 @@ namespace X2 {
 			// TODO(0x): Need Transparent-Animated geometry pipeline
 
 		}
+		
 
 		// Selected Geometry isolation (for outline pass)
 		{
@@ -784,7 +825,7 @@ namespace X2 {
 
 			FramebufferSpecification framebufferSpec;
 			framebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
-			framebufferSpec.Attachments.Attachments.emplace_back(ImageFormat::RGBA32F);
+			framebufferSpec.Attachments = { ImageFormat::RGBA32F }; // recode edge
 			framebufferSpec.DebugName = "SMAA-EdgeDetection";
 			framebufferSpec.BlendMode = FramebufferBlendMode::OneZero;
 			framebufferSpec.ClearColorOnLoad = true;
@@ -814,10 +855,10 @@ namespace X2 {
 
 			FramebufferSpecification framebufferSpec;
 			framebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
-			framebufferSpec.Attachments.Attachments.emplace_back(ImageFormat::RGBA32F);
+			framebufferSpec.Attachments = { ImageFormat::RGBA32F, ImageFormat::RGBA32F}; // &Geometry Color & Blend weight
 			framebufferSpec.DebugName = "SMAA-BlendWeight";
 			framebufferSpec.BlendMode = FramebufferBlendMode::OneZero;
-			framebufferSpec.ClearColorOnLoad = false;
+			framebufferSpec.ClearColorOnLoad = true;
 
 			RenderPassSpecification renderPassSpec;
 			renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
@@ -847,8 +888,8 @@ namespace X2 {
 			framebufferSpec.Attachments.Attachments.emplace_back(ImageFormat::RGBA32F);
 			framebufferSpec.ExistingImages[0] = m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage(0);
 			framebufferSpec.DebugName = "SMAA-NeighborBlend";
-			framebufferSpec.BlendMode = FramebufferBlendMode::OneZero;
-			framebufferSpec.ClearColorOnLoad = false;
+			framebufferSpec.Attachments.Attachments[0].Blend = false;
+			framebufferSpec.ClearColorOnLoad = true;
 
 			RenderPassSpecification renderPassSpec;
 			renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
@@ -857,6 +898,50 @@ namespace X2 {
 
 			m_SMAANeighborBlendPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
 			m_SMAANeighborBlendMaterial = Ref<VulkanMaterial>::Create(shader, "SMAA-NeighborBlend");
+		}
+
+		//TAA
+		{
+			ImageSpecification imageSpec;
+			imageSpec.Format = ImageFormat::RGBA32F;
+			imageSpec.DebugName = "TAA_Color_Image0";
+			Ref<VulkanImage2D> image0 = Ref<VulkanImage2D>::Create(imageSpec);
+			image0->Invalidate();
+			m_TAAPreColorImage = image0;
+
+			imageSpec.DebugName = "TAA_Color_Image1";
+			Ref<VulkanImage2D> image1 = Ref<VulkanImage2D>::Create(imageSpec);
+			image1->Invalidate();
+			m_TAACurColorImage = image1;
+
+
+			PipelineSpecification pipelineSpecification;
+			pipelineSpecification.Layout = {
+				{ ShaderDataType::Float3, "a_Position" },
+				{ ShaderDataType::Float2, "a_TexCoord" },
+			};
+			pipelineSpecification.BackfaceCulling = false;
+			pipelineSpecification.DepthTest = false;
+			pipelineSpecification.DepthWrite = false;
+			pipelineSpecification.DebugName = "TAA";
+			auto shader = Renderer::GetShaderLibrary()->Get("TAA");
+			pipelineSpecification.Shader = shader;
+
+			FramebufferSpecification framebufferSpec;
+			framebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+			framebufferSpec.Attachments.Attachments.emplace_back(ImageFormat::RGBA32F);
+			framebufferSpec.ExistingImages[0] = m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage(0);
+			framebufferSpec.DebugName = "TAA";
+			framebufferSpec.Attachments.Attachments[0].Blend = false;
+			framebufferSpec.ClearColorOnLoad = false;
+
+			RenderPassSpecification renderPassSpec;
+			renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
+			renderPassSpec.DebugName = framebufferSpec.DebugName;
+			pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+
+			m_TAAPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+			m_TAAMaterial = Ref<VulkanMaterial>::Create(shader, "TAA");
 		}
 
 		// DOF
@@ -1075,6 +1160,7 @@ namespace X2 {
 			m_SkyboxPipeline = Ref<VulkanPipeline>::Create(pipelineSpec);
 			m_SkyboxMaterial = Ref<VulkanMaterial>::Create(pipelineSpec.Shader, pipelineSpec.DebugName);
 			m_SkyboxMaterial->SetFlag(MaterialFlag::DepthTest, false);
+
 		}
 
 		// TODO(Yan): resizeable/flushable
@@ -1241,6 +1327,27 @@ namespace X2 {
 
 		m_GTAOFinalImage = m_Options.GTAODenoisePasses && m_Options.GTAODenoisePasses % 2 != 0 ? m_GTAODenoiseImage : m_GTAOOutputImage;
 
+
+		static bool isFlip = false;
+		if (!isFlip)
+		{
+			m_CurTransformMap = &m_MeshTransformMap[0];
+			m_PrevTransformMap = &m_MeshTransformMap[1];
+		}
+		else
+		{
+			m_CurTransformMap = &m_MeshTransformMap[1];
+			m_PrevTransformMap = &m_MeshTransformMap[0];
+		}
+		isFlip = !isFlip;
+		m_CurTransformMap->clear();
+
+		
+		m_TAAJitterCounter++;
+		if (m_TAAJitterCounter >= 8)
+			m_TAAJitterCounter = 0;
+
+
 		m_SceneData.SceneCamera = camera;
 		m_SceneData.SceneEnvironment = m_Scene->m_Environment;
 		m_SceneData.SceneEnvironmentIntensity = m_Scene->m_EnvironmentIntensity;
@@ -1263,6 +1370,8 @@ namespace X2 {
 			// Note the _Anim variants of these pipelines share the same framebuffer
 			m_PreDepthPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_PreDepthTransparentPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+
+			m_TAAVelocityImage->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_SelectedGeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 
@@ -1273,6 +1382,11 @@ namespace X2 {
 			m_SMAABlendWeightPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_SMAANeighborBlendPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 
+			//TAA Resize Callbacks
+			m_TAAPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+			m_TAACurColorImage->Resize(m_ViewportWidth, m_ViewportHeight);
+			m_TAAPreColorImage->Resize(m_ViewportWidth, m_ViewportHeight);
+
 
 			m_VisibilityTexture->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_ReinterleavingPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
@@ -1280,6 +1394,7 @@ namespace X2 {
 			m_HBAOBlurPipelines[1]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_AOCompositePipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight); //Only resize after geometry framebuffer
 			m_CompositePipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+
 
 			if (m_DOFPipeline)
 				m_DOFPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
@@ -1393,9 +1508,17 @@ namespace X2 {
 		UBScreenData& screenData = ScreenDataUB;
 		UBSpotLights& spotLightData = SpotLightUB;
 		UBSpotShadowData& spotShadowData = SpotShadowDataUB;
+		UBTAAData& taaData = TAADataUB;
+		Ref<SceneRenderer> instance = this;
+
+		
+		//TAA History
+		taaData.ViewProjectionHistory = cameraData.ViewProjection;
+
 
 		auto& sceneCamera = m_SceneData.SceneCamera;
 		const auto viewProjection = sceneCamera.Camera.GetProjectionMatrix() * sceneCamera.ViewMatrix;
+
 		//auto view = 
 		const glm::mat4 viewInverse = glm::inverse(sceneCamera.ViewMatrix);
 		const glm::mat4 projectionInverse = glm::inverse(sceneCamera.Camera.GetProjectionMatrix());
@@ -1431,7 +1554,7 @@ namespace X2 {
 		cameraData.NDCToViewMul = { projInfoPerspective[0], projInfoPerspective[1] };
 		cameraData.NDCToViewAdd = { projInfoPerspective[2], projInfoPerspective[3] };
 
-		Ref<SceneRenderer> instance = this;
+		
 		Renderer::Submit([instance, cameraData]() mutable
 			{
 				uint32_t bufferIndex = Renderer::RT_GetCurrentFrameIndex();
@@ -1537,6 +1660,26 @@ namespace X2 {
 		Renderer::SetSceneEnvironment(this, m_SceneData.SceneEnvironment,
 			m_ShadowPassPipelines[0]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage(),
 			m_SpotShadowPassPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
+
+
+		//TAA
+		taaData.ScreenSpaceJitter = (m_TAAHaltonSequence[m_TAAJitterCounter] - 0.5f) * glm::vec2(m_InvViewportWidth, m_InvViewportHeight);
+
+		glm::mat4 jitterMatrix(sceneCamera.Camera.GetProjectionMatrix());
+		jitterMatrix[2][0] += taaData.ScreenSpaceJitter.x * 2;
+		jitterMatrix[2][1] += taaData.ScreenSpaceJitter.y * 2;
+
+		taaData.InvJitterdProjection = glm::inverse(jitterMatrix);
+
+		taaData.JitterdViewProjection = jitterMatrix * sceneCamera.ViewMatrix;
+		taaData.FeedBack = m_Options.TAAFeedback;
+
+		Renderer::Submit([instance, taaData]() mutable
+			{
+				const uint32_t bufferIndex = Renderer::RT_GetCurrentFrameIndex();
+				instance->m_UniformBufferSet->Get(Binding::TAAData, 0, bufferIndex)->RT_SetData(&taaData, sizeof(taaData));
+			});
+		
 	}
 
 	void SceneRenderer::EndScene()
@@ -1565,7 +1708,7 @@ namespace X2 {
 		s_ThreadPool.clear();
 	}
 
-	void SceneRenderer::SubmitMesh(Ref<Mesh> mesh, uint32_t submeshIndex, Ref<MaterialTable> materialTable, const glm::mat4& transform, const std::vector<glm::mat4>& boneTransforms, Ref<VulkanMaterial> overrideMaterial)
+	void SceneRenderer::SubmitMesh(uint64_t entityUUID, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<MaterialTable> materialTable, const glm::mat4& transform, const std::vector<glm::mat4>& boneTransforms, Ref<VulkanMaterial> overrideMaterial)
 	{
 		X2_PROFILE_FUNC();
 
@@ -1580,12 +1723,20 @@ namespace X2 {
 		AssetHandle materialHandle = materialTable->HasMaterial(materialIndex) ? materialTable->GetMaterial(materialIndex) : mesh->GetMaterials()->GetMaterial(materialIndex);
 		Ref<MaterialAsset> material = AssetManager::GetAsset<MaterialAsset>(materialHandle);
 
-		MeshKey meshKey = { mesh->Handle, materialHandle, submeshIndex, false };
-		auto& transformStorage = m_MeshTransformMap[meshKey].Transforms.emplace_back();
+		MeshKey meshKey = { entityUUID, mesh->Handle, materialHandle, submeshIndex, false };
+		auto& transformStorage = (* m_CurTransformMap)[meshKey].Transforms.emplace_back();
+
 
 		transformStorage.MRow[0] = { transform[0][0], transform[1][0], transform[2][0], transform[3][0] };
 		transformStorage.MRow[1] = { transform[0][1], transform[1][1], transform[2][1], transform[3][1] };
 		transformStorage.MRow[2] = { transform[0][2], transform[1][2], transform[2][2], transform[3][2] };
+
+
+		if ((*m_PrevTransformMap).find(meshKey) == (*m_PrevTransformMap).end())
+		{
+			(*m_PrevTransformMap)[meshKey] = (*m_CurTransformMap)[meshKey];
+		}
+	
 
 		/*if (isRigged)
 		{
@@ -1617,7 +1768,7 @@ namespace X2 {
 		}
 	}
 
-	void SceneRenderer::SubmitStaticMesh(Ref<StaticMesh> staticMesh, Ref<MaterialTable> materialTable, const glm::mat4& transform, Ref<VulkanMaterial> overrideMaterial)
+	void SceneRenderer::SubmitStaticMesh(uint64_t entityUUID, Ref<StaticMesh> staticMesh, Ref<MaterialTable> materialTable, const glm::mat4& transform, Ref<VulkanMaterial> overrideMaterial)
 	{
 		X2_PROFILE_FUNC();
 
@@ -1634,13 +1785,18 @@ namespace X2 {
 			X2_CORE_VERIFY(materialHandle);
 			Ref<MaterialAsset> material = AssetManager::GetAsset<MaterialAsset>(materialHandle);
 
-			MeshKey meshKey = { staticMesh->Handle, materialHandle, submeshIndex, false };
-			auto& transformStorage = m_MeshTransformMap[meshKey].Transforms.emplace_back();
+			MeshKey meshKey = { entityUUID, staticMesh->Handle, materialHandle, submeshIndex, false };
+			auto& transformStorage = (* m_CurTransformMap)[meshKey].Transforms.emplace_back();
 
 			transformStorage.MRow[0] = { submeshTransform[0][0], submeshTransform[1][0], submeshTransform[2][0], submeshTransform[3][0] };
 			transformStorage.MRow[1] = { submeshTransform[0][1], submeshTransform[1][1], submeshTransform[2][1], submeshTransform[3][1] };
 			transformStorage.MRow[2] = { submeshTransform[0][2], submeshTransform[1][2], submeshTransform[2][2], submeshTransform[3][2] };
+			
 
+			if ((*m_PrevTransformMap).find(meshKey) == (*m_PrevTransformMap).end())
+			{
+				(*m_PrevTransformMap)[meshKey] = (*m_CurTransformMap)[meshKey];
+			}
 
 			// Main geo
 			{
@@ -1668,7 +1824,7 @@ namespace X2 {
 
 	}
 
-	void SceneRenderer::SubmitSelectedMesh(Ref<Mesh> mesh, uint32_t submeshIndex, Ref<MaterialTable> materialTable, const glm::mat4& transform, const std::vector<glm::mat4>& boneTransforms, Ref<VulkanMaterial> overrideMaterial)
+	void SceneRenderer::SubmitSelectedMesh(uint64_t entityUUID, Ref<Mesh> mesh, uint32_t submeshIndex, Ref<MaterialTable> materialTable, const glm::mat4& transform, const std::vector<glm::mat4>& boneTransforms, Ref<VulkanMaterial> overrideMaterial)
 	{
 		X2_PROFILE_FUNC();
 
@@ -1684,12 +1840,17 @@ namespace X2 {
 		X2_CORE_VERIFY(materialHandle);
 		Ref<MaterialAsset> material = AssetManager::GetAsset<MaterialAsset>(materialHandle);
 
-		MeshKey meshKey = { mesh->Handle, materialHandle, submeshIndex, true };
-		auto& transformStorage = m_MeshTransformMap[meshKey].Transforms.emplace_back();
+		MeshKey meshKey = { entityUUID, mesh->Handle, materialHandle, submeshIndex, true };
+		auto& transformStorage = (* m_CurTransformMap)[meshKey].Transforms.emplace_back();
 
 		transformStorage.MRow[0] = { transform[0][0], transform[1][0], transform[2][0], transform[3][0] };
 		transformStorage.MRow[1] = { transform[0][1], transform[1][1], transform[2][1], transform[3][1] };
 		transformStorage.MRow[2] = { transform[0][2], transform[1][2], transform[2][2], transform[3][2] };
+
+		if ((*m_PrevTransformMap).find(meshKey) == (*m_PrevTransformMap).end())
+		{
+			(*m_PrevTransformMap)[meshKey] = (*m_CurTransformMap)[meshKey];
+		}
 
 		/*if (isRigged)
 		{
@@ -1738,7 +1899,7 @@ namespace X2 {
 		}
 	}
 
-	void SceneRenderer::SubmitSelectedStaticMesh(Ref<StaticMesh> staticMesh, Ref<MaterialTable> materialTable, const glm::mat4& transform, Ref<VulkanMaterial> overrideMaterial)
+	void SceneRenderer::SubmitSelectedStaticMesh(uint64_t entityUUID, Ref<StaticMesh> staticMesh, Ref<MaterialTable> materialTable, const glm::mat4& transform, Ref<VulkanMaterial> overrideMaterial)
 	{
 		X2_PROFILE_FUNC();
 
@@ -1755,12 +1916,17 @@ namespace X2 {
 			X2_CORE_VERIFY(materialHandle);
 			Ref<MaterialAsset> material = AssetManager::GetAsset<MaterialAsset>(materialHandle);
 
-			MeshKey meshKey = { staticMesh->Handle, materialHandle, submeshIndex, true };
-			auto& transformStorage = m_MeshTransformMap[meshKey].Transforms.emplace_back();
+			MeshKey meshKey = { entityUUID, staticMesh->Handle, materialHandle, submeshIndex, true };
+			auto& transformStorage = (* m_CurTransformMap)[meshKey].Transforms.emplace_back();
 
 			transformStorage.MRow[0] = { submeshTransform[0][0], submeshTransform[1][0], submeshTransform[2][0], submeshTransform[3][0] };
 			transformStorage.MRow[1] = { submeshTransform[0][1], submeshTransform[1][1], submeshTransform[2][1], submeshTransform[3][1] };
 			transformStorage.MRow[2] = { submeshTransform[0][2], submeshTransform[1][2], submeshTransform[2][2], submeshTransform[3][2] };
+
+			if ((*m_PrevTransformMap).find(meshKey) == (*m_PrevTransformMap).end())
+			{
+				(*m_PrevTransformMap)[meshKey] = (*m_CurTransformMap)[meshKey];
+			}
 
 			// Main geo
 			{
@@ -1797,7 +1963,7 @@ namespace X2 {
 		}
 	}
 
-	void SceneRenderer::SubmitPhysicsDebugMesh(Ref<Mesh> mesh, uint32_t submeshIndex, const glm::mat4& transform)
+	void SceneRenderer::SubmitPhysicsDebugMesh(uint64_t entityUUID, Ref<Mesh> mesh, uint32_t submeshIndex, const glm::mat4& transform)
 	{
 		X2_CORE_VERIFY(mesh->Handle);
 
@@ -1805,12 +1971,18 @@ namespace X2 {
 		const auto& submeshData = meshSource->GetSubmeshes();
 		glm::mat4 submeshTransform = transform * submeshData[submeshIndex].Transform;
 
-		MeshKey meshKey = { mesh->Handle, 5, submeshIndex, false };
-		auto& transformStorage = m_MeshTransformMap[meshKey].Transforms.emplace_back();
+		MeshKey meshKey = { entityUUID, mesh->Handle, 5, submeshIndex, false };
+		auto& transformStorage = (* m_CurTransformMap)[meshKey].Transforms.emplace_back();
+
 
 		transformStorage.MRow[0] = { transform[0][0], transform[1][0], transform[2][0], transform[3][0] };
 		transformStorage.MRow[1] = { transform[0][1], transform[1][1], transform[2][1], transform[3][1] };
 		transformStorage.MRow[2] = { transform[0][2], transform[1][2], transform[2][2], transform[3][2] };
+
+		if ((*m_PrevTransformMap).find(meshKey) == (*m_PrevTransformMap).end())
+		{
+			(*m_PrevTransformMap)[meshKey] = (*m_CurTransformMap)[meshKey];
+		}
 
 		{
 			auto& dc = m_ColliderDrawList[meshKey];
@@ -1820,7 +1992,7 @@ namespace X2 {
 		}
 	}
 
-	void SceneRenderer::SubmitPhysicsStaticDebugMesh(Ref<StaticMesh> staticMesh, const glm::mat4& transform, const bool isPrimitiveCollider)
+	void SceneRenderer::SubmitPhysicsStaticDebugMesh(uint64_t entityUUID, Ref<StaticMesh> staticMesh, const glm::mat4& transform, const bool isPrimitiveCollider)
 	{
 		X2_CORE_VERIFY(staticMesh->Handle);
 		Ref<MeshSource> meshSource = staticMesh->GetMeshSource();
@@ -1829,12 +2001,17 @@ namespace X2 {
 		{
 			glm::mat4 submeshTransform = transform * submeshData[submeshIndex].Transform;
 
-			MeshKey meshKey = { staticMesh->Handle, 5, submeshIndex, false };
-			auto& transformStorage = m_MeshTransformMap[meshKey].Transforms.emplace_back();
+			MeshKey meshKey = {entityUUID, staticMesh->Handle, 5, submeshIndex, false };
+			auto& transformStorage = (* m_CurTransformMap)[meshKey].Transforms.emplace_back();
 
 			transformStorage.MRow[0] = { submeshTransform[0][0], submeshTransform[1][0], submeshTransform[2][0], submeshTransform[3][0] };
 			transformStorage.MRow[1] = { submeshTransform[0][1], submeshTransform[1][1], submeshTransform[2][1], submeshTransform[3][1] };
 			transformStorage.MRow[2] = { submeshTransform[0][2], submeshTransform[1][2], submeshTransform[2][2], submeshTransform[3][2] };
+			
+			if ((*m_PrevTransformMap).find(meshKey) == (*m_PrevTransformMap).end())
+			{
+				(*m_PrevTransformMap)[meshKey] = (*m_CurTransformMap)[meshKey];
+			}
 
 			{
 				auto& dc = m_StaticColliderDrawList[meshKey];
@@ -1882,14 +2059,14 @@ namespace X2 {
 			const Buffer cascade(&i, sizeof(uint32_t));
 			for (auto& [mk, dc] : m_StaticMeshShadowPassDrawList)
 			{
-				X2_CORE_VERIFY(m_MeshTransformMap.find(mk) != m_MeshTransformMap.end());
-				const auto& transformData = m_MeshTransformMap.at(mk);
+				X2_CORE_VERIFY(m_CurTransformMap->find(mk) != m_CurTransformMap->end());
+				const auto& transformData = m_CurTransformMap->at(mk);
 				Renderer::RenderStaticMeshWithMaterial(m_CommandBuffer, m_ShadowPassPipelines[i], m_UniformBufferSet, nullptr, dc.StaticMesh, dc.SubmeshIndex, m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, dc.InstanceCount, m_ShadowPassMaterial, cascade);
 			}
 			for (auto& [mk, dc] : m_ShadowPassDrawList)
 			{
-				X2_CORE_VERIFY(m_MeshTransformMap.find(mk) != m_MeshTransformMap.end());
-				const auto& transformData = m_MeshTransformMap.at(mk);
+				X2_CORE_VERIFY(m_CurTransformMap->find(mk) != m_CurTransformMap->end());
+				const auto& transformData = m_CurTransformMap->at(mk);
 				/*if (dc.IsRigged)
 				{
 					const auto& boneTransformsData = m_MeshBoneTransformsMap.at(mk);
@@ -1922,14 +2099,14 @@ namespace X2 {
 			const Buffer lightIndex(&i, sizeof(uint32_t));
 			for (auto& [mk, dc] : m_StaticMeshShadowPassDrawList)
 			{
-				X2_CORE_VERIFY(m_MeshTransformMap.find(mk) != m_MeshTransformMap.end());
-				const auto& transformData = m_MeshTransformMap.at(mk);
+				X2_CORE_VERIFY(m_CurTransformMap->find(mk) != m_CurTransformMap->end());
+				const auto& transformData = m_CurTransformMap->at(mk);
 				Renderer::RenderStaticMeshWithMaterial(m_CommandBuffer, m_SpotShadowPassPipeline, m_UniformBufferSet, nullptr, dc.StaticMesh, dc.SubmeshIndex, m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, dc.InstanceCount, m_SpotShadowPassMaterial, lightIndex);
 			}
 			for (auto& [mk, dc] : m_ShadowPassDrawList)
 			{
-				X2_CORE_VERIFY(m_MeshTransformMap.find(mk) != m_MeshTransformMap.end());
-				const auto& transformData = m_MeshTransformMap.at(mk);
+				X2_CORE_VERIFY(m_CurTransformMap->find(mk) != m_CurTransformMap->end());
+				const auto& transformData = m_CurTransformMap->at(mk);
 				/*if (dc.IsRigged)
 				{
 					const auto& boneTransformsData = m_MeshBoneTransformsMap.at(mk);
@@ -1956,12 +2133,15 @@ namespace X2 {
 		Renderer::BeginRenderPass(m_CommandBuffer, m_PreDepthPipeline->GetSpecification().RenderPass);
 		for (auto& [mk, dc] : m_StaticMeshDrawList)
 		{
-			const auto& transformData = m_MeshTransformMap.at(mk);
-			Renderer::RenderStaticMeshWithMaterial(m_CommandBuffer, m_PreDepthPipeline, m_UniformBufferSet, nullptr, dc.StaticMesh, dc.SubmeshIndex, m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, dc.InstanceCount, m_PreDepthMaterial);
+			const auto& transformData = m_CurTransformMap->at(mk);
+			if(!IsUsingTAA(m_Options.AAMethod) || !m_Options.EnableAA)
+				Renderer::RenderStaticMeshWithMaterial(m_CommandBuffer, m_PreDepthPipeline, m_UniformBufferSet, nullptr, dc.StaticMesh, dc.SubmeshIndex, m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, dc.InstanceCount, m_PreDepthMaterial);
+			else
+				Renderer::RenderStaticMeshWithMaterial(m_CommandBuffer, m_PreDepthTAAPipeline, m_UniformBufferSet, nullptr, dc.StaticMesh, dc.SubmeshIndex, m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, dc.InstanceCount, m_PreDepthTAAMaterial);
 		}
 		for (auto& [mk, dc] : m_DrawList)
 		{
-			const auto& transformData = m_MeshTransformMap.at(mk);
+			const auto& transformData = m_CurTransformMap->at(mk);
 			/*if (dc.IsRigged)
 			{
 				const auto& boneTransformsData = m_MeshBoneTransformsMap.at(mk);
@@ -1969,7 +2149,10 @@ namespace X2 {
 			}
 			else
 			{*/
+			if (!IsUsingTAA(m_Options.AAMethod) || !m_Options.EnableAA)
 				Renderer::RenderMeshWithMaterial(m_CommandBuffer, m_PreDepthPipeline, m_UniformBufferSet, nullptr, dc.Mesh, dc.SubmeshIndex, m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, {}, 0, dc.InstanceCount, m_PreDepthMaterial);
+			else
+				Renderer::RenderMeshWithMaterial(m_CommandBuffer, m_PreDepthTAAPipeline, m_UniformBufferSet, nullptr, dc.Mesh, dc.SubmeshIndex, m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, {}, 0, dc.InstanceCount, m_PreDepthTAAMaterial);
 			//}
 		}
 
@@ -1979,12 +2162,12 @@ namespace X2 {
 #if 1
 		for (auto& [mk, dc] : m_TransparentStaticMeshDrawList)
 		{
-			const auto& transformData = m_MeshTransformMap.at(mk);
+			const auto& transformData = m_CurTransformMap->at(mk);
 			Renderer::RenderMeshWithMaterial(m_CommandBuffer, m_PreDepthTransparentPipeline, m_UniformBufferSet, nullptr, dc.StaticMesh, dc.SubmeshIndex, m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, {}, 0, dc.InstanceCount, m_PreDepthMaterial);
 		}
 		for (auto& [mk, dc] : m_TransparentDrawList)
 		{
-			const auto& transformData = m_MeshTransformMap.at(mk);
+			const auto& transformData = m_CurTransformMap->at(mk);
 			//if (dc.IsRigged)
 			//{
 			//	const auto& boneTransformsData = m_MeshBoneTransformsMap.at(mk);
@@ -2263,12 +2446,12 @@ namespace X2 {
 		Renderer::BeginRenderPass(m_CommandBuffer, m_SelectedGeometryPipeline->GetSpecification().RenderPass);
 		for (auto& [mk, dc] : m_SelectedStaticMeshDrawList)
 		{
-			const auto& transformData = m_MeshTransformMap.at(mk);
+			const auto& transformData = m_CurTransformMap->at(mk);
 			Renderer::RenderStaticMeshWithMaterial(m_CommandBuffer, m_SelectedGeometryPipeline, m_UniformBufferSet, nullptr, dc.StaticMesh, dc.SubmeshIndex, m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset + dc.InstanceOffset * sizeof(TransformVertexData), dc.InstanceCount, m_SelectedGeometryMaterial);
 		}
 		for (auto& [mk, dc] : m_SelectedMeshDrawList)
 		{
-			const auto& transformData = m_MeshTransformMap.at(mk);
+			const auto& transformData = m_CurTransformMap->at(mk);
 			/*if (dc.IsRigged)
 			{
 				const auto& boneTransformsData = m_MeshBoneTransformsMap.at(mk);
@@ -2297,8 +2480,13 @@ namespace X2 {
 		SceneRenderer::BeginGPUPerfMarker(m_CommandBuffer, "Static Meshes");
 		for (auto& [mk, dc] : m_StaticMeshDrawList)
 		{
-			const auto& transformData = m_MeshTransformMap.at(mk);
-			Renderer::RenderStaticMesh(m_CommandBuffer, m_GeometryPipeline, m_UniformBufferSet, m_StorageBufferSet, dc.StaticMesh, dc.SubmeshIndex, dc.MaterialTable ? dc.MaterialTable : dc.StaticMesh->GetMaterials(), m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, dc.InstanceCount);
+			const auto& transformData = m_CurTransformMap->at(mk);
+
+			if (!IsUsingTAA(m_Options.AAMethod) || !m_Options.EnableAA)
+				Renderer::RenderStaticMesh(m_CommandBuffer, m_GeometryPipeline, m_UniformBufferSet, m_StorageBufferSet, dc.StaticMesh, dc.SubmeshIndex, dc.MaterialTable ? dc.MaterialTable : dc.StaticMesh->GetMaterials(), m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, dc.InstanceCount);
+			else
+				Renderer::RenderStaticMesh(m_CommandBuffer, m_GeometryTAAPipeline, m_UniformBufferSet, m_StorageBufferSet, dc.StaticMesh, dc.SubmeshIndex, dc.MaterialTable ? dc.MaterialTable : dc.StaticMesh->GetMaterials(), m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, dc.InstanceCount);
+
 		}
 		SceneRenderer::EndGPUPerfMarker(m_CommandBuffer);
 
@@ -2306,7 +2494,7 @@ namespace X2 {
 		SceneRenderer::BeginGPUPerfMarker(m_CommandBuffer, "Dynamic Meshes");
 		for (auto& [mk, dc] : m_DrawList)
 		{
-			const auto& transformData = m_MeshTransformMap.at(mk);
+			const auto& transformData = m_CurTransformMap->at(mk);
 			/*if (dc.IsRigged)
 			{
 				const auto& boneTransformsData = m_MeshBoneTransformsMap.at(mk);
@@ -2324,8 +2512,9 @@ namespace X2 {
 			SceneRenderer::BeginGPUPerfMarker(m_CommandBuffer, "Static Transparent Meshes");
 			for (auto& [mk, dc] : m_TransparentStaticMeshDrawList)
 			{
-				const auto& transformData = m_MeshTransformMap.at(mk);
+				const auto& transformData = m_CurTransformMap->at(mk);
 				Renderer::RenderStaticMesh(m_CommandBuffer, m_TransparentGeometryPipeline, m_UniformBufferSet, m_StorageBufferSet, dc.StaticMesh, dc.SubmeshIndex, dc.MaterialTable ? dc.MaterialTable : dc.StaticMesh->GetMaterials(), m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, dc.InstanceCount);
+
 			}
 			SceneRenderer::EndGPUPerfMarker(m_CommandBuffer);
 
@@ -2333,7 +2522,7 @@ namespace X2 {
 			SceneRenderer::BeginGPUPerfMarker(m_CommandBuffer, "Dynamic Transparent Meshes");
 			for (auto& [mk, dc] : m_TransparentDrawList)
 			{
-				const auto& transformData = m_MeshTransformMap.at(mk);
+				const auto& transformData = m_CurTransformMap->at(mk);
 				//Renderer::RenderSubmesh(m_CommandBuffer, m_GeometryPipeline, m_UniformBufferSet, m_StorageBufferSet, dc.Mesh, dc.SubmeshIndex, dc.MaterialTable ? dc.MaterialTable : dc.Mesh->GetMaterials(), dc.Transform);
 				Renderer::RenderSubmeshInstanced(m_CommandBuffer, m_TransparentGeometryPipeline, m_UniformBufferSet, m_StorageBufferSet, dc.Mesh, dc.SubmeshIndex, dc.MaterialTable ? dc.MaterialTable : dc.Mesh->GetMaterials(), m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, {}, 0, dc.InstanceCount);
 			}
@@ -3090,7 +3279,7 @@ namespace X2 {
 			SceneRenderer::BeginGPUPerfMarker(m_CommandBuffer, "Static Meshes Wireframe");
 			for (auto& [mk, dc] : m_SelectedStaticMeshDrawList)
 			{
-				const auto& transformData = m_MeshTransformMap.at(mk);
+				const auto& transformData = m_CurTransformMap->at(mk);
 				Renderer::RenderStaticMeshWithMaterial(m_CommandBuffer, m_GeometryWireframePipeline, m_UniformBufferSet, nullptr, dc.StaticMesh, dc.SubmeshIndex, m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset + dc.InstanceOffset * sizeof(TransformVertexData), dc.InstanceCount, m_WireframeMaterial);
 			}
 			SceneRenderer::EndGPUPerfMarker(m_CommandBuffer);
@@ -3098,7 +3287,7 @@ namespace X2 {
 			SceneRenderer::BeginGPUPerfMarker(m_CommandBuffer, "Dynamic Meshes Wireframe");
 			for (auto& [mk, dc] : m_SelectedMeshDrawList)
 			{
-				const auto& transformData = m_MeshTransformMap.at(mk);
+				const auto& transformData = m_CurTransformMap->at(mk);
 				/*if (dc.IsRigged)
 				{
 					const auto& boneTransformsData = m_MeshBoneTransformsMap.at(mk);
@@ -3123,8 +3312,8 @@ namespace X2 {
 			SceneRenderer::BeginGPUPerfMarker(m_CommandBuffer, "Static Meshes Collider");
 			for (auto& [mk, dc] : m_StaticColliderDrawList)
 			{
-				X2_CORE_VERIFY(m_MeshTransformMap.find(mk) != m_MeshTransformMap.end());
-				const auto& transformData = m_MeshTransformMap.at(mk);
+				X2_CORE_VERIFY(m_CurTransformMap->find(mk) != m_CurTransformMap->end());
+				const auto& transformData = m_CurTransformMap->at(mk);
 				Renderer::RenderStaticMeshWithMaterial(m_CommandBuffer, pipeline, m_UniformBufferSet, nullptr, dc.StaticMesh, dc.SubmeshIndex, m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, dc.InstanceCount, dc.OverrideMaterial);
 			}
 			SceneRenderer::EndGPUPerfMarker(m_CommandBuffer);
@@ -3133,8 +3322,8 @@ namespace X2 {
 			SceneRenderer::BeginGPUPerfMarker(m_CommandBuffer, "Dynamic Meshes Collider");
 			for (auto& [mk, dc] : m_ColliderDrawList)
 			{
-				X2_CORE_VERIFY(m_MeshTransformMap.find(mk) != m_MeshTransformMap.end());
-				const auto& transformData = m_MeshTransformMap.at(mk);
+				X2_CORE_VERIFY(m_CurTransformMap->find(mk) != m_CurTransformMap->end());
+				const auto& transformData = m_CurTransformMap->at(mk);
 				/*if (dc.IsRigged)
 				{
 					const auto& boneTransformsData = m_MeshBoneTransformsMap.at(mk);
@@ -3152,46 +3341,199 @@ namespace X2 {
 	}
 
 
+	void SceneRenderer::TAAPass()
+	{
+
+		{
+			//Cpoy Cuurent Color Image
+			Ref<SceneRenderer> instance = this;
+			Renderer::Submit([instance]() mutable
+				{
+					auto inputImage = instance->m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
+				
+
+					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
+						VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+						VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
+
+					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), instance->m_TAACurColorImage->GetImageInfo().Image,
+						 VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+						VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
+
+
+					VkImageCopy copyRegion{};
+					copyRegion.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+					copyRegion.srcOffset = { 0, 0, 0 }; // 从源图像的哪个位置开始复制
+					copyRegion.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+					copyRegion.dstOffset = { 0, 0, 0 }; // 复制到目标图像的哪个位置
+					copyRegion.extent = { inputImage->GetWidth(), inputImage->GetHeight(), 1 }; // 复制的区域的大小
+
+					vkCmdCopyImage(
+						instance->m_CommandBuffer->GetActiveCommandBuffer(),
+						inputImage->GetImageInfo().Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+						instance->m_TAACurColorImage->GetImageInfo().Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+						1, &copyRegion
+					);
+
+
+					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
+						VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT,
+						VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+						VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
+
+					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), instance->m_TAACurColorImage->GetImageInfo().Image,
+						VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+						VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+						VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
+
+				});
+
+			
+			m_TAAMaterial->Set("u_color", m_TAACurColorImage);
+			m_TAAMaterial->Set("u_velocity", m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage(3).As<VulkanImage2D>());
+			m_TAAMaterial->Set("u_depth", m_PreDepthPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
+
+			static bool firstFrame = true;
+			if (firstFrame)
+			{
+				m_TAAMaterial->Set("u_colorHistory", m_TAACurColorImage);
+				firstFrame = false;
+			}
+			else
+				m_TAAMaterial->Set("u_colorHistory", m_TAAPreColorImage);
+
+
+			m_GPUTimeQueries.TAAPassQuery = m_CommandBuffer->BeginTimestampQuery();
+			Renderer::BeginRenderPass(m_CommandBuffer, m_TAAPipeline->GetSpecification().RenderPass);
+			Renderer::SubmitFullscreenQuad(m_CommandBuffer, m_TAAPipeline, m_UniformBufferSet, m_TAAMaterial);
+			Renderer::EndRenderPass(m_CommandBuffer);
+			m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.TAAPassQuery);
+
+
+			Renderer::Submit([instance]() mutable
+				{
+					auto inputImage = instance->m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
+
+
+					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
+						VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+						VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
+
+					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), instance->m_TAAPreColorImage->GetImageInfo().Image,
+						VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+						VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
+
+
+					VkImageCopy copyRegion{};
+					copyRegion.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+					copyRegion.srcOffset = { 0, 0, 0 }; // 从源图像的哪个位置开始复制
+					copyRegion.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+					copyRegion.dstOffset = { 0, 0, 0 }; // 复制到目标图像的哪个位置
+					copyRegion.extent = { inputImage->GetWidth(), inputImage->GetHeight(), 1 }; // 复制的区域的大小
+
+					vkCmdCopyImage(
+						instance->m_CommandBuffer->GetActiveCommandBuffer(),
+						inputImage->GetImageInfo().Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+						instance->m_TAAPreColorImage->GetImageInfo().Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+						1, &copyRegion
+					);
+
+
+					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
+						VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT,
+						VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+						VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
+
+					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), instance->m_TAAPreColorImage->GetImageInfo().Image,
+						VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+						VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+						VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
+
+				});
+
+
+		}
+	}
+
+
 	void SceneRenderer::SMAAPass()
 	{
 		// Currently scales the SSR, renders with transparency.
 		// The alpha channel is the confidence.
-		m_SMAAEdgeDetectionMaterial->Set("colorTex", m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage());
 
-		m_GPUTimeQueries.SMAAEdgeDetectPassQuery = m_CommandBuffer->BeginTimestampQuery();
-		Renderer::BeginRenderPass(m_CommandBuffer, m_SMAAEdgeDetectionPipeline->GetSpecification().RenderPass);
-		Renderer::SubmitFullscreenQuad(m_CommandBuffer, m_SMAAEdgeDetectionPipeline, m_UniformBufferSet, m_SMAAEdgeDetectionMaterial);
-		Renderer::EndRenderPass(m_CommandBuffer);
-		m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.SMAAEdgeDetectPassQuery);
+		{
+			m_SMAAEdgeDetectionMaterial->Set("colorTex", m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>());
+
+			m_GPUTimeQueries.SMAAEdgeDetectPassQuery = m_CommandBuffer->BeginTimestampQuery();
+			Renderer::BeginRenderPass(m_CommandBuffer, m_SMAAEdgeDetectionPipeline->GetSpecification().RenderPass);
+			Renderer::SubmitFullscreenQuad(m_CommandBuffer, m_SMAAEdgeDetectionPipeline, m_UniformBufferSet, m_SMAAEdgeDetectionMaterial);
+			Renderer::EndRenderPass(m_CommandBuffer);
+			m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.SMAAEdgeDetectPassQuery);
+		}
+
+		{
+
+			Ref<SceneRenderer> instance = this;
+			Renderer::Submit([instance]() mutable
+				{
+					auto inputImage = instance->m_SMAABlendWeightPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
+
+					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
+						VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+						VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+						VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
+				});
+			
+
+			// Second Pass BlendWeight 
+			m_SMAABlendWeightMaterial->Set("colorTex", m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage(0));
+			m_SMAABlendWeightMaterial->Set("edgesTex", m_SMAAEdgeDetectionPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage());
+			m_SMAABlendWeightMaterial->Set("areaTex", Renderer::GetSMAAAreaLut());
+			m_SMAABlendWeightMaterial->Set("searchTex", Renderer::GetSMAASearchLut());
+
+			m_GPUTimeQueries.SMAABlendWeightPassQuery = m_CommandBuffer->BeginTimestampQuery();
+			Renderer::BeginRenderPass(m_CommandBuffer, m_SMAABlendWeightPipeline->GetSpecification().RenderPass);
+			Renderer::SubmitFullscreenQuad(m_CommandBuffer, m_SMAABlendWeightPipeline, m_UniformBufferSet, m_SMAABlendWeightMaterial);
+			Renderer::EndRenderPass(m_CommandBuffer);
+			m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.SMAABlendWeightPassQuery);
+
+		
+		}
 
 
-		// Second Pass BlendWeight 
-		m_SMAABlendWeightMaterial->Set("edgesTex", m_SMAAEdgeDetectionPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage());
-		m_SMAABlendWeightMaterial->Set("areaTex", Renderer::GetSMAAAreaLut());
-		m_SMAABlendWeightMaterial->Set("searchTex", Renderer::GetSMAASearchLut());
+		
+		{
+			m_SMAANeighborBlendMaterial->Set("colorTex", m_SMAABlendWeightPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage(0));
+			m_SMAANeighborBlendMaterial->Set("blendTex", m_SMAABlendWeightPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage(1));
 
-		m_GPUTimeQueries.SMAABlendWeightPassQuery = m_CommandBuffer->BeginTimestampQuery();
-		Renderer::BeginRenderPass(m_CommandBuffer, m_SMAABlendWeightPipeline->GetSpecification().RenderPass);
-		Renderer::SubmitFullscreenQuad(m_CommandBuffer, m_SMAABlendWeightPipeline, m_UniformBufferSet, m_SMAABlendWeightMaterial);
-		Renderer::EndRenderPass(m_CommandBuffer);
-		m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.SMAABlendWeightPassQuery);
+			m_GPUTimeQueries.SMAANeighborBlendPassQuery = m_CommandBuffer->BeginTimestampQuery();
+			Renderer::BeginRenderPass(m_CommandBuffer, m_SMAANeighborBlendPipeline->GetSpecification().RenderPass);
+			Renderer::SubmitFullscreenQuad(m_CommandBuffer, m_SMAANeighborBlendPipeline, m_UniformBufferSet, m_SMAANeighborBlendMaterial);
+			Renderer::EndRenderPass(m_CommandBuffer);
+			m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.SMAANeighborBlendPassQuery);
 
-
-
-		m_SMAANeighborBlendMaterial->Set("colorTex", m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage());
-		m_SMAANeighborBlendMaterial->Set("blendTex", m_SMAABlendWeightPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage());
-
-		m_GPUTimeQueries.SMAANeighborBlendPassQuery = m_CommandBuffer->BeginTimestampQuery();
-		Renderer::BeginRenderPass(m_CommandBuffer, m_SMAANeighborBlendPipeline->GetSpecification().RenderPass);
-		Renderer::SubmitFullscreenQuad(m_CommandBuffer, m_SMAANeighborBlendPipeline, m_UniformBufferSet, m_SMAANeighborBlendMaterial);
-		Renderer::EndRenderPass(m_CommandBuffer);
-		m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.SMAANeighborBlendPassQuery);
+		}
 	}
 
 	void SceneRenderer::FlushDrawList()
 	{
 		if (m_ResourcesCreated && m_ViewportWidth > 0 && m_ViewportHeight > 0)
 		{
+
+
 			// Reset GPU time queries
 			m_GPUTimeQueries = SceneRenderer::GPUTimeQueries();
 
@@ -3241,7 +3583,9 @@ namespace X2 {
 			}
 			if (m_Options.EnableAA)
 			{
-				if(m_Options.AAMethod == ShaderDef::AAMethod::SMAA)
+				if (IsUsingTAA(m_Options.AAMethod)) 
+					TAAPass();
+				if (IsUsingSMAA(m_Options.AAMethod))
 					SMAAPass();
 			}
 			BloomCompute();
@@ -3277,7 +3621,8 @@ namespace X2 {
 		m_StaticColliderDrawList.clear();
 		m_SceneData = {};
 
-		m_MeshTransformMap.clear();
+		
+		//m_CurTransformMap->clear();
 		//m_MeshBoneTransformsMap.clear();
 	}
 
@@ -3288,18 +3633,28 @@ namespace X2 {
 		uint32_t frameIndex = Renderer::GetCurrentFrameIndex();
 
 		uint32_t offset = 0;
-		for (auto& [key, transformData] : m_MeshTransformMap)
+		for (auto& [key, transformData] : *m_CurTransformMap)
 		{
+			
 			transformData.TransformOffset = offset * sizeof(TransformVertexData);
+
+			auto& prevTransformData = (*m_PrevTransformMap)[key];
+
+			uint32_t transformIndex = 0;
 			for (const auto& transform : transformData.Transforms)
 			{
 				m_SubmeshTransformBuffers[frameIndex].Data[offset] = transform;
+				offset++;
+
+				//Prev Frame Model Matrix; Used in Taa
+				m_SubmeshTransformBuffers[frameIndex].Data[offset] = prevTransformData.Transforms[transformIndex];
 				offset++;
 			}
 
 		}
 
 		m_SubmeshTransformBuffers[frameIndex].Buffer->SetData(m_SubmeshTransformBuffers[frameIndex].Data, offset * sizeof(TransformVertexData));
+
 
 		/*uint32_t index = 0;
 		for (auto& [key, boneTransformsData] : m_MeshBoneTransformsMap)
@@ -3370,6 +3725,7 @@ namespace X2 {
 			return nullptr;
 		//return m_GTAODebugOutputImage;
 		return GetFinalPipeline()->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage();
+		//return m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage(3);
 	}
 
 	SceneRendererOptions& SceneRenderer::GetOptions()

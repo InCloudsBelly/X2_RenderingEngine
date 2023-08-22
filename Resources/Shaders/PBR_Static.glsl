@@ -25,6 +25,11 @@ layout(location = 5) in vec4 a_MRow0;
 layout(location = 6) in vec4 a_MRow1;
 layout(location = 7) in vec4 a_MRow2;
 
+layout(location = 8) 	in vec4 a_MRowPrev0;
+layout(location = 9) 	in vec4 a_MRowPrev1;
+layout(location = 10) 	in vec4 a_MRowPrev2;
+
+
 struct VertexOutput
 {
 	vec3 WorldPosition;
@@ -41,6 +46,7 @@ struct VertexOutput
 };
 
 layout(location = 0) out VertexOutput Output;
+
 
 // Make sure both shaders compute the exact same answer(PreDepth). 
 // We need to have the same exact calculations to produce the gl_Position value (eg. matrix multiplications).
@@ -77,6 +83,7 @@ void main()
 
 	Output.ViewPosition = vec3(u_Camera.ViewMatrix * vec4(Output.WorldPosition, 1.0));
 
+	vec2 jitter = u_TAA.jitter;  //not used ,  Mesh bind with this shader's Material, to switch between this & taa pbr, taa UBO should be included in this shader
 	gl_Position = u_Camera.ViewProjectionMatrix * worldPosition;
 }
 
@@ -116,6 +123,9 @@ layout(location = 0) in VertexOutput Input;
 layout(location = 0) out vec4 color;
 layout(location = 1) out vec4 o_ViewNormalsLuminance;
 layout(location = 2) out vec4 o_MetalnessRoughness;
+layout(location = 3) out vec2 o_Velocity;
+
+
 
 // PBR texture inputs
 layout(set = 0, binding = 5) uniform sampler2D u_AlbedoTexture;
@@ -348,6 +358,7 @@ void main()
 			break;
 		}
 	}
+	o_Velocity = vec2(0.0f);
 }
 
 

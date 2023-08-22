@@ -1,4 +1,4 @@
-﻿/*// --  PBR shader --
+﻿/*// -- PBR shader --
 // -----------------------------
 // Note: this shader is still very much in progress. There are likely many bugs and future additions that will go in.
 //       Currently heavily updated. 
@@ -29,6 +29,7 @@ layout(location = 8) 	in vec4 a_MRowPrev0;
 layout(location = 9) 	in vec4 a_MRowPrev1;
 layout(location = 10) 	in vec4 a_MRowPrev2;
 
+
 struct VertexOutput
 {
 	vec3 WorldPosition;
@@ -38,13 +39,17 @@ struct VertexOutput
 	mat3 WorldTransform;
 	vec3 Binormal;
 
-	mat3 CameraView; 
+	mat3 CameraView;
 
-	vec4 ShadowMapCoords[4];
+	vec3 ShadowMapCoords[4];
 	vec3 ViewPosition;
+
+	vec4 ndcPosCur;
+	vec4 ndcPosPrev;
 };
 
 layout(location = 0) out VertexOutput Output;
+
 
 // Make sure both shaders compute the exact same answer(PreDepth). 
 // We need to have the same exact calculations to produce the gl_Position value (eg. matrix multiplications).
@@ -69,13 +74,32 @@ void main()
 
 	Output.CameraView = mat3(u_Camera.ViewMatrix);
 
-	Output.ShadowMapCoords[0] = u_DirShadow.DirLightMatrices[0] * vec4(Output.WorldPosition, 1.0);
-	Output.ShadowMapCoords[1] = u_DirShadow.DirLightMatrices[1] * vec4(Output.WorldPosition, 1.0);
-	Output.ShadowMapCoords[2] = u_DirShadow.DirLightMatrices[2] * vec4(Output.WorldPosition, 1.0);
-	Output.ShadowMapCoords[3] = u_DirShadow.DirLightMatrices[3] * vec4(Output.WorldPosition, 1.0);
+	vec4 shadowCoords[4];
+	shadowCoords[0] = u_DirShadow.DirLightMatrices[0] * vec4(Output.WorldPosition.xyz, 1.0);
+	shadowCoords[1] = u_DirShadow.DirLightMatrices[1] * vec4(Output.WorldPosition.xyz, 1.0);
+	shadowCoords[2] = u_DirShadow.DirLightMatrices[2] * vec4(Output.WorldPosition.xyz, 1.0);
+	shadowCoords[3] = u_DirShadow.DirLightMatrices[3] * vec4(Output.WorldPosition.xyz, 1.0);
+	Output.ShadowMapCoords[0] = vec3(shadowCoords[0].xyz / shadowCoords[0].w);
+	Output.ShadowMapCoords[1] = vec3(shadowCoords[1].xyz / shadowCoords[1].w);
+	Output.ShadowMapCoords[2] = vec3(shadowCoords[2].xyz / shadowCoords[2].w);
+	Output.ShadowMapCoords[3] = vec3(shadowCoords[3].xyz / shadowCoords[3].w);
+
 	Output.ViewPosition = vec3(u_Camera.ViewMatrix * vec4(Output.WorldPosition, 1.0));
 
-	gl_Position = u_Camera.ViewProjectionMatrix * worldPosition;
+	gl_Position = u_TAA.JitterdViewProjection* worldPosition;
+
+	mat4 transformPrev = mat4(
+		vec4(a_MRowPrev0.x, a_MRowPrev1.x, a_MRowPrev2.x, 0.0),
+		vec4(a_MRowPrev0.y, a_MRowPrev1.y, a_MRowPrev2.y, 0.0),
+		vec4(a_MRowPrev0.z, a_MRowPrev1.z, a_MRowPrev2.z, 0.0),
+		vec4(a_MRowPrev0.w, a_MRowPrev1.w, a_MRowPrev2.w, 1.0)
+	);
+
+	vec4 posProjHistory = (u_TAA.ViewProjectionMatrixHistory * transformPrev * vec4(a_Position, 1.0));
+	vec4 posProjCur = (u_Camera.ViewProjectionMatrix * transform * vec4(a_Position,1.0));
+	
+	Output.ndcPosCur = posProjCur;
+	Output.ndcPosPrev = posProjHistory;
 }
 
 
@@ -105,8 +129,11 @@ struct VertexOutput
 
 	mat3 CameraView;
 
-	vec4 ShadowMapCoords[4];
+	vec3 ShadowMapCoords[4];
 	vec3 ViewPosition;
+
+	vec4 ndcPosCur;
+	vec4 ndcPosPrev;
 };
  
 layout(location = 0) in VertexOutput Input;
@@ -114,10 +141,17 @@ layout(location = 0) in VertexOutput Input;
 layout(location = 0) out vec4 color;
 layout(location = 1) out vec4 o_ViewNormalsLuminance;
 layout(location = 2) out vec4 o_MetalnessRoughness;
-layout(location = 3) out vec4 o_Velocity;
+
+layout(location = 3) out vec2 o_Velocity;
+
+
 
 // PBR texture inputs
 layout(set = 0, binding = 5) uniform sampler2D u_AlbedoTexture;
+layout(set = 0, binding = 6) uniform sampler2D u_NormalTexture;
+layout(set = 0, binding = 7) uniform sampler2D u_MetallicRoughnessTexture;
+layout(set = 0, binding = 8) uniform sampler2D u_EmissionTexture;
+
 
 // Environment maps
 layout(set = 1, binding = 9) uniform samplerCube u_EnvRadianceTex;
@@ -128,12 +162,12 @@ layout(set = 1, binding = 11) uniform sampler2D u_BRDFLUTTexture;
 
 // Shadow maps
 layout(set = 1, binding = 12) uniform sampler2DArray u_ShadowMapTexture;
-
+layout(set = 1, binding = 21) uniform sampler2D u_SpotShadowTexture;
 
 layout(push_constant) uniform Material
 {
 	vec3 AlbedoColor;
-	float Transparency;
+	float Metalness;
 	float Roughness;
 	float Emission;
 
@@ -195,15 +229,22 @@ void main()
 	vec4 albedoTexColor = texture(u_AlbedoTexture, Input.TexCoord);
 	m_Params.Albedo = albedoTexColor.rgb * u_MaterialUniforms.AlbedoColor;
 	float alpha = albedoTexColor.a;
-	m_Params.Metalness = 0.0f;
-	m_Params.Roughness = 0.0f;
+	m_Params.Metalness = texture(u_MetallicRoughnessTexture, Input.TexCoord).b * u_MaterialUniforms.Metalness;
+	m_Params.Roughness = texture(u_MetallicRoughnessTexture, Input.TexCoord).g * u_MaterialUniforms.Roughness;
+	vec3 m_Emission = texture(u_EmissionTexture, Input.TexCoord).rgb * u_MaterialUniforms.Emission;
+	o_MetalnessRoughness = vec4(m_Params.Metalness, m_Params.Roughness, 0.f, 1.f);
 	m_Params.Roughness = max(m_Params.Roughness, 0.05); // Minimum roughness of 0.05 to keep specular highlight
+
 
 	// Normals (either from vertex or map)
 	m_Params.Normal = normalize(Input.Normal);
-
+	if (u_MaterialUniforms.UseNormalMap)
+	{
+		m_Params.Normal = normalize(texture(u_NormalTexture, Input.TexCoord).rgb * 2.0f - 1.0f);
+		m_Params.Normal = normalize(Input.WorldNormals * m_Params.Normal);
+	}
 	// View normals
-	//o_ViewNormalsLuminance.xyz = vec3(0.0);
+	o_ViewNormalsLuminance.xyz = Input.CameraView * normalize(Input.Normal);
 
 	m_Params.View = normalize(u_Scene.CameraPosition - Input.WorldPosition);
 	m_Params.NdotV = max(dot(m_Params.Normal, m_Params.View), 0.0);
@@ -243,9 +284,9 @@ void main()
 		if (c0 > 0.0 && c0 < 1.0)
 		{
 			// Sample 0 & 1
-			vec3 shadowMapCoords = (Input.ShadowMapCoords[0].xyz / Input.ShadowMapCoords[0].w);
+			vec3 shadowMapCoords = GetShadowMapCoords(Input.ShadowMapCoords, 0);
 			float shadowAmount0 = u_RendererData.SoftShadows ? PCSS_DirectionalLight(u_ShadowMapTexture, 0, shadowMapCoords, u_RendererData.LightSize) : HardShadows_DirectionalLight(u_ShadowMapTexture, 0, shadowMapCoords);
-			shadowMapCoords = (Input.ShadowMapCoords[1].xyz / Input.ShadowMapCoords[1].w);
+			shadowMapCoords = GetShadowMapCoords(Input.ShadowMapCoords, 1);
 			float shadowAmount1 = u_RendererData.SoftShadows ? PCSS_DirectionalLight(u_ShadowMapTexture, 1, shadowMapCoords, u_RendererData.LightSize) : HardShadows_DirectionalLight(u_ShadowMapTexture, 1, shadowMapCoords);
 
 			shadowScale = mix(shadowAmount0, shadowAmount1, c0);
@@ -253,9 +294,9 @@ void main()
 		else if (c1 > 0.0 && c1 < 1.0)
 		{
 			// Sample 1 & 2
-			vec3 shadowMapCoords = (Input.ShadowMapCoords[1].xyz / Input.ShadowMapCoords[1].w);
+			vec3 shadowMapCoords = GetShadowMapCoords(Input.ShadowMapCoords, 1);
 			float shadowAmount1 = u_RendererData.SoftShadows ? PCSS_DirectionalLight(u_ShadowMapTexture, 1, shadowMapCoords, u_RendererData.LightSize) : HardShadows_DirectionalLight(u_ShadowMapTexture, 1, shadowMapCoords);
-			shadowMapCoords = (Input.ShadowMapCoords[2].xyz / Input.ShadowMapCoords[2].w);
+			shadowMapCoords = GetShadowMapCoords(Input.ShadowMapCoords, 2);
 			float shadowAmount2 = u_RendererData.SoftShadows ? PCSS_DirectionalLight(u_ShadowMapTexture, 2, shadowMapCoords, u_RendererData.LightSize) : HardShadows_DirectionalLight(u_ShadowMapTexture, 2, shadowMapCoords);
 
 			shadowScale = mix(shadowAmount1, shadowAmount2, c1);
@@ -263,46 +304,52 @@ void main()
 		else if (c2 > 0.0 && c2 < 1.0)
 		{
 			// Sample 2 & 3
-			vec3 shadowMapCoords = (Input.ShadowMapCoords[2].xyz / Input.ShadowMapCoords[2].w);
+			vec3 shadowMapCoords = GetShadowMapCoords(Input.ShadowMapCoords, 2);
 			float shadowAmount2 = u_RendererData.SoftShadows ? PCSS_DirectionalLight(u_ShadowMapTexture, 2, shadowMapCoords, u_RendererData.LightSize) : HardShadows_DirectionalLight(u_ShadowMapTexture, 2, shadowMapCoords);
-			shadowMapCoords = (Input.ShadowMapCoords[3].xyz / Input.ShadowMapCoords[3].w);
+			shadowMapCoords = GetShadowMapCoords(Input.ShadowMapCoords, 3);
 			float shadowAmount3 = u_RendererData.SoftShadows ? PCSS_DirectionalLight(u_ShadowMapTexture, 3, shadowMapCoords, u_RendererData.LightSize) : HardShadows_DirectionalLight(u_ShadowMapTexture, 3, shadowMapCoords);
 
 			shadowScale = mix(shadowAmount2, shadowAmount3, c2);
 		}
 		else
 		{
-			vec3 shadowMapCoords = (Input.ShadowMapCoords[cascadeIndex].xyz / Input.ShadowMapCoords[cascadeIndex].w);
+			vec3 shadowMapCoords = GetShadowMapCoords(Input.ShadowMapCoords, cascadeIndex);
 			shadowScale = u_RendererData.SoftShadows ? PCSS_DirectionalLight(u_ShadowMapTexture, cascadeIndex, shadowMapCoords, u_RendererData.LightSize) : HardShadows_DirectionalLight(u_ShadowMapTexture, cascadeIndex, shadowMapCoords);
 		}
 	}
 	else
 	{
-		vec3 shadowMapCoords = (Input.ShadowMapCoords[cascadeIndex].xyz / Input.ShadowMapCoords[cascadeIndex].w);
+		vec3 shadowMapCoords = GetShadowMapCoords(Input.ShadowMapCoords, cascadeIndex);
 		shadowScale = u_RendererData.SoftShadows ? PCSS_DirectionalLight(u_ShadowMapTexture, cascadeIndex, shadowMapCoords, u_RendererData.LightSize) : HardShadows_DirectionalLight(u_ShadowMapTexture, cascadeIndex, shadowMapCoords);
 	}
 
 	shadowScale = 1.0 - clamp(u_Scene.DirectionalLights.ShadowAmount - shadowScale, 0.0f, 1.0f);
 
+	// Direct lighting
 	vec3 lightContribution = CalculateDirLights(F0) * shadowScale;
 	lightContribution += CalculatePointLights(F0, Input.WorldPosition);
-	lightContribution += m_Params.Albedo * u_MaterialUniforms.Emission;
+	lightContribution += CalculateSpotLights(F0, Input.WorldPosition) * SpotShadowCalculation(u_SpotShadowTexture, Input.WorldPosition);
+	lightContribution += m_Emission;
+
+	// Indirect lighting
 	vec3 iblContribution = IBL(F0, Lr) * u_Scene.EnvironmentMapIntensity;
 
-	//color = vec4(iblContribution + lightContribution, 1.0);
-	color = vec4(m_Params.Albedo, u_MaterialUniforms.Transparency);
+	// Final color
+	color = vec4(iblContribution + lightContribution, 1.0);
 
 	// TODO: Temporary bug fix.
 	if (u_Scene.DirectionalLights.Multiplier <= 0.0f)
 		shadowScale = 0.0f;
 
 	// Shadow mask with respect to bright surfaces.
-	//o_ViewNormalsLuminance.a = clamp(shadowScale + dot(color.rgb, vec3(0.2125f, 0.7154f, 0.0721f)), 0.0f, 1.0f);
+	o_ViewNormalsLuminance.a = clamp(shadowScale + dot(color.rgb, vec3(0.2125f, 0.7154f, 0.0721f)), 0.0f, 1.0f);
 	 
 	if (u_RendererData.ShowLightComplexity)
 	{
 		int pointLightCount = GetPointLightCount();
-		float value = float(pointLightCount);
+		int spotLightCount = GetSpotLightCount();
+
+		float value = float(pointLightCount + spotLightCount);
 		color.rgb = (color.rgb * 0.2) + GetGradient(value);
 	}
 	// TODO(Karim): Have a separate render pass for translucent and transparent objects.
@@ -330,8 +377,16 @@ void main()
 			break;
 		}
 	}
-	o_Velocity = vec4(0.0f);
+	vec4 ndcPre = Input.ndcPosPrev;
+	ndcPre = ndcPre/ndcPre.w;
 
+	vec4 ndcCur = Input.ndcPosCur;
+	ndcCur = ndcCur/ndcCur.w;
+
+	vec2 screenPosCur = (ndcCur.xy * vec2(0.5f, 0.5f) ) +vec2(0.5);
+	vec2 screenPosPrev = (ndcPre.xy* vec2(0.5f, 0.5f)) + vec2(0.5);
+
+	o_Velocity = screenPosPrev - screenPosCur;
 }
 
 

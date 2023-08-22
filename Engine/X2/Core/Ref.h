@@ -215,6 +215,9 @@ namespace X2
 			m_Instance = instance;
 		}
 
+		T* Raw() { return  m_Instance; }
+		const T* Raw() const { return  m_Instance; }
+
 		T* operator->() { return m_Instance; }
 		const T* operator->() const { return m_Instance; }
 

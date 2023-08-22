@@ -462,7 +462,8 @@ namespace X2 {
 					{
 						Entity e = Entity(entity, this);
 						glm::mat4 transform = GetWorldSpaceTransformMatrix(e);
-						renderer->SubmitStaticMesh(staticMesh, staticMeshComponent.MaterialTable, transform);
+						
+						renderer->SubmitStaticMesh(e.GetUUID(),staticMesh, staticMeshComponent.MaterialTable, transform);
 					}
 				}
 			}
@@ -485,7 +486,7 @@ namespace X2 {
 					{
 						Entity e = Entity(entity, this);
 						glm::mat4 transform = GetWorldSpaceTransformMatrix(e);
-						renderer->SubmitMesh(mesh, meshComponent.SubmeshIndex, meshComponent.MaterialTable, transform);
+						renderer->SubmitMesh(e.GetUUID(), mesh, meshComponent.SubmeshIndex, meshComponent.MaterialTable, transform);
 						//renderer->SubmitMesh(mesh, meshComponent.SubmeshIndex, meshComponent.MaterialTable, transform, GetModelSpaceBoneTransforms(meshComponent.BoneEntityIds, mesh));
 					}
 				}
@@ -685,10 +686,11 @@ namespace X2 {
 					Entity e = Entity(entity, this);
 					glm::mat4 transform = GetWorldSpaceTransformMatrix(e);
 
+					uint64_t entityUUID = e.GetUUID();
 					if (SelectionManager::IsEntityOrAncestorSelected(e))
-						renderer->SubmitSelectedStaticMesh(staticMesh, staticMeshComponent.MaterialTable, transform);
+						renderer->SubmitSelectedStaticMesh(entityUUID, staticMesh, staticMeshComponent.MaterialTable, transform);
 					else
-						renderer->SubmitStaticMesh(staticMesh, staticMeshComponent.MaterialTable, transform);
+						renderer->SubmitStaticMesh(entityUUID, staticMesh, staticMeshComponent.MaterialTable, transform);
 				}
 			}
 		}
@@ -710,10 +712,10 @@ namespace X2 {
 
 					// TODO: Should we render (logically)
 					if (SelectionManager::IsEntityOrAncestorSelected(e))
-						renderer->SubmitSelectedMesh(mesh, meshComponent.SubmeshIndex, meshComponent.MaterialTable, transform);
+						renderer->SubmitSelectedMesh(e.GetUUID(), mesh, meshComponent.SubmeshIndex, meshComponent.MaterialTable, transform);
 						//renderer->SubmitSelectedMesh(mesh, meshComponent.SubmeshIndex, meshComponent.MaterialTable, transform, GetModelSpaceBoneTransforms(meshComponent.BoneEntityIds, mesh));
 					else
-						renderer->SubmitMesh(mesh, meshComponent.SubmeshIndex, meshComponent.MaterialTable, transform);
+						renderer->SubmitMesh(e.GetUUID(), mesh, meshComponent.SubmeshIndex, meshComponent.MaterialTable, transform);
 						//renderer->SubmitMesh(mesh, meshComponent.SubmeshIndex, meshComponent.MaterialTable, transform, GetModelSpaceBoneTransforms(meshComponent.BoneEntityIds, mesh));
 				}
 			}
