@@ -128,7 +128,7 @@ vec3 clipAABB(vec3 nowColor, vec3 preColor)
         for(int j=-1;j<=1;++j)
         {
             vec2 newUV = texcoord + deltaRes * vec2(i, j);
-            vec3 C = RGB2YCoCgR(ToneMap(texture(u_color, newUV).rgb));
+            vec3 C = texture(u_color, newUV).rgb;
             m1 += C;
             m2 += C * C;
         }
@@ -188,10 +188,10 @@ void main()
     {
         vec4 colorHistory = texture(u_colorHistory, offsetUV);
 	
-        vec3 colorCurrentCoCgR = RGB2YCoCgR(ToneMap(colorCurrent.rgb));
-        vec3 colorHistoryCoCgR = RGB2YCoCgR(ToneMap(colorHistory.rgb));
+        vec3 colorCurrentCoCgR = colorCurrent.rgb;
+        vec3 colorHistoryCoCgR = colorHistory.rgb;
 
-        vec3 colorHistoryClipped =  UnToneMap(YCoCgR2RGB(clipAABB(colorCurrentCoCgR, colorHistoryCoCgR)));
+        vec3 colorHistoryClipped = clipAABB(colorCurrentCoCgR, colorHistoryCoCgR);
 
         if(colorHistory.a < 0.01){outColor.a = float(clipped);} //If there's nothing, store the clipped flag (could still be nothing)
         else {outColor.a = mix(colorHistory.a, float(clipped), u_TAA.feedback);}

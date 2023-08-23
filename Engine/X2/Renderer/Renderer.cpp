@@ -221,7 +221,9 @@ namespace X2 {
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/PostProcessing/TAA.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/TAA/PBR_Static_TAA.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/TAA/PreDepth_TAA.glsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/TAA/Skybox_TAA.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/TAA/TAA_ToneMapping.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/TAA/TAA_ToneUnMapping.glsl");
+		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/TAA/Skybox_TAA.glsl");
 
 
 

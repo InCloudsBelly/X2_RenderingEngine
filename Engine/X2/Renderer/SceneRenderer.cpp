@@ -907,12 +907,12 @@ namespace X2 {
 			imageSpec.DebugName = "TAA_Color_Image0";
 			Ref<VulkanImage2D> image0 = Ref<VulkanImage2D>::Create(imageSpec);
 			image0->Invalidate();
-			m_TAAPreColorImage = image0;
+			m_TAAToneMappedPreColorImage = image0;
 
-			imageSpec.DebugName = "TAA_Color_Image1";
-			Ref<VulkanImage2D> image1 = Ref<VulkanImage2D>::Create(imageSpec);
-			image1->Invalidate();
-			m_TAACurColorImage = image1;
+			//imageSpec.DebugName = "TAA_Color_Image1";
+			//Ref<VulkanImage2D> image1 = Ref<VulkanImage2D>::Create(imageSpec);
+			//image1->Invalidate();
+			////m_TAACurColorImage = image1;
 
 
 			PipelineSpecification pipelineSpecification;
@@ -930,7 +930,7 @@ namespace X2 {
 			FramebufferSpecification framebufferSpec;
 			framebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 			framebufferSpec.Attachments.Attachments.emplace_back(ImageFormat::RGBA32F);
-			framebufferSpec.ExistingImages[0] = m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage(0);
+			//framebufferSpec.ExistingImages[0] = m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage(0);
 			framebufferSpec.DebugName = "TAA";
 			framebufferSpec.Attachments.Attachments[0].Blend = false;
 			framebufferSpec.ClearColorOnLoad = false;
@@ -943,6 +943,73 @@ namespace X2 {
 			m_TAAPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
 			m_TAAMaterial = Ref<VulkanMaterial>::Create(shader, "TAA");
 		}
+
+		//TAA ToneMapping 
+		{
+			PipelineSpecification pipelineSpecification;
+			pipelineSpecification.Layout = {
+				{ ShaderDataType::Float3, "a_Position" },
+				{ ShaderDataType::Float2, "a_TexCoord" },
+			};
+			pipelineSpecification.BackfaceCulling = false;
+			pipelineSpecification.DepthTest = false;
+			pipelineSpecification.DepthWrite = false;
+			pipelineSpecification.DebugName = "TAA-ToneMapping";
+			auto shader = Renderer::GetShaderLibrary()->Get("TAA_ToneMapping");
+			pipelineSpecification.Shader = shader;
+
+			FramebufferSpecification framebufferSpec;
+			framebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+			framebufferSpec.Attachments = { ImageFormat::RGBA32F }; 
+			//framebufferSpec.ExistingImages[0] = m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage(0);
+			framebufferSpec.Attachments.Attachments[0].Blend = true;
+
+			framebufferSpec.DebugName = "TAA-ToneMapping";
+			framebufferSpec.ClearColorOnLoad = false;
+
+			RenderPassSpecification renderPassSpec;
+			renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
+			renderPassSpec.DebugName = framebufferSpec.DebugName;
+			pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+
+			m_TAAToneMappingPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+			m_TAAToneMappingMaterial = Ref<VulkanMaterial>::Create(shader, "TAA-ToneMapping");
+		}
+
+		//TAA UnMapping 
+		{
+			PipelineSpecification pipelineSpecification;
+			pipelineSpecification.Layout = {
+				{ ShaderDataType::Float3, "a_Position" },
+				{ ShaderDataType::Float2, "a_TexCoord" },
+			};
+			pipelineSpecification.BackfaceCulling = false;
+			pipelineSpecification.DepthTest = false;
+			pipelineSpecification.DepthWrite = false;
+			pipelineSpecification.DebugName = "TAA-ToneUnMapping";
+			auto shader = Renderer::GetShaderLibrary()->Get("TAA_ToneUnMapping");
+			pipelineSpecification.Shader = shader;
+
+			FramebufferSpecification framebufferSpec;
+			framebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+			framebufferSpec.Attachments = { ImageFormat::RGBA32F };
+			framebufferSpec.ExistingImages[0] = m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
+			framebufferSpec.Attachments.Attachments[0].Blend = false;
+
+			framebufferSpec.DebugName = "TAA-ToneUnMapping";
+			framebufferSpec.ClearColorOnLoad = true;
+
+			RenderPassSpecification renderPassSpec;
+			renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
+			renderPassSpec.DebugName = framebufferSpec.DebugName;
+			pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+
+			m_TAAToneUnMappingPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+			m_TAAToneUnMappingMaterial = Ref<VulkanMaterial>::Create(shader, "TAA-ToneUnMapping");
+		}
+
+
+
 
 		// DOF
 		{
@@ -1384,8 +1451,10 @@ namespace X2 {
 
 			//TAA Resize Callbacks
 			m_TAAPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
-			m_TAACurColorImage->Resize(m_ViewportWidth, m_ViewportHeight);
-			m_TAAPreColorImage->Resize(m_ViewportWidth, m_ViewportHeight);
+			m_TAAToneMappingPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+			m_TAAToneUnMappingPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+			//m_TAACurColorImage->Resize(m_ViewportWidth, m_ViewportHeight);
+			m_TAAToneMappedPreColorImage->Resize(m_ViewportWidth, m_ViewportHeight);
 
 
 			m_VisibilityTexture->Resize(m_ViewportWidth, m_ViewportHeight);
@@ -3347,87 +3416,107 @@ namespace X2 {
 		{
 			//Cpoy Cuurent Color Image
 			Ref<SceneRenderer> instance = this;
+			//Renderer::Submit([instance]() mutable
+			//	{
+			//		auto inputImage = instance->m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
+
+			//		Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
+			//			VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+			//			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			//			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+			//			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
+
+			//		Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), instance->m_TAACurColorImage->GetImageInfo().Image,
+			//			 VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+			//			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			//			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+			//			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
+
+
+			//		VkImageCopy copyRegion{};
+			//		copyRegion.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+			//		copyRegion.srcOffset = { 0, 0, 0 }; // 从源图像的哪个位置开始复制
+			//		copyRegion.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+			//		copyRegion.dstOffset = { 0, 0, 0 }; // 复制到目标图像的哪个位置
+			//		copyRegion.extent = { inputImage->GetWidth(), inputImage->GetHeight(), 1 }; // 复制的区域的大小
+
+			//		vkCmdCopyImage(
+			//			instance->m_CommandBuffer->GetActiveCommandBuffer(),
+			//			inputImage->GetImageInfo().Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+			//			instance->m_TAACurColorImage->GetImageInfo().Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			//			1, &copyRegion
+			//		);
+
+
+			//		Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
+			//			VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT,
+			//			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			//			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+			//			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
+
+			//		Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), instance->m_TAACurColorImage->GetImageInfo().Image,
+			//			VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+			//			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+			//			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+			//			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
+
+
+
+			//	});
+
+			//Tone Mapping Pass
+			m_TAAToneMappingMaterial->Set("u_color", m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>());
+			
+			m_GPUTimeQueries.TAAQuery = m_CommandBuffer->BeginTimestampQuery();
+			Renderer::BeginRenderPass(m_CommandBuffer, m_TAAToneMappingPipeline->GetSpecification().RenderPass);
+			Renderer::SubmitFullscreenQuad(m_CommandBuffer, m_TAAToneMappingPipeline, m_UniformBufferSet, m_TAAToneMappingMaterial);
+			Renderer::EndRenderPass(m_CommandBuffer);
+
+
 			Renderer::Submit([instance]() mutable
 				{
-					auto inputImage = instance->m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
-				
+					auto inputImage = instance->m_TAAToneMappingPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
 
 					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
-						VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT,
-						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-						VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+						VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+						VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+						VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
 						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
-
-					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), instance->m_TAACurColorImage->GetImageInfo().Image,
-						 VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
-						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-						VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
-
-
-					VkImageCopy copyRegion{};
-					copyRegion.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-					copyRegion.srcOffset = { 0, 0, 0 }; // 从源图像的哪个位置开始复制
-					copyRegion.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-					copyRegion.dstOffset = { 0, 0, 0 }; // 复制到目标图像的哪个位置
-					copyRegion.extent = { inputImage->GetWidth(), inputImage->GetHeight(), 1 }; // 复制的区域的大小
-
-					vkCmdCopyImage(
-						instance->m_CommandBuffer->GetActiveCommandBuffer(),
-						inputImage->GetImageInfo().Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-						instance->m_TAACurColorImage->GetImageInfo().Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-						1, &copyRegion
-					);
-
-
-					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
-						VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT,
-						VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-						VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
-
-					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), instance->m_TAACurColorImage->GetImageInfo().Image,
-						VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-						VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-						VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
-
 				});
 
-			
-			m_TAAMaterial->Set("u_color", m_TAACurColorImage);
+			//TAA Pass
+			m_TAAMaterial->Set("u_color", m_TAAToneMappingPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>());
 			m_TAAMaterial->Set("u_velocity", m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage(3).As<VulkanImage2D>());
 			m_TAAMaterial->Set("u_depth", m_PreDepthPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
 
 			static bool firstFrame = true;
 			if (firstFrame)
 			{
-				m_TAAMaterial->Set("u_colorHistory", m_TAACurColorImage);
+				m_TAAMaterial->Set("u_colorHistory", m_TAAToneMappingPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>());
 				firstFrame = false;
 			}
 			else
-				m_TAAMaterial->Set("u_colorHistory", m_TAAPreColorImage);
+				m_TAAMaterial->Set("u_colorHistory", m_TAAToneMappedPreColorImage);
 
 
-			m_GPUTimeQueries.TAAPassQuery = m_CommandBuffer->BeginTimestampQuery();
 			Renderer::BeginRenderPass(m_CommandBuffer, m_TAAPipeline->GetSpecification().RenderPass);
 			Renderer::SubmitFullscreenQuad(m_CommandBuffer, m_TAAPipeline, m_UniformBufferSet, m_TAAMaterial);
 			Renderer::EndRenderPass(m_CommandBuffer);
-			m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.TAAPassQuery);
+	
 
 
 			Renderer::Submit([instance]() mutable
 				{
-					auto inputImage = instance->m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
+					auto inputImage = instance->m_TAAPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
 
 
 					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
-						VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT,
-						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-						VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+						VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+						VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+						VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
 						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
 
-					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), instance->m_TAAPreColorImage->GetImageInfo().Image,
+					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), instance->m_TAAToneMappedPreColorImage->GetImageInfo().Image,
 						VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
 						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 						VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
@@ -3444,7 +3533,7 @@ namespace X2 {
 					vkCmdCopyImage(
 						instance->m_CommandBuffer->GetActiveCommandBuffer(),
 						inputImage->GetImageInfo().Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-						instance->m_TAAPreColorImage->GetImageInfo().Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+						instance->m_TAAToneMappedPreColorImage->GetImageInfo().Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 						1, &copyRegion
 					);
 
@@ -3455,7 +3544,7 @@ namespace X2 {
 						VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
 						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
 
-					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), instance->m_TAAPreColorImage->GetImageInfo().Image,
+					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), instance->m_TAAToneMappedPreColorImage->GetImageInfo().Image,
 						VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
 						VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 						VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
@@ -3464,14 +3553,23 @@ namespace X2 {
 				});
 
 
+			//Tone Mapping Pass
+			m_TAAToneUnMappingMaterial->Set("u_color", m_TAAPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>());
+
+			Renderer::BeginRenderPass(m_CommandBuffer, m_TAAToneUnMappingPipeline->GetSpecification().RenderPass);
+			Renderer::SubmitFullscreenQuad(m_CommandBuffer, m_TAAToneUnMappingPipeline, m_UniformBufferSet, m_TAAToneUnMappingMaterial);
+			Renderer::EndRenderPass(m_CommandBuffer);
+
+
+			m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.TAAQuery);
+
 		}
 	}
 
 
 	void SceneRenderer::SMAAPass()
 	{
-		// Currently scales the SSR, renders with transparency.
-		// The alpha channel is the confidence.
+		Ref<SceneRenderer> instance = this;
 
 		{
 			m_SMAAEdgeDetectionMaterial->Set("colorTex", m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>());

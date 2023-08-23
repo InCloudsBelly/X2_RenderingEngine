@@ -555,15 +555,18 @@ namespace X2
 		Ref<VulkanMaterial> m_SMAANeighborBlendMaterial;
 
 		//TAA
-		Ref<VulkanImage2D> m_TAAPreColorImage ;
-		Ref<VulkanImage2D> m_TAACurColorImage ;
+		Ref<VulkanImage2D> m_TAAToneMappedPreColorImage;
 
 		Ref<VulkanImage2D> m_TAAVelocityImage = nullptr;
 		Ref<VulkanPipeline> m_TAAPipeline;
 		Ref<VulkanMaterial> m_TAAMaterial;
-		
-		uint32_t m_TAAJitterCounter = 0;
+		Ref<VulkanPipeline> m_TAAToneMappingPipeline;
+		Ref<VulkanMaterial> m_TAAToneMappingMaterial;
+		Ref<VulkanPipeline> m_TAAToneUnMappingPipeline;
+		Ref<VulkanMaterial> m_TAAToneUnMappingMaterial;
 
+
+		uint32_t m_TAAJitterCounter = 0;
 		glm::vec2 m_TAAHaltonSequence[8] =
 		{
 			 glm::vec2(0.5f, 1.0f / 3),
@@ -764,7 +767,7 @@ namespace X2
 			uint32_t SMAAEdgeDetectPassQuery = 0;
 			uint32_t SMAABlendWeightPassQuery = 0;
 			uint32_t SMAANeighborBlendPassQuery = 0;
-			uint32_t TAAPassQuery = 0;
+			uint32_t TAAQuery = 0;
 			uint32_t JumpFloodPassQuery = 0;
 			uint32_t CompositePassQuery = 0;
 		} m_GPUTimeQueries;
