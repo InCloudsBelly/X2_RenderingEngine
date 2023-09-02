@@ -57,12 +57,24 @@ namespace X2
 		ShaderDef::AOMethod ReflectionOcclusionMethod = ShaderDef::AOMethod::None;
 
 		bool EnableAA = true;
-		ShaderDef::AAMethod AAMethod = ShaderDef::AAMethod::TAA;
+		ShaderDef::AAMethod AAMethod = ShaderDef::AAMethod::SMAA;
 		ShaderDef::SMAAEdgeMethod SMAAEdgeMethod = ShaderDef::SMAAEdgeMethod::Color;
 		ShaderDef::SMAAQuality SMAAQuality = ShaderDef::SMAAQuality::Ultra;
 
 		//TAA
 		float TAAFeedback = 0.1f;
+
+		// Ray Marching
+		uint32_t VOXEL_GRID_SIZE_X = 160;
+		uint32_t VOXEL_GRID_SIZE_Y = 90;
+		uint32_t VOXEL_GRID_SIZE_Z = 128;
+
+		uint32_t NUM_BLUE_NOISE_TEXTURES = 8;
+
+		float rayMarchingAnisotropy = 0.7f;
+		float rayMarchingDensity = 10.0f;
+
+
 
 	};
 
@@ -285,6 +297,7 @@ namespace X2
 		void HZBCompute();
 		void PreIntegration();
 		void LightCullingPass();
+		void RayMarchingPass();
 		void GeometryPass();
 		void PreConvolutionCompute();
 		void JumpFloodPass();
@@ -475,6 +488,14 @@ namespace X2
 
 		} TAADataUB;
 
+		struct UBRayMarchingData
+		{
+			glm::vec4 bias_near_far_pow;
+			glm::vec4 aniso_density_scattering_absorption;
+			glm::vec4 frustumRays[4];
+
+		} RayMarchingDataUB;
+
 		// GTAO
 		Ref<VulkanImage2D> m_GTAOOutputImage;
 		Ref<VulkanImage2D> m_GTAODenoiseImage;
@@ -520,9 +541,9 @@ namespace X2
 		Ref<VulkanStorageBufferSet> m_StorageBufferSet;
 
 		float LightDistance = 0.1f;
-		float CascadeSplitLambda = 0.92f;
+		float CascadeSplitLambda = 0.7f;
 		glm::vec4 CascadeSplits;
-		float CascadeFarPlaneOffset = 50.0f, CascadeNearPlaneOffset = -50.0f;
+		float CascadeFarPlaneOffset = 20.0f, CascadeNearPlaneOffset = -20.0f;
 		float m_ScaleShadowCascadesToOrigin = 0.0f;
 		float m_ShadowCascadeSplits[4];
 		bool m_UseManualCascadeSplits = false;
@@ -578,6 +599,24 @@ namespace X2
 			 glm::vec2(0.875f, 5.0f / 9),
 			 glm::vec2(0.0625f, 8.0f / 9),
 		};
+
+		//Ray Marching
+		Ref<VulkanComputePipeline> m_RayInjectionPipeline;
+		Ref<VulkanMaterial> m_RayInjectionMaterial;
+		glm::uvec3 m_RayInjectionWorkGroups{ 1 };
+		Ref<VulkanImage2D> m_lightInjectionImage;
+		std::vector<Ref<VulkanTexture2D>> m_BlueNoiseTextures;
+
+
+		Ref<VulkanComputePipeline> m_ScatteringPipeline;
+		Ref<VulkanMaterial> m_ScatteringMaterial;
+		glm::uvec3 m_ScatteringWorkGroups{ 1 };
+		Ref<VulkanImage2D> m_ScatteringImage;
+
+
+
+
+
 
 
 
@@ -749,27 +788,29 @@ namespace X2
 
 		struct GPUTimeQueries
 		{
-			uint32_t DirShadowMapPassQuery = 0;
-			uint32_t SpotShadowMapPassQuery = 0;
-			uint32_t DepthPrePassQuery = 0;
-			uint32_t HierarchicalDepthQuery = 0;
-			uint32_t PreIntegrationQuery = 0;
-			uint32_t LightCullingPassQuery = 0;
-			uint32_t GeometryPassQuery = 0;
-			uint32_t PreConvolutionQuery = 0;
-			uint32_t HBAOPassQuery = 0;
-			uint32_t GTAOPassQuery = 0;
-			uint32_t GTAODenoisePassQuery = 0;
-			uint32_t AOCompositePassQuery = 0;
-			uint32_t SSRQuery = 0;
-			uint32_t SSRCompositeQuery = 0;
-			uint32_t BloomComputePassQuery = 0;
-			uint32_t SMAAEdgeDetectPassQuery = 0;
-			uint32_t SMAABlendWeightPassQuery = 0;
-			uint32_t SMAANeighborBlendPassQuery = 0;
-			uint32_t TAAQuery = 0;
-			uint32_t JumpFloodPassQuery = 0;
-			uint32_t CompositePassQuery = 0;
+			uint32_t DirShadowMapPassQuery = -1;
+			uint32_t SpotShadowMapPassQuery = -1;
+			uint32_t DepthPrePassQuery = -1;
+			uint32_t HierarchicalDepthQuery = -1;
+			uint32_t PreIntegrationQuery = -1;
+			uint32_t LightCullingPassQuery = -1;
+			uint32_t GeometryPassQuery = -1;
+			uint32_t PreConvolutionQuery = -1;
+			uint32_t HBAOPassQuery = -1;
+			uint32_t GTAOPassQuery = -1;
+			uint32_t GTAODenoisePassQuery = -1;
+			uint32_t AOCompositePassQuery = -1;
+			uint32_t SSRQuery = -1;
+			uint32_t SSRCompositeQuery = -1;
+			uint32_t BloomComputePassQuery = -1;
+			uint32_t SMAAEdgeDetectPassQuery = -1;
+			uint32_t SMAABlendWeightPassQuery = -1;
+			uint32_t SMAANeighborBlendPassQuery = -1;
+			uint32_t TAAQuery = -1;
+			uint32_t JumpFloodPassQuery = -1;
+			uint32_t CompositePassQuery = -1;
+			uint32_t RayMarchingQuery = -1;
+
 		} m_GPUTimeQueries;
 
 		Statistics m_Statistics;

@@ -97,6 +97,7 @@ void main()
 #include <PBR.glslh>
 #include <Lighting.glslh>
 #include <ShadowMapping.glslh>
+#include <Common.glslh>
 
  
 
@@ -134,6 +135,8 @@ layout(set = 0, binding = 7) uniform sampler2D u_MetallicRoughnessTexture;
 layout(set = 0, binding = 8) uniform sampler2D u_EmissionTexture;
 
 
+
+
 // Environment maps
 layout(set = 1, binding = 9) uniform samplerCube u_EnvRadianceTex;
 layout(set = 1, binding = 10) uniform samplerCube u_EnvIrradianceTex;
@@ -141,8 +144,12 @@ layout(set = 1, binding = 10) uniform samplerCube u_EnvIrradianceTex;
 // BRDF LUT
 layout(set = 1, binding = 11) uniform sampler2D u_BRDFLUTTexture;
 
+// RayMarching 
+layout(set = 1, binding = 12) uniform sampler3D u_VoxelGrid;
+
+
 // Shadow maps
-layout(set = 1, binding = 12) uniform sampler2DArray u_ShadowMapTexture;
+layout(set = 1, binding = 13) uniform sampler2DArray u_ShadowMapTexture;
 layout(set = 1, binding = 21) uniform sampler2D u_SpotShadowTexture;
 
 layout(push_constant) uniform Material
@@ -202,6 +209,31 @@ vec3 GetGradient(float value)
 	color = mix(color, green, smoothstep(step3, step4, value));
 
 	return color;
+}
+
+vec3 add_inscattered_light(vec3 color, vec3 view_pos)
+{
+	vec4 pNdc = u_Camera.ProjectionMatrix * vec4(view_pos, 1.0f);
+	pNdc /= pNdc.w;
+
+    vec3 uv;
+	uv.xy = pNdc.xy * 0.5f + 0.5f;
+
+	float linearDepth = -view_pos.z;
+
+	float n = u_RayMarching.bias_near_far_pow.y;
+	float f = u_RayMarching.bias_near_far_pow.z;
+
+	vec2 params = vec2(1.0 / log2(f/n), -(log2(n))/log2(f/n));
+
+	uv.z = max(log2(linearDepth)* params.x + params.y, 0.0f);
+
+
+    // vec4  scattered_light = u_Tricubic ? textureTricubic(s_VoxelGrid, uv) : textureLod(s_VoxelGrid, uv, 0.0f);
+	vec4  scattered_light = textureTricubic(u_VoxelGrid, uv) ;
+    float transmittance   = scattered_light.a;
+
+    return color * transmittance + scattered_light.rgb;
 }
 
 void main()
@@ -317,6 +349,11 @@ void main()
 
 	// Final color
 	color = vec4(iblContribution + lightContribution, 1.0);
+
+
+ 	// Volumetric Light
+    color.xyz = add_inscattered_light(color.xyz, Input.ViewPosition);
+
 
 	// TODO: Temporary bug fix.
 	if (u_Scene.DirectionalLights.Multiplier <= 0.0f)

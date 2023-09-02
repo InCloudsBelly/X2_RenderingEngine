@@ -43,7 +43,8 @@ namespace X2 {
 		ScreenData = 17,
 		HBAOData = 18,
 		SMAAData = 24,
-		TAAData = 25
+		TAAData = 25,
+		RayMarchingData = 26 
 	};
 
 	static std::vector<std::thread> s_ThreadPool;
@@ -108,6 +109,8 @@ namespace X2 {
 		m_UniformBufferSet->Create(sizeof(UBSpotShadowData), 20);
 		m_UniformBufferSet->Create(sizeof(UBSMAAData), 24);
 		m_UniformBufferSet->Create(sizeof(UBTAAData), 25);
+		m_UniformBufferSet->Create(sizeof(UBRayMarchingData), 26);
+
 
 
 		m_Renderer2D = Ref<Renderer2D>::Create();
@@ -1009,6 +1012,49 @@ namespace X2 {
 		}
 
 
+		// Blue Noise Loading
+		m_BlueNoiseTextures.resize(m_Options.NUM_BLUE_NOISE_TEXTURES);
+
+		TextureSpecification spec;
+		spec.SamplerWrap = TextureWrap::Clamp;
+
+		for (uint32_t n = 0; n < m_Options.NUM_BLUE_NOISE_TEXTURES; ++n)
+		{
+			std::string noisePath = std::string(PROJECT_ROOT) + "Resources/Renderer/BlueNoise_256_px/LDR_LLL1_" + std::to_string(n) + ".png";
+			m_BlueNoiseTextures[n] = Ref<VulkanTexture2D>::Create(spec, std::filesystem::path(noisePath));
+		}
+
+		// Ray Marching 
+		{
+			ImageSpecification spec;
+			spec.Format = ImageFormat::RGBA16F;
+			spec.Usage = ImageUsage::Storage;
+			spec.Width = m_Options.VOXEL_GRID_SIZE_X;
+			spec.Height = m_Options.VOXEL_GRID_SIZE_Y;
+			spec.Depth = m_Options.VOXEL_GRID_SIZE_Z; 
+			
+			//1.Light Injection
+			{
+				spec.DebugName = "Light Injection Grid";
+				m_lightInjectionImage = Ref<VulkanImage2D>::Create(spec);
+				m_lightInjectionImage->Invalidate();
+
+				Ref<VulkanShader> shader = Renderer::GetShaderLibrary()->Get("RayMarchingLightInjection");
+				m_RayInjectionPipeline = Ref<VulkanComputePipeline>::Create(shader);
+				m_RayInjectionMaterial = Ref<VulkanMaterial>::Create(shader, "RayMarchingLightInjection");
+			}
+
+			// 2.Scattering
+			{
+				spec.DebugName = "Scattering Grid";
+				m_ScatteringImage = Ref<VulkanImage2D>::Create(spec);
+				m_ScatteringImage->Invalidate();
+
+				Ref<VulkanShader> shader = Renderer::GetShaderLibrary()->Get("RayMarchingScattering");
+				m_ScatteringPipeline = Ref<VulkanComputePipeline>::Create(shader);
+				m_ScatteringMaterial = Ref<VulkanMaterial>::Create(shader, "RayMarchingScattering");
+			}
+		}
 
 
 		// DOF
@@ -1540,6 +1586,26 @@ namespace X2 {
 				m_HBAOWorkGroups.z = 16;
 			}
 
+			// Ray Marching 
+			{
+				//1.Light Injection
+				uint32_t LOCAL_SIZE_X = 16u;
+				uint32_t LOCAL_SIZE_Y = 2u;
+				uint32_t LOCAL_SIZE_Z = 16u;
+
+				m_RayInjectionWorkGroups.x = static_cast<uint32_t>(ceil(float(m_Options.VOXEL_GRID_SIZE_X) / float(LOCAL_SIZE_X)));
+				m_RayInjectionWorkGroups.y = static_cast<uint32_t>(ceil(float(m_Options.VOXEL_GRID_SIZE_Y) / float(LOCAL_SIZE_Y)));
+				m_RayInjectionWorkGroups.z = static_cast<uint32_t>(ceil(float(m_Options.VOXEL_GRID_SIZE_Z) / float(LOCAL_SIZE_Z)));
+
+				//2.Scattering
+				LOCAL_SIZE_X = 64u;
+				LOCAL_SIZE_Y = 2u;
+
+				m_ScatteringWorkGroups.x = static_cast<uint32_t>(ceil(float(m_Options.VOXEL_GRID_SIZE_X) / float(LOCAL_SIZE_X)));
+				m_ScatteringWorkGroups.y = static_cast<uint32_t>(ceil(float(m_Options.VOXEL_GRID_SIZE_Y) / float(LOCAL_SIZE_Y)));
+				m_ScatteringWorkGroups.z = 1;
+			}
+
 			//SSR
 			{
 				constexpr uint32_t WORK_GROUP_SIZE = 8u;
@@ -1578,6 +1644,7 @@ namespace X2 {
 		UBSpotLights& spotLightData = SpotLightUB;
 		UBSpotShadowData& spotShadowData = SpotShadowDataUB;
 		UBTAAData& taaData = TAADataUB;
+		UBRayMarchingData& rayMarchingData = RayMarchingDataUB;
 		Ref<SceneRenderer> instance = this;
 
 		
@@ -1728,7 +1795,8 @@ namespace X2 {
 
 		Renderer::SetSceneEnvironment(this, m_SceneData.SceneEnvironment,
 			m_ShadowPassPipelines[0]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage(),
-			m_SpotShadowPassPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
+			m_SpotShadowPassPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage(),
+			m_ScatteringImage);
 
 
 		//TAA
@@ -1748,7 +1816,32 @@ namespace X2 {
 				const uint32_t bufferIndex = Renderer::RT_GetCurrentFrameIndex();
 				instance->m_UniformBufferSet->Get(Binding::TAAData, 0, bufferIndex)->RT_SetData(&taaData, sizeof(taaData));
 			});
-		
+
+
+		//RayMarching
+		rayMarchingData.bias_near_far_pow = glm::vec4(0.002f , m_SceneData.SceneCamera.Near, m_SceneData.SceneCamera.Far, 1.0f);
+		rayMarchingData.aniso_density_scattering_absorption = glm::vec4(m_Options.rayMarchingAnisotropy, m_Options.rayMarchingDensity, 0.0f, 0.0f);
+
+		glm::vec2 frustumUVs[4] = {{0,0}, {1,0}, {0,1}, {1,1}};
+		for (uint32_t i = 0; i < 4; ++i)
+		{
+			float viewZ = m_SceneData.SceneCamera.Near - m_SceneData.SceneCamera.Far;
+			glm::vec3 ViewCornerPos = glm::vec3((cameraData.NDCToViewMul* frustumUVs[i] + cameraData.NDCToViewAdd) * viewZ, viewZ);
+			
+			glm::vec4 WorldCornerPos = cameraData.InverseView * glm::vec4(ViewCornerPos, 1.0);
+			WorldCornerPos /= WorldCornerPos.w;
+
+
+			
+			rayMarchingData.frustumRays[i] = WorldCornerPos - glm::vec4(cameraPosition, 1.0);
+		}
+
+		Renderer::Submit([instance, rayMarchingData]() mutable
+			{
+				const uint32_t bufferIndex = Renderer::RT_GetCurrentFrameIndex();
+				instance->m_UniformBufferSet->Get(Binding::RayMarchingData, 0, bufferIndex)->RT_SetData(&rayMarchingData, sizeof(rayMarchingData));
+			});
+
 	}
 
 	void SceneRenderer::EndScene()
@@ -2503,6 +2596,26 @@ namespace X2 {
 		SceneRenderer::EndGPUPerfMarker(m_CommandBuffer);
 		m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.LightCullingPassQuery);
 	}
+
+	void SceneRenderer::RayMarchingPass()
+	{
+		m_RayInjectionMaterial->Set("u_ShadowMapTexture", m_ShadowPassPipelines[0]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
+		m_RayInjectionMaterial->Set("u_BlueNoise", m_BlueNoiseTextures[0]->GetImage());
+		m_RayInjectionMaterial->Set("o_VoxelGrid", m_lightInjectionImage);
+
+
+		m_ScatteringMaterial->Set("i_VoxelGrid", m_lightInjectionImage);
+		m_ScatteringMaterial->Set("o_VoxelGrid", m_ScatteringImage);
+
+
+		m_GPUTimeQueries.RayMarchingQuery = m_CommandBuffer->BeginTimestampQuery();
+		Renderer::DispatchComputeShader(m_CommandBuffer, m_RayInjectionPipeline, m_UniformBufferSet, nullptr, m_RayInjectionMaterial, m_RayInjectionWorkGroups);
+
+		Renderer::DispatchComputeShader(m_CommandBuffer, m_ScatteringPipeline, m_UniformBufferSet, nullptr, m_ScatteringMaterial, m_ScatteringWorkGroups);
+		m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.RayMarchingQuery);
+	}
+
+
 
 	void SceneRenderer::GeometryPass()
 	{
@@ -3646,6 +3759,7 @@ namespace X2 {
 			HZBCompute();
 			PreIntegration();
 			LightCullingPass();
+			RayMarchingPass();
 			GeometryPass();
 
 			// HBAO

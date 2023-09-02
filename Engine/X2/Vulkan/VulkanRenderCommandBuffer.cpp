@@ -52,7 +52,7 @@ namespace X2 {
 		queryPoolCreateInfo.pNext = nullptr;
 
 		// Timestamp queries
-		const uint32_t maxUserQueries = 16;
+		const uint32_t maxUserQueries = 24;
 		m_TimestampQueryCount = 2 + 2 * maxUserQueries;
 
 		queryPoolCreateInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
@@ -100,7 +100,7 @@ namespace X2 {
 		queryPoolCreateInfo.pNext = nullptr;
 
 		// Timestamp queries
-		const uint32_t maxUserQueries = 16;
+		const uint32_t maxUserQueries = 24;
 		m_TimestampQueryCount = 2 + 2 * maxUserQueries;
 
 		queryPoolCreateInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;

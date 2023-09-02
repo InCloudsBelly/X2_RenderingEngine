@@ -92,6 +92,9 @@ namespace X2 {
 	{
 		X2_CORE_VERIFY(m_Specification.Width > 0 && m_Specification.Height > 0);
 
+		X2_CORE_VERIFY( !(m_Specification.Depth > 1 && m_Specification.Layers > 1));
+
+
 		// Try release first if necessary
 		Release();
 
@@ -127,11 +130,11 @@ namespace X2 {
 
 		VkImageCreateInfo imageCreateInfo = {};
 		imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+		imageCreateInfo.imageType = m_Specification.Depth == 1? VK_IMAGE_TYPE_2D : VK_IMAGE_TYPE_3D;
 		imageCreateInfo.format = vulkanFormat;
 		imageCreateInfo.extent.width = m_Specification.Width;
 		imageCreateInfo.extent.height = m_Specification.Height;
-		imageCreateInfo.extent.depth = 1;
+		imageCreateInfo.extent.depth = m_Specification.Depth;
 		imageCreateInfo.mipLevels = m_Specification.Mips;
 		imageCreateInfo.arrayLayers = m_Specification.Layers;
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -144,7 +147,7 @@ namespace X2 {
 		// Create a default image view
 		VkImageViewCreateInfo imageViewCreateInfo = {};
 		imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		imageViewCreateInfo.viewType = m_Specification.Layers > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
+		imageViewCreateInfo.viewType = m_Specification.Layers > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : (m_Specification.Depth > 1? VK_IMAGE_VIEW_TYPE_3D: VK_IMAGE_VIEW_TYPE_2D);
 		imageViewCreateInfo.format = vulkanFormat;
 		imageViewCreateInfo.flags = 0;
 		imageViewCreateInfo.subresourceRange = {};

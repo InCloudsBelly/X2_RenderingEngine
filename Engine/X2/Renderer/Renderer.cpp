@@ -225,6 +225,11 @@ namespace X2 {
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/TAA/TAA_ToneUnMapping.glsl");
 		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/TAA/Skybox_TAA.glsl");
 
+		//Ray Marching
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/RayMarchingLightInjection.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/RayMarchingScattering.glsl");
+
+
 
 
 		// Compile shaders
@@ -420,6 +425,11 @@ namespace X2 {
 	void Renderer::SetSceneEnvironment(Ref<SceneRenderer> sceneRenderer, Ref<Environment> environment, Ref<VulkanImage2D> shadow, Ref<VulkanImage2D> spotShadow)
 	{
 		s_RendererAPI->SetSceneEnvironment(sceneRenderer, environment, shadow, spotShadow);
+	}
+
+	void Renderer::SetSceneEnvironment(Ref<SceneRenderer> sceneRenderer, Ref<Environment> environment, Ref<VulkanImage2D> shadow, Ref<VulkanImage2D> spotShadow, Ref<VulkanImage2D> rayMarchingGrid)
+	{
+		s_RendererAPI->SetSceneEnvironment(sceneRenderer, environment, shadow, spotShadow, rayMarchingGrid);
 	}
 
 	Ref<Environment> Renderer::CreateEnvironmentMap(const std::string& filepath)

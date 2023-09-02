@@ -10,6 +10,34 @@
 
 namespace X2 {
 
+	void tenFrameAverageTime(const char* passName, Ref<VulkanRenderCommandBuffer> cb, uint32_t frameIndex, uint32_t queryIndex)
+	{
+		static int frameNum = 0;
+		static std::unordered_map <uint32_t, std::pair<float,float>> timeMap; //<queryIndex ,<accumTime, averageTime>>
+
+		if (queryIndex == uint32_t(-1))
+			return;
+
+		if (timeMap.find(queryIndex) == timeMap.end())
+			timeMap[queryIndex] = { 0.0f,0.0f };
+
+		auto& timePair = timeMap[queryIndex];
+
+		timePair.first += cb->GetExecutionGPUTime(frameIndex, queryIndex);
+		
+		frameNum++;
+
+		if (frameNum == 10)
+		{
+			timePair.second = timePair.first / frameNum;
+			frameNum = 0;
+			timePair.first = 0.0f;
+		}
+
+		ImGui::Text("%s: %.3fms", passName, timePair.second);
+	}
+
+
 	void SceneRendererPanel::OnImGuiRender(bool& isOpen)
 	{
 		X2_PROFILE_FUNC();
@@ -68,25 +96,29 @@ namespace X2 {
 				const auto& gpuTimeQueries = m_Context->m_GPUTimeQueries;
 
 				uint32_t frameIndex = Renderer::RT_GetCurrentFrameIndex();
-				ImGui::Text("GPU time: %.3fms", commandBuffer->GetExecutionGPUTime(frameIndex));
-
-				ImGui::Text("Dir Shadow Map Pass: %.3fms", commandBuffer->GetExecutionGPUTime(frameIndex, gpuTimeQueries.DirShadowMapPassQuery));
-				ImGui::Text("Spot Shadow Map Pass: %.3fms", commandBuffer->GetExecutionGPUTime(frameIndex, gpuTimeQueries.SpotShadowMapPassQuery));
-				ImGui::Text("Depth Pre-Pass: %.3fms", commandBuffer->GetExecutionGPUTime(frameIndex, gpuTimeQueries.DepthPrePassQuery));
-				ImGui::Text("Hierarchical Depth: %.3fms", commandBuffer->GetExecutionGPUTime(frameIndex, gpuTimeQueries.HierarchicalDepthQuery));
-				ImGui::Text("Pre-Integration: %.3fms", commandBuffer->GetExecutionGPUTime(frameIndex, gpuTimeQueries.PreIntegrationQuery));
-				ImGui::Text("Light Culling Pass: %.3fms", commandBuffer->GetExecutionGPUTime(frameIndex, gpuTimeQueries.LightCullingPassQuery));
-				ImGui::Text("Geometry Pass: %.3fms", commandBuffer->GetExecutionGPUTime(frameIndex, gpuTimeQueries.GeometryPassQuery));
-				ImGui::Text("Pre-Convoluted Pass: %.3fms", commandBuffer->GetExecutionGPUTime(frameIndex, gpuTimeQueries.PreConvolutionQuery));
-				ImGui::Text("HBAO Pass: %.3fms", commandBuffer->GetExecutionGPUTime(frameIndex, gpuTimeQueries.HBAOPassQuery));
-				ImGui::Text("GTAO Pass: %.3fms", commandBuffer->GetExecutionGPUTime(frameIndex, gpuTimeQueries.GTAOPassQuery));
-				ImGui::Text("GTAO Denoise Pass: %.3fms", commandBuffer->GetExecutionGPUTime(frameIndex, gpuTimeQueries.GTAODenoisePassQuery));
-				ImGui::Text("AO Composite Pass: %.3fms", commandBuffer->GetExecutionGPUTime(frameIndex, gpuTimeQueries.AOCompositePassQuery));
-				ImGui::Text("Bloom Pass: %.3fms", commandBuffer->GetExecutionGPUTime(frameIndex, gpuTimeQueries.BloomComputePassQuery));
-				ImGui::Text("SSR Pass: %.3fms", commandBuffer->GetExecutionGPUTime(frameIndex, gpuTimeQueries.SSRQuery));
-				ImGui::Text("SSR Composite Pass: %.3fms", commandBuffer->GetExecutionGPUTime(frameIndex, gpuTimeQueries.SSRCompositeQuery));
-				ImGui::Text("Jump Flood Pass: %.3fms", commandBuffer->GetExecutionGPUTime(frameIndex, gpuTimeQueries.JumpFloodPassQuery));
-				ImGui::Text("Composite Pass: %.3fms", commandBuffer->GetExecutionGPUTime(frameIndex, gpuTimeQueries.CompositePassQuery));
+				tenFrameAverageTime("GPU time", commandBuffer, frameIndex, 0);
+				tenFrameAverageTime("Dir Shadow Map Pass", commandBuffer, frameIndex, gpuTimeQueries.DirShadowMapPassQuery);
+				tenFrameAverageTime("Spot Shadow Map Pass", commandBuffer, frameIndex, gpuTimeQueries.SpotShadowMapPassQuery);
+				tenFrameAverageTime("Pre-Depth Pass", commandBuffer, frameIndex, gpuTimeQueries.DepthPrePassQuery);
+				tenFrameAverageTime("Hierarchical Depth", commandBuffer, frameIndex, gpuTimeQueries.HierarchicalDepthQuery);
+				tenFrameAverageTime("Pre-Integration", commandBuffer, frameIndex, gpuTimeQueries.PreIntegrationQuery);
+				tenFrameAverageTime("Light Culling Pass", commandBuffer, frameIndex, gpuTimeQueries.LightCullingPassQuery);
+				tenFrameAverageTime("Ray Marching Pass", commandBuffer, frameIndex, gpuTimeQueries.RayMarchingQuery);
+				tenFrameAverageTime("Geometry Pass", commandBuffer, frameIndex, gpuTimeQueries.GeometryPassQuery);
+				tenFrameAverageTime("Pre-Convoluted Pass", commandBuffer, frameIndex, gpuTimeQueries.PreConvolutionQuery);
+				tenFrameAverageTime("HBAO Pass", commandBuffer, frameIndex, gpuTimeQueries.HBAOPassQuery);
+				tenFrameAverageTime("GTAO Pass", commandBuffer, frameIndex, gpuTimeQueries.GTAOPassQuery);
+				tenFrameAverageTime("GTAO Denoise Pass", commandBuffer, frameIndex, gpuTimeQueries.GTAODenoisePassQuery);
+				tenFrameAverageTime("AO Composite Pass", commandBuffer, frameIndex, gpuTimeQueries.AOCompositePassQuery);
+				tenFrameAverageTime("Bloom Pass", commandBuffer, frameIndex, gpuTimeQueries.BloomComputePassQuery);
+				tenFrameAverageTime("SSR Pass", commandBuffer, frameIndex, gpuTimeQueries.SSRQuery);
+				tenFrameAverageTime("SSR Composite Pass", commandBuffer, frameIndex, gpuTimeQueries.SSRCompositeQuery);
+				tenFrameAverageTime("SMAA Edge Detect Pass", commandBuffer, frameIndex, gpuTimeQueries.SMAAEdgeDetectPassQuery);
+				tenFrameAverageTime("SMAA Blend Weight Pass", commandBuffer, frameIndex, gpuTimeQueries.SMAABlendWeightPassQuery);
+				tenFrameAverageTime("SMAA Neighbor Blend Pass", commandBuffer, frameIndex, gpuTimeQueries.SMAANeighborBlendPassQuery);
+				tenFrameAverageTime("TAA", commandBuffer, frameIndex, gpuTimeQueries.TAAQuery);
+				tenFrameAverageTime("Jump Flood Pass", commandBuffer, frameIndex, gpuTimeQueries.JumpFloodPassQuery);
+				tenFrameAverageTime("Composite Pass", commandBuffer, frameIndex, gpuTimeQueries.CompositePassQuery);
 
 				if (UI::BeginTreeNode("Pipeline Statistics"))
 				{
@@ -311,6 +343,33 @@ namespace X2 {
 						Renderer::SetGlobalMacroInShaders("__X2_SMAAQUALITY", fmt::format("{}", options.SMAAQuality));
 					}
 				}
+				UI::EndPropertyGrid();
+				UI::EndTreeNode();
+			}
+			else
+				UI::ShiftCursorY(headerSpacingOffset);
+
+
+
+			if (UI::PropertyGridHeader("Volume Fog"))
+			{
+
+				UI::BeginPropertyGrid();
+				UI::Property("Anisotropy", options.rayMarchingAnisotropy, 0.01f, -1.0f, 1.0f);
+				UI::Property("Density", options.rayMarchingDensity, 0.05f, 0.0f, 20.0f);
+
+				// TODO(Yan): move this to somewhere else
+				UI::Image(m_Context->m_BloomDirtTexture, ImVec2(64, 64));
+				if (ImGui::IsItemHovered())
+				{
+					if (ImGui::IsItemClicked())
+					{
+						std::string filename = FileSystem::OpenFileDialog().string();
+						if (!filename.empty())
+							m_Context->m_BloomDirtTexture = Ref<VulkanTexture2D>::Create(TextureSpecification(), filename);
+					}
+				}
+
 				UI::EndPropertyGrid();
 				UI::EndTreeNode();
 			}

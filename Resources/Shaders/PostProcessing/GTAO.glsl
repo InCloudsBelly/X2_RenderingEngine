@@ -165,6 +165,7 @@ void GTAO_MainPass(const ivec2 outputPixCoord, const ivec2 inputPixCoords, float
 {
     vec4 viewspaceNormalLuminance = texelFetch(u_ViewNormal, inputPixCoords, 0);
     vec3 viewspaceNormal = viewspaceNormalLuminance.xyz;
+
     //viewspaceNormal.yz = -viewspaceNormalLuminance.yz;
 
 
@@ -193,221 +194,229 @@ void GTAO_MainPass(const ivec2 outputPixCoord, const ivec2 inputPixCoords, float
 
     viewspaceZ *= 0.99999;     // this is good for FP32 depth buffer
 
-    const vec3 pixCenterPos = GTAO_ComputeViewspacePosition(normalizedScreenPos, viewspaceZ);
-    const vec3 viewVec = normalize(-pixCenterPos);
 
+    if(length(viewspaceNormal) < 0.001)
+        imageStore(o_AOwBentNormals, outputPixCoord, uvec4(255, 0, 0, 0));
     
-
-
-    // prevents normals that are facing away from the view vector - GTAO struggles with extreme cases, but in Vanilla it seems rare so it's disabled by default
-    // viewspaceNormal = normalize( viewspaceNormal + max( 0, -dot( viewspaceNormal, viewVec ) ) * viewVec );
-
-
-    const float effectRadius = u_GTAOConsts.EffectRadius * u_GTAOConsts.RadiusMultiplier;
-    const float sampleDistributionPower = u_GTAOConsts.SampleDistributionPower;
-    const float thinOccluderCompensation = u_GTAOConsts.ThinOccluderCompensation;
-    const float falloffRange = u_GTAOConsts.EffectFalloffRange * effectRadius;
-
-    const float falloffFrom = effectRadius * (1.0 - u_GTAOConsts.EffectFalloffRange);
-
-    // fadeout precompute optimisation
-    const float falloffMul = -1.0 / (falloffRange);
-    const float falloffAdd = falloffFrom / (falloffRange)+1.0;
-
-    float visibility = 0;
-
-//#if __X2_GTAO_COMPUTE_BENT_NORMALS
-//    vec3 bentNormal = vec3(0); 
-//#else
-    vec3 bentNormal = viewspaceNormal;
-//#endif
-
-    // see "Algorithm 1" in https://www.activision.com/cdn/research/Practical_Real_Time_Strategies_for_Accurate_Indirect_Occlusion_NEW%20VERSION_COLOR.pdf
+    else
     {
-        const float noiseSlice = localNoise.x;
-        const float noiseSample = localNoise.y;
 
-        // quality settings / tweaks / hacks
-        const float pixelTooCloseThreshold = 1.3;      // if the offset is under approx pixel size (pixelTooCloseThreshold), push it out to the minimum distance
+        const vec3 pixCenterPos = GTAO_ComputeViewspacePosition(normalizedScreenPos, viewspaceZ);
+        const vec3 viewVec = normalize(-pixCenterPos);
 
-        // approx viewspace pixel size at inputPixCoords; approximation of NDCToViewspace( normalizedScreenPos.xy + u_ScreenData.InvFullResolution.xy, pixCenterPos.z ).xy - pixCenterPos.xy;
-        const vec2 pixelDirRBViewspaceSizeAtCenterZ = -viewspaceZ.xx * u_GTAOConsts.NDCToViewMul_x_PixelSize; // - becaues viewspaceZ is negative!
+        
 
-        float screenspaceRadius = effectRadius / pixelDirRBViewspaceSizeAtCenterZ.x;
 
-       
+        // prevents normals that are facing away from the view vector - GTAO struggles with extreme cases, but in Vanilla it seems rare so it's disabled by default
+        // viewspaceNormal = normalize( viewspaceNormal + max( 0, -dot( viewspaceNormal, viewVec ) ) * viewVec );
 
-        // fade out for small screen radii 
-        visibility += clamp(((10 + screenspaceRadius) / 100),0.0,1.0) * 0.5;
 
-#if 1   // sensible early-out for even more performance; disabled because not yet tested
-        //float normals = viewspaceNormal;
+        const float effectRadius = u_GTAOConsts.EffectRadius * u_GTAOConsts.RadiusMultiplier;
+        const float sampleDistributionPower = u_GTAOConsts.SampleDistributionPower;
+        const float thinOccluderCompensation = u_GTAOConsts.ThinOccluderCompensation;
+        const float falloffRange = u_GTAOConsts.EffectFalloffRange * effectRadius;
 
-        //imageStore(o_Debug, outputPixCoord, vec4(vec3(screenspaceRadius), 1.0f));
+        const float falloffFrom = effectRadius * (1.0 - u_GTAOConsts.EffectFalloffRange);
 
-        if ( screenspaceRadius < pixelTooCloseThreshold)
+        // fadeout precompute optimisation
+        const float falloffMul = -1.0 / (falloffRange);
+        const float falloffAdd = falloffFrom / (falloffRange)+1.0;
+
+        float visibility = 0;
+
+    //#if __X2_GTAO_COMPUTE_BENT_NORMALS
+    //    vec3 bentNormal = vec3(0); 
+    //#else
+        vec3 bentNormal = viewspaceNormal;
+    //#endif
+
+        // see "Algorithm 1" in https://www.activision.com/cdn/research/Practical_Real_Time_Strategies_for_Accurate_Indirect_Occlusion_NEW%20VERSION_COLOR.pdf
         {
-            GTAO_OutputWorkingTerm(outputPixCoord, 1, viewspaceNormal);
-            return;
-        }
-#endif
+            const float noiseSlice = localNoise.x;
+            const float noiseSample = localNoise.y;
 
-        // this is the min distance to start sampling from to avoid sampling from the center pixel (no useful data obtained from sampling center pixel)
-        //const float minS = pixelTooCloseThreshold / screenspaceRadius;
+            // quality settings / tweaks / hacks
+            const float pixelTooCloseThreshold = 1.3;      // if the offset is under approx pixel size (pixelTooCloseThreshold), push it out to the minimum distance
 
-        #pragma unroll 6
-        for (float slice = 0; slice < sliceCount; slice++)
-        {
-            float sliceK = (slice + noiseSlice) / sliceCount;
+            // approx viewspace pixel size at inputPixCoords; approximation of NDCToViewspace( normalizedScreenPos.xy + u_ScreenData.InvFullResolution.xy, pixCenterPos.z ).xy - pixCenterPos.xy;
+            const vec2 pixelDirRBViewspaceSizeAtCenterZ = -viewspaceZ.xx * u_GTAOConsts.NDCToViewMul_x_PixelSize; // - becaues viewspaceZ is negative!
 
-            // lines 5, 6 from the paper
-            float phi = sliceK* PI;
-            float cosPhi = cos(phi);
-            float sinPhi = sin(phi);
-            vec2 omega = vec2(cosPhi, sinPhi);       //vec2 on omega causes issues with big radii
+            float screenspaceRadius = effectRadius / pixelDirRBViewspaceSizeAtCenterZ.x;
 
-            // convert to screen units (pixels) for later use
-            omega *= screenspaceRadius * (1.0 + (abs(viewspaceZ) - 3.0) * 0.15);
+        
 
-            // line 8 from the paper
-            const vec3 directionVec = vec3(cosPhi, sinPhi, 0);
+            // fade out for small screen radii 
+            visibility += clamp(((10 + screenspaceRadius) / 100),0.0,1.0) * 0.5;
 
-            // line 9 from the paper
-            const vec3 orthoDirectionVec = directionVec - (dot(directionVec, viewVec) * viewVec);
+    #if 1   // sensible early-out for even more performance; disabled because not yet tested
+            //float normals = viewspaceNormal;
 
-            // line 10 from the paper
-            //axisVec is orthogonal to directionVec and viewVec, used to define projectedNormal
-            const vec3 axisVec = normalize(cross(directionVec, viewVec));
+            //imageStore(o_Debug, outputPixCoord, vec4(vec3(screenspaceRadius), 1.0f));
 
-            // alternative line 9 from the paper
-            // vec3 orthoDirectionVec = cross( viewVec, axisVec );
-
-            // line 11 from the paper
-            vec3 projectedNormalVec = viewspaceNormal - axisVec * dot(viewspaceNormal, axisVec);
-
-            // line 13 from the paper
-            float signNorm = sign(dot(orthoDirectionVec, projectedNormalVec));
-
-            // line 14 from the paper
-            float projectedNormalVecLength = length(projectedNormalVec);
-            float cosNorm = clamp((dot(projectedNormalVec, viewVec) / projectedNormalVecLength), 0.0, 1.0);
-
-            // line 15 from the paper
-            float n = signNorm * GTAO_FastACos(cosNorm);
-
-
-            // this is a lower weight target; not using -1 as in the original paper because it is under horizon, so a 'weight' has different meaning based on the normal
-            const float lowHorizonCos0 = cos(n + PI_HALF);
-            const float lowHorizonCos1 = cos(n - PI_HALF);
-
-            // lines 17, 18 from the paper, manually unrolled the 'side' loop
-            //float horizonCos0 = lowHorizonCos0; //-1;
-            //float horizonCos1 = lowHorizonCos1; //-1;
-            
-            float horizonCos0 = -1; //-1;
-            float horizonCos1 = -1; //-1;
-
-            #pragma unroll 5
-            for (float step = 0; step < stepsPerSlice; step++)
+            if ( screenspaceRadius < pixelTooCloseThreshold)
             {
-                // R1 sequence (http://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences/)
-                const float stepBaseNoise = float(slice + step * stepsPerSlice) * 0.6180339887498948482; // <- this should unroll
-                float stepNoise = fract(noiseSample + stepBaseNoise) * 0.5 + 0.5;
-
-                // approx line 20 from the paper, with added noise
-                float s = stepNoise * (step ) / (stepsPerSlice); // + (vec2)1e-6f);
-
-                // additional distribution modifier
-                s = pow(s, sampleDistributionPower);
-
-                // avoid sampling center pixel
-                //s += minS;
-
-                // approx lines 21-22 from the paper, unrolled
-                vec2 sampleOffset = s * omega;
-
-                float sampleOffsetLength = length(sampleOffset);
-
-                // note: when sampling, using point_point_point or point_point_linear sampler works, but linear_linear_linear will cause unwanted interpolation between neighbouring depth values on the same MIP level!
-                const float mipLevel = clamp(log2(sampleOffsetLength) - u_GTAOConsts.DepthMIPSamplingOffset, 0, GTAO_DEPTH_MIP_LEVELS);
-
-                // Snap to pixel center (more correct direction math, avoids artifacts due to sampling pos not matching depth texel center - messes up slope - but adds other 
-                // artifacts due to them being pushed off the slice). Also use full precision for high res cases.
-                sampleOffset = sampleOffset * u_ScreenData.InvFullResolution;
-
-                vec2 sampleScreenPos0 = normalizedScreenPos + sampleOffset;
-                float  SZ0 = LinearizeDepth(textureLod(u_HiZDepth, sampleScreenPos0 * u_GTAOConsts.X2BUVFactor, mipLevel).x);
-                vec3 samplePos0 = GTAO_ComputeViewspacePosition(sampleScreenPos0, SZ0);
-
-                vec2 sampleScreenPos1 = normalizedScreenPos - sampleOffset;
-                float  SZ1 = LinearizeDepth(textureLod(u_HiZDepth, sampleScreenPos1 * u_GTAOConsts.X2BUVFactor, mipLevel).x);
-                vec3 samplePos1 = GTAO_ComputeViewspacePosition(sampleScreenPos1, SZ1);
-
-                vec3 sampleDelta0 = (samplePos0 - pixCenterPos); // using float for sampleDelta causes precision issues
-                vec3 sampleDelta1 = (samplePos1 - pixCenterPos); // using float for sampleDelta causes precision issues
-                float sampleDist0 = length(sampleDelta0);
-                float sampleDist1 = length(sampleDelta1);
-
-                // approx lines 23, 24 from the paper, unrolled
-                vec3 sampleHorizonVec0 = (sampleDelta0 / sampleDist0);
-                vec3 sampleHorizonVec1 = (sampleDelta1 / sampleDist1);
-
-                // this is our own thickness heuristic that relies on sooner discarding samples behind the center
-                float falloffBase0 = length(vec3(sampleDelta0.x, sampleDelta0.y, sampleDelta0.z * (1 + thinOccluderCompensation)));
-                float falloffBase1 = length(vec3(sampleDelta1.x, sampleDelta1.y, sampleDelta1.z * (1 + thinOccluderCompensation)));
-                float weight0 = clamp((falloffBase0 * falloffMul + falloffAdd), 0.0, 1.0);
-                float weight1 = clamp((falloffBase1 * falloffMul + falloffAdd), 0.0, 1.0);
-
-                // sample horizon cos
-                float shc0 = dot(sampleHorizonVec0, viewVec);
-                float shc1 = dot(sampleHorizonVec1, viewVec);
-
-                // discard unwanted samples
-                shc0 = mix(horizonCos0, shc0, weight0); // this would be more correct but too expensive: cos(lerp( acos(lowHorizonCos0), acos(shc0), weight0 ));
-                shc1 = mix(horizonCos1, shc1, weight1); // this would be more correct but too expensive: cos(lerp( acos(lowHorizonCos1), acos(shc1), weight1 ));
-
-                // thickness heuristic - see "4.3 Implementation details, Height-field assumption considerations"
-
-                horizonCos0 = max(horizonCos0, shc0);
-                horizonCos1 = max(horizonCos1, shc1);
+                GTAO_OutputWorkingTerm(outputPixCoord, 1, viewspaceNormal);
+                return;
             }
+    #endif
+
+            // this is the min distance to start sampling from to avoid sampling from the center pixel (no useful data obtained from sampling center pixel)
+            //const float minS = pixelTooCloseThreshold / screenspaceRadius;
+
+            #pragma unroll 6
+            for (float slice = 0; slice < sliceCount; slice++)
+            {
+                float sliceK = (slice + noiseSlice) / sliceCount;
+
+                // lines 5, 6 from the paper
+                float phi = sliceK* PI;
+                float cosPhi = cos(phi);
+                float sinPhi = sin(phi);
+                vec2 omega = vec2(cosPhi, sinPhi);       //vec2 on omega causes issues with big radii
+
+                // convert to screen units (pixels) for later use
+                omega *= screenspaceRadius * (1.0 + (abs(viewspaceZ) - 3.0) * 0.15);
+
+                // line 8 from the paper
+                const vec3 directionVec = vec3(cosPhi, sinPhi, 0);
+
+                // line 9 from the paper
+                const vec3 orthoDirectionVec = directionVec - (dot(directionVec, viewVec) * viewVec);
+
+                // line 10 from the paper
+                //axisVec is orthogonal to directionVec and viewVec, used to define projectedNormal
+                const vec3 axisVec = normalize(cross(directionVec, viewVec));
+
+                // alternative line 9 from the paper
+                // vec3 orthoDirectionVec = cross( viewVec, axisVec );
+
+                // line 11 from the paper
+                vec3 projectedNormalVec = viewspaceNormal - axisVec * dot(viewspaceNormal, axisVec);
+
+                // line 13 from the paper
+                float signNorm = sign(dot(orthoDirectionVec, projectedNormalVec));
+
+                // line 14 from the paper
+                float projectedNormalVecLength = length(projectedNormalVec);
+                float cosNorm = clamp((dot(projectedNormalVec, viewVec) / projectedNormalVecLength), 0.0, 1.0);
+
+                // line 15 from the paper
+                float n = signNorm * GTAO_FastACos(cosNorm);
 
 
-            // I can't figure out the slight overdarkening on high slopes, so I'm adding this fudge - in the training set, 0.05 is close (PSNR 21.34) to disabled (PSNR 21.45)
-            projectedNormalVecLength = mix(projectedNormalVecLength, 1, 0.05);
+                // this is a lower weight target; not using -1 as in the original paper because it is under horizon, so a 'weight' has different meaning based on the normal
+                const float lowHorizonCos0 = cos(n + PI_HALF);
+                const float lowHorizonCos1 = cos(n - PI_HALF);
 
-            // line ~27, unrolled
-            float h0 = n + clamp( -GTAO_FastACos(horizonCos1) - n , -PI_HALF, PI_HALF);
-            float h1 = n + clamp( GTAO_FastACos(horizonCos0) -n , -PI_HALF, PI_HALF);
+                // lines 17, 18 from the paper, manually unrolled the 'side' loop
+                //float horizonCos0 = lowHorizonCos0; //-1;
+                //float horizonCos1 = lowHorizonCos1; //-1;
+                
+                float horizonCos0 = -1; //-1;
+                float horizonCos1 = -1; //-1;
 
-            //imageStore(o_Debug, outputPixCoord, vec4(h1, n, horizonCos0, horizonCos1));
+                #pragma unroll 5
+                for (float step = 0; step < stepsPerSlice; step++)
+                {
+                    // R1 sequence (http://extremelearning.com.au/unreasonable-effectiveness-of-quasirandom-sequences/)
+                    const float stepBaseNoise = float(slice + step * stepsPerSlice) * 0.6180339887498948482; // <- this should unroll
+                    float stepNoise = fract(noiseSample + stepBaseNoise) * 0.5 + 0.5;
+
+                    // approx line 20 from the paper, with added noise
+                    float s = stepNoise * (step ) / (stepsPerSlice); // + (vec2)1e-6f);
+
+                    // additional distribution modifier
+                    s = pow(s, sampleDistributionPower);
+
+                    // avoid sampling center pixel
+                    //s += minS;
+
+                    // approx lines 21-22 from the paper, unrolled
+                    vec2 sampleOffset = s * omega;
+
+                    float sampleOffsetLength = length(sampleOffset);
+
+                    // note: when sampling, using point_point_point or point_point_linear sampler works, but linear_linear_linear will cause unwanted interpolation between neighbouring depth values on the same MIP level!
+                    const float mipLevel = clamp(log2(sampleOffsetLength) - u_GTAOConsts.DepthMIPSamplingOffset, 0, GTAO_DEPTH_MIP_LEVELS);
+
+                    // Snap to pixel center (more correct direction math, avoids artifacts due to sampling pos not matching depth texel center - messes up slope - but adds other 
+                    // artifacts due to them being pushed off the slice). Also use full precision for high res cases.
+                    sampleOffset = sampleOffset * u_ScreenData.InvFullResolution;
+
+                    vec2 sampleScreenPos0 = normalizedScreenPos + sampleOffset;
+                    float  SZ0 = LinearizeDepth(textureLod(u_HiZDepth, sampleScreenPos0 * u_GTAOConsts.X2BUVFactor, mipLevel).x);
+                    vec3 samplePos0 = GTAO_ComputeViewspacePosition(sampleScreenPos0, SZ0);
+
+                    vec2 sampleScreenPos1 = normalizedScreenPos - sampleOffset;
+                    float  SZ1 = LinearizeDepth(textureLod(u_HiZDepth, sampleScreenPos1 * u_GTAOConsts.X2BUVFactor, mipLevel).x);
+                    vec3 samplePos1 = GTAO_ComputeViewspacePosition(sampleScreenPos1, SZ1);
+
+                    vec3 sampleDelta0 = (samplePos0 - pixCenterPos); // using float for sampleDelta causes precision issues
+                    vec3 sampleDelta1 = (samplePos1 - pixCenterPos); // using float for sampleDelta causes precision issues
+                    float sampleDist0 = length(sampleDelta0);
+                    float sampleDist1 = length(sampleDelta1);
+
+                    // approx lines 23, 24 from the paper, unrolled
+                    vec3 sampleHorizonVec0 = (sampleDelta0 / sampleDist0);
+                    vec3 sampleHorizonVec1 = (sampleDelta1 / sampleDist1);
+
+                    // this is our own thickness heuristic that relies on sooner discarding samples behind the center
+                    float falloffBase0 = length(vec3(sampleDelta0.x, sampleDelta0.y, sampleDelta0.z * (1 + thinOccluderCompensation)));
+                    float falloffBase1 = length(vec3(sampleDelta1.x, sampleDelta1.y, sampleDelta1.z * (1 + thinOccluderCompensation)));
+                    float weight0 = clamp((falloffBase0 * falloffMul + falloffAdd), 0.0, 1.0);
+                    float weight1 = clamp((falloffBase1 * falloffMul + falloffAdd), 0.0, 1.0);
+
+                    // sample horizon cos
+                    float shc0 = dot(sampleHorizonVec0, viewVec);
+                    float shc1 = dot(sampleHorizonVec1, viewVec);
+
+                    // discard unwanted samples
+                    shc0 = mix(horizonCos0, shc0, weight0); // this would be more correct but too expensive: cos(lerp( acos(lowHorizonCos0), acos(shc0), weight0 ));
+                    shc1 = mix(horizonCos1, shc1, weight1); // this would be more correct but too expensive: cos(lerp( acos(lowHorizonCos1), acos(shc1), weight1 ));
+
+                    // thickness heuristic - see "4.3 Implementation details, Height-field assumption considerations"
+
+                    horizonCos0 = max(horizonCos0, shc0);
+                    horizonCos1 = max(horizonCos1, shc1);
+                }
 
 
-            float iarc0 = (cosNorm + 2.0 * h0 * sin(n) - cos(2 * h0 - n)) / 4.0;
-            float iarc1 = (cosNorm + 2.0 * h1 * sin(n) - cos(2 * h1 - n)) / 4.0;
-            float localVisibility = projectedNormalVecLength * (iarc0 + iarc1);
-            visibility += localVisibility;
+                // I can't figure out the slight overdarkening on high slopes, so I'm adding this fudge - in the training set, 0.05 is close (PSNR 21.34) to disabled (PSNR 21.45)
+                projectedNormalVecLength = mix(projectedNormalVecLength, 1, 0.05);
 
-//#if __X2_GTAO_COMPUTE_BENT_NORMALS
-//            // see "Algorithm 2 Extension that computes bent normals b."
-//            float t0 = (6 * sin(h0 - n) - sin(3 * h0 - n) + 6 * sin(h1 - n) - sin(3 * h1 - n) + 16 * sin(n) - 3 * (sin(h0 + n) + sin(h1 + n))) / 12;
-//            float t1 = (-cos(3 * h0 - n) - cos(3 * h1 - n) + 8 * cos(n) - 3 * (cos(h0 + n) + cos(h1 + n))) / 12;
-//            vec3 localBentNormal = vec3(directionVec.x * t0, directionVec.y * t0, - t1 );
-//            localBentNormal = (vec3)mul(GTAO_RotFromToMatrix(vec3(0, 0, -1), viewVec), localBentNormal) * projectedNormalVecLength;
-//            bentNormal += localBentNormal;
-//#endif
+                // line ~27, unrolled
+                float h0 = n + clamp( -GTAO_FastACos(horizonCos1) - n , -PI_HALF, PI_HALF);
+                float h1 = n + clamp( GTAO_FastACos(horizonCos0) -n , -PI_HALF, PI_HALF);
+
+                //imageStore(o_Debug, outputPixCoord, vec4(h1, n, horizonCos0, horizonCos1));
+
+
+                float iarc0 = (cosNorm + 2.0 * h0 * sin(n) - cos(2 * h0 - n)) / 4.0;
+                float iarc1 = (cosNorm + 2.0 * h1 * sin(n) - cos(2 * h1 - n)) / 4.0;
+                float localVisibility = projectedNormalVecLength * (iarc0 + iarc1);
+                visibility += localVisibility;
+
+    //#if __X2_GTAO_COMPUTE_BENT_NORMALS
+    //            // see "Algorithm 2 Extension that computes bent normals b."
+    //            float t0 = (6 * sin(h0 - n) - sin(3 * h0 - n) + 6 * sin(h1 - n) - sin(3 * h1 - n) + 16 * sin(n) - 3 * (sin(h0 + n) + sin(h1 + n))) / 12;
+    //            float t1 = (-cos(3 * h0 - n) - cos(3 * h1 - n) + 8 * cos(n) - 3 * (cos(h0 + n) + cos(h1 + n))) / 12;
+    //            vec3 localBentNormal = vec3(directionVec.x * t0, directionVec.y * t0, - t1 );
+    //            localBentNormal = (vec3)mul(GTAO_RotFromToMatrix(vec3(0, 0, -1), viewVec), localBentNormal) * projectedNormalVecLength;
+    //            bentNormal += localBentNormal;
+    //#endif
+            }
+            visibility /= sliceCount;
+
+            visibility = pow(visibility, u_GTAOConsts.FinalValuePower * mix(1.0f, u_GTAOConsts.ShadowTolerance, viewspaceNormalLuminance.a));
+            visibility = max(0.03, visibility); // disallow total occlusion (which wouldn't make any sense anyhow since pixel is visible but also helps with packing bent normals)
+
+    //#if __X2_GTAO_COMPUTE_BENT_NORMALS
+    //        bentNormal = normalize(bentNormal);
+    //#endif
         }
-        visibility /= sliceCount;
 
-        visibility = pow(visibility, u_GTAOConsts.FinalValuePower * mix(1.0f, u_GTAOConsts.ShadowTolerance, viewspaceNormalLuminance.a));
-        visibility = max(0.03, visibility); // disallow total occlusion (which wouldn't make any sense anyhow since pixel is visible but also helps with packing bent normals)
-
-//#if __X2_GTAO_COMPUTE_BENT_NORMALS
-//        bentNormal = normalize(bentNormal);
-//#endif
+        GTAO_OutputWorkingTerm(outputPixCoord, visibility, bentNormal);
     }
-
-    GTAO_OutputWorkingTerm(outputPixCoord, visibility, bentNormal);
 }
 
 
