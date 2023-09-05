@@ -515,6 +515,13 @@ namespace X2 {
 			out << YAML::EndMap; // SkyLightComponent
 		}
 
+		if (entity.HasComponent<FogVolumeComponent>())
+		{
+			out << YAML::Key << "FogVolumeComponent";
+			out << YAML::BeginMap; // FogVolumeComponent
+			out << YAML::EndMap; // FogVolumeComponent
+		}
+
 		if (entity.HasComponent<SpriteRendererComponent>())
 		{
 			out << YAML::Key << "SpriteRendererComponent";
@@ -1352,6 +1359,12 @@ namespace X2 {
 				//{
 				//	X2_CORE_ERROR("Tried to load invalid environment map in Entity {0}", deserializedEntity.GetUUID());
 				//}
+			}
+
+			auto fogVolumeComponent = entity["FogVolumeComponent"];
+			if (fogVolumeComponent)
+			{
+				auto& component = deserializedEntity.AddComponent<FogVolumeComponent>();
 			}
 
 			auto spriteRendererComponent = entity["SpriteRendererComponent"];

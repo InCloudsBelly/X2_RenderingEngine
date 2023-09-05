@@ -543,6 +543,13 @@ namespace X2 {
 			newEntity.AddComponent<SkyLightComponent>();
 		}
 
+
+		if (ImGui::MenuItem("Fog Volume"))
+		{
+			newEntity = m_Context->CreateEntity("Fog Volume");
+			newEntity.AddComponent<FogVolumeComponent>();
+		}
+
 		ImGui::Separator();
 
 		/*if (ImGui::MenuItem("Ambient Sound"))
@@ -1467,6 +1474,7 @@ namespace X2 {
 					DrawSimpleAddComponentButton<SpotLightComponent>(this, "Spot Light", EditorResources::SpotLightIcon);
 					DrawSimpleAddComponentButton<SkyLightComponent>(this, "Sky Light", EditorResources::SkyLightIcon);
 					DrawSimpleAddComponentButton<SpriteRendererComponent>(this, "Sprite Renderer", EditorResources::SpriteIcon);
+					DrawSimpleAddComponentButton<FogVolumeComponent>(this, "Fog Volume", EditorResources::SpriteIcon);
 					DrawAddComponentButton<TextComponent>(this, "Text", [](Entity entity, TextComponent& tc)
 						{
 							tc.FontHandle = Font::GetDefaultFont()->Handle;
@@ -2320,7 +2328,13 @@ namespace X2 {
 				UI::EndPropertyGrid();
 			}, EditorResources::SkyLightIcon);
 
-	
+		
+		DrawComponent<FogVolumeComponent>("FogVolume", [&](FogVolumeComponent& firstComponent, const std::vector<UUID>& entities, const bool isMultiEdit)
+			{
+				UI::BeginPropertyGrid();
+				ImGui::Text("FogVolume Now Only Supports Boxes & controlled by Transform Component");
+				UI::EndPropertyGrid();
+			}, EditorResources::PointLightIcon);
 
 		DrawComponent<SpriteRendererComponent>("Sprite Renderer", [&](SpriteRendererComponent& firstComponent, const std::vector<UUID>& entities, const bool isMultiEdit)
 			{

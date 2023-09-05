@@ -109,11 +109,26 @@ layout(std140, binding = 25) uniform TAAUBO
 	float feedback;
 } u_TAA;
 
+
+struct FogVolume
+{
+	vec3 position;
+	vec3 extent;
+	mat4 localToWorld;
+	mat4 worldToLocal;
+};
+
 layout(std140, binding = 26) uniform RayMarcingUBO
 {
 	vec4 bias_near_far_pow;
 	vec4 aniso_density_scattering_absorption;
 	vec4 frustumRays[4];
+
+	vec4 windDir_Speed;
+	vec4 fogParams;
+	
+	uint FogVolumeCount;
+	FogVolume FogVolumes[100];
 
 } u_RayMarching;
 

@@ -1820,7 +1820,7 @@ namespace X2 {
 
 		//RayMarching
 		rayMarchingData.bias_near_far_pow = glm::vec4(0.002f , m_SceneData.SceneCamera.Near, m_SceneData.SceneCamera.Far, 1.0f);
-		rayMarchingData.aniso_density_scattering_absorption = glm::vec4(m_Options.rayMarchingAnisotropy, m_Options.rayMarchingDensity, 0.0f, 0.0f);
+		rayMarchingData.aniso_density_scattering_absorption = glm::vec4(m_Options.rayMarchingAnisotropy, m_Options.rayMarchingDensity, m_Options.VolumeLightMul, 0.0f);
 
 		glm::vec2 frustumUVs[4] = {{0,0}, {1,0}, {0,1}, {1,1}};
 		for (uint32_t i = 0; i < 4; ++i)
@@ -1830,11 +1830,13 @@ namespace X2 {
 			
 			glm::vec4 WorldCornerPos = cameraData.InverseView * glm::vec4(ViewCornerPos, 1.0);
 			WorldCornerPos /= WorldCornerPos.w;
-
-
 			
 			rayMarchingData.frustumRays[i] = WorldCornerPos - glm::vec4(cameraPosition, 1.0);
 		}
+
+		const auto fogVolumes = m_Scene->m_FogVolumes;
+		rayMarchingData.FogVolumeCount = fogVolumes.size();
+		std::memcpy(rayMarchingData.boxFogVolumes, fogVolumes.data(), (uint32_t)(fogVolumes.size() * sizeof FogVolume)); //(Karim) Do we really have to copy that?
 
 		Renderer::Submit([instance, rayMarchingData]() mutable
 			{

@@ -29,6 +29,7 @@ namespace X2 {
 		entity.m_Scene->CopyComponentIfExists<SpotLightComponent>(newEntity, m_Scene->m_Registry, entity);
 		entity.m_Scene->CopyComponentIfExists<PointLightComponent>(newEntity, m_Scene->m_Registry, entity);
 		entity.m_Scene->CopyComponentIfExists<SkyLightComponent>(newEntity, m_Scene->m_Registry, entity);
+		entity.m_Scene->CopyComponentIfExists<FogVolumeComponent>(newEntity, m_Scene->m_Registry, entity);
 		//entity.m_Scene->CopyComponentIfExists<ScriptComponent>(newEntity, m_Scene->m_Registry, entity);
 		entity.m_Scene->CopyComponentIfExists<CameraComponent>(newEntity, m_Scene->m_Registry, entity);
 		entity.m_Scene->CopyComponentIfExists<SpriteRendererComponent>(newEntity, m_Scene->m_Registry, entity);

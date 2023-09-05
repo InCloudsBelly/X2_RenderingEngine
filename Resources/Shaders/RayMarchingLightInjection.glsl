@@ -120,9 +120,9 @@ void main()
 		{
 			// Sample 0 & 1
 			vec3 shadowMapCoords = GetShadowMapCoords(shadowCoords_xyz, 0);
-			float shadowAmount0 = u_RendererData.SoftShadows ? PCSS_DirectionalLight_withBias(u_ShadowMapTexture, 0, shadowMapCoords, u_RendererData.LightSize, 0.0) : HardShadows_DirectionalLight_withBias(u_ShadowMapTexture, 0, shadowMapCoords, 0.0);
+			float shadowAmount0 = HardShadows_DirectionalLight_withBias(u_ShadowMapTexture, 0, shadowMapCoords, 0.0);
 			shadowMapCoords = GetShadowMapCoords(shadowCoords_xyz, 1);
-			float shadowAmount1 = u_RendererData.SoftShadows ? PCSS_DirectionalLight_withBias(u_ShadowMapTexture, 1, shadowMapCoords, u_RendererData.LightSize, 0.0) : HardShadows_DirectionalLight_withBias(u_ShadowMapTexture, 1, shadowMapCoords, 0.0);
+			float shadowAmount1 = HardShadows_DirectionalLight_withBias(u_ShadowMapTexture, 1, shadowMapCoords, 0.0);
 
 			shadowScale = mix(shadowAmount0, shadowAmount1, c0);
 		}
@@ -130,9 +130,9 @@ void main()
 		{
 			// Sample 1 & 2
 			vec3 shadowMapCoords = GetShadowMapCoords(shadowCoords_xyz, 1);
-			float shadowAmount1 = u_RendererData.SoftShadows ? PCSS_DirectionalLight_withBias(u_ShadowMapTexture, 1, shadowMapCoords, u_RendererData.LightSize, 0.0) : HardShadows_DirectionalLight_withBias(u_ShadowMapTexture, 1, shadowMapCoords, 0.0);
+			float shadowAmount1 =  HardShadows_DirectionalLight_withBias(u_ShadowMapTexture, 1, shadowMapCoords, 0.0);
 			shadowMapCoords = GetShadowMapCoords(shadowCoords_xyz, 2);
-			float shadowAmount2 = u_RendererData.SoftShadows ? PCSS_DirectionalLight_withBias(u_ShadowMapTexture, 2, shadowMapCoords, u_RendererData.LightSize, 0.0) : HardShadows_DirectionalLight_withBias(u_ShadowMapTexture, 2, shadowMapCoords, 0.0);
+			float shadowAmount2 = HardShadows_DirectionalLight_withBias(u_ShadowMapTexture, 2, shadowMapCoords, 0.0);
 
 			shadowScale = mix(shadowAmount1, shadowAmount2, c1);
 		}
@@ -140,22 +140,22 @@ void main()
 		{
 			// Sample 2 & 3
 			vec3 shadowMapCoords = GetShadowMapCoords(shadowCoords_xyz, 2);
-			float shadowAmount2 = u_RendererData.SoftShadows ? PCSS_DirectionalLight_withBias(u_ShadowMapTexture, 2, shadowMapCoords, u_RendererData.LightSize, 0.0) : HardShadows_DirectionalLight_withBias(u_ShadowMapTexture, 2, shadowMapCoords, 0.0);
+			float shadowAmount2 = HardShadows_DirectionalLight_withBias(u_ShadowMapTexture, 2, shadowMapCoords, 0.0);
 			shadowMapCoords = GetShadowMapCoords(shadowCoords_xyz, 3);
-			float shadowAmount3 = u_RendererData.SoftShadows ? PCSS_DirectionalLight_withBias(u_ShadowMapTexture, 3, shadowMapCoords, u_RendererData.LightSize, 0.0) : HardShadows_DirectionalLight_withBias(u_ShadowMapTexture, 3, shadowMapCoords, 0.0);
+			float shadowAmount3 = HardShadows_DirectionalLight_withBias(u_ShadowMapTexture, 3, shadowMapCoords, 0.0);
 
 			shadowScale = mix(shadowAmount2, shadowAmount3, c2);
 		}
 		else
 		{
 			vec3 shadowMapCoords = GetShadowMapCoords(shadowCoords_xyz, cascadeIndex);
-			shadowScale = u_RendererData.SoftShadows ? PCSS_DirectionalLight_withBias(u_ShadowMapTexture, cascadeIndex, shadowMapCoords, u_RendererData.LightSize, 0.0) : HardShadows_DirectionalLight_withBias(u_ShadowMapTexture, cascadeIndex, shadowMapCoords, 0.0);
+			shadowScale = HardShadows_DirectionalLight_withBias(u_ShadowMapTexture, cascadeIndex, shadowMapCoords, 0.0);
 		}
 	}
 	else
 	{
 		vec3 shadowMapCoords = GetShadowMapCoords(shadowCoords_xyz, cascadeIndex);
-		shadowScale = u_RendererData.SoftShadows ? PCSS_DirectionalLight_withBias(u_ShadowMapTexture, cascadeIndex, shadowMapCoords, u_RendererData.LightSize, 0.0) : HardShadows_DirectionalLight_withBias(u_ShadowMapTexture, cascadeIndex, shadowMapCoords, 0.0);
+		shadowScale = HardShadows_DirectionalLight_withBias(u_ShadowMapTexture, cascadeIndex, shadowMapCoords, 0.0);
 	}
 
 	shadowScale = 1.0 - clamp(u_Scene.DirectionalLights.ShadowAmount - shadowScale, 0.0f, 1.0f);
@@ -164,7 +164,7 @@ void main()
     	lighting += shadowScale * u_Scene.DirectionalLights.Radiance * u_Scene.DirectionalLights.Multiplier * phase_function(Wo,  -normalize(u_Scene.DirectionalLights.Direction), u_RayMarching.aniso_density_scattering_absorption.x);
 
 
-    vec4 color_and_density = vec4(lighting * density, density);
+    vec4 color_and_density = vec4(lighting * density *  u_RayMarching.aniso_density_scattering_absorption.z, density);
      // Write out lighting.
     imageStore(o_VoxelGrid, outputCoord, vec4(color_and_density));
 

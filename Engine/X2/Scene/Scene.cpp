@@ -610,6 +610,26 @@ namespace X2 {
 
 				}
 			}
+
+
+			{
+				auto fogVolumes = m_Registry.group<FogVolumeComponent>(entt::get<TransformComponent>);
+				m_FogVolumes.resize(fogVolumes.size());
+				uint32_t pointLightIndex = 0;
+				for (auto entity : fogVolumes)
+				{
+					auto [transformComponent, fogVolumeComponent] = fogVolumes.get<TransformComponent, FogVolumeComponent>(entity);
+					auto transform = GetWorldSpaceTransform(Entity(entity, this));
+					m_FogVolumes[pointLightIndex++] = {
+						transform.Translation,
+						transform.Scale,
+						transform.GetTransform(),
+						glm::inverse(transform.GetTransform()),
+					};
+
+				}
+			}
+
 			// Spot Lights
 			{
 				auto spotLights = m_Registry.group<SpotLightComponent>(entt::get<TransformComponent>);
@@ -2035,6 +2055,8 @@ namespace X2 {
 		CopyComponentIfExists<PointLightComponent>(newEntity.m_EntityHandle, m_Registry, entity.m_EntityHandle);
 		CopyComponentIfExists<SpotLightComponent>(newEntity.m_EntityHandle, m_Registry, entity.m_EntityHandle);
 		CopyComponentIfExists<SkyLightComponent>(newEntity.m_EntityHandle, m_Registry, entity.m_EntityHandle);
+
+		CopyComponentIfExists<FogVolumeComponent>(newEntity.m_EntityHandle, m_Registry, entity.m_EntityHandle);
 		/*CopyComponentIfExists<AudioComponent>(newEntity.m_EntityHandle, m_Registry, entity.m_EntityHandle);
 		CopyComponentIfExists<AudioListenerComponent>(newEntity.m_EntityHandle, m_Registry, entity.m_EntityHandle);*/
 
@@ -2093,6 +2115,8 @@ namespace X2 {
 		entity.m_Scene->CopyComponentIfExists<PointLightComponent>(newEntity, m_Registry, entity);
 		entity.m_Scene->CopyComponentIfExists<SpotLightComponent>(newEntity, m_Registry, entity);
 		entity.m_Scene->CopyComponentIfExists<SkyLightComponent>(newEntity, m_Registry, entity);
+
+		entity.m_Scene->CopyComponentIfExists<FogVolumeComponent>(newEntity, m_Registry, entity);
 		//entity.m_Scene->CopyComponentIfExists<ScriptComponent>(newEntity, m_Registry, entity);
 		entity.m_Scene->CopyComponentIfExists<CameraComponent>(newEntity, m_Registry, entity);
 		entity.m_Scene->CopyComponentIfExists<SpriteRendererComponent>(newEntity, m_Registry, entity);
@@ -2584,6 +2608,7 @@ namespace X2 {
 		CopyComponent<PointLightComponent>(target->m_Registry, m_Registry, enttMap);
 		CopyComponent<SpotLightComponent>(target->m_Registry, m_Registry, enttMap);
 		CopyComponent<SkyLightComponent>(target->m_Registry, m_Registry, enttMap);
+		CopyComponent<FogVolumeComponent>(target->m_Registry, m_Registry, enttMap);
 		//CopyComponent<ScriptComponent>(target->m_Registry, m_Registry, enttMap);
 		CopyComponent<CameraComponent>(target->m_Registry, m_Registry, enttMap);
 		CopyComponent<SpriteRendererComponent>(target->m_Registry, m_Registry, enttMap);

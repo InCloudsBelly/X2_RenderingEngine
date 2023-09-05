@@ -77,7 +77,7 @@ namespace X2 {
 	static std::filesystem::path s_ProjectSolutionPath = "";
 
 	EditorLayer::EditorLayer(const Ref<UserPreferences>& userPreferences)
-		: m_UserPreferences(userPreferences), m_EditorCamera(45.0f, 1280.0f, 720.0f, 0.1f, 200.f), m_SecondEditorCamera(45.0f, 1280.0f, 720.0f, 0.1f, 200.f)
+		: m_UserPreferences(userPreferences), m_EditorCamera(45.0f, 1280.0f, 720.0f, 0.1f, 100.f), m_SecondEditorCamera(45.0f, 1280.0f, 720.0f, 0.1f, 100.f)
 	{
 		for (auto it = m_UserPreferences->RecentProjects.begin(); it != m_UserPreferences->RecentProjects.end(); )
 		{
@@ -2044,8 +2044,8 @@ namespace X2 {
 		FileSystem::StartWatching();
 
 		// Reset cameras
-		m_EditorCamera = EditorCamera(45.0f, 1280.0f, 720.0f, 0.1f, 200.f);
-		m_SecondEditorCamera = EditorCamera(45.0f, 1280.0f, 720.0f, 0.1f, 200.f);
+		m_EditorCamera = EditorCamera(45.0f, 1280.0f, 720.0f, 0.1f, 100.f);
+		m_SecondEditorCamera = EditorCamera(45.0f, 1280.0f, 720.0f, 0.1f, 100.f);
 
 		memset(s_ProjectNameBuffer, 0, MAX_PROJECT_NAME_LENGTH);
 		memset(s_OpenProjectFilePathBuffer, 0, MAX_PROJECT_FILEPATH_LENGTH);
@@ -2137,8 +2137,8 @@ namespace X2 {
 		FileSystem::StartWatching();
 
 		// Reset cameras
-		m_EditorCamera = EditorCamera(45.0f, 1280.0f, 720.0f, 0.1f, 200.f);
-		m_SecondEditorCamera = EditorCamera(45.0f, 1280.0f, 720.0f, 0.1f, 200.f);
+		m_EditorCamera = EditorCamera(45.0f, 1280.0f, 720.0f, 0.1f, 100.f);
+		m_SecondEditorCamera = EditorCamera(45.0f, 1280.0f, 720.0f, 0.1f, 100.f);
 
 		memset(s_ProjectNameBuffer, 0, MAX_PROJECT_NAME_LENGTH);
 		memset(s_OpenProjectFilePathBuffer, 0, MAX_PROJECT_FILEPATH_LENGTH);
@@ -2212,7 +2212,7 @@ namespace X2 {
 		UpdateWindowTitle(name);
 		m_SceneFilePath = std::string();
 
-		m_EditorCamera = EditorCamera(45.0f, 1280.0f, 720.0f, 0.1f, 200.f);
+		m_EditorCamera = EditorCamera(45.0f, 1280.0f, 720.0f, 0.1f, 100.f);
 		m_CurrentScene = m_EditorScene;
 
 		if (m_ViewportRenderer)

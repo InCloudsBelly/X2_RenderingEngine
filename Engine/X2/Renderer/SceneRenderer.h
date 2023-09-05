@@ -71,8 +71,9 @@ namespace X2
 
 		uint32_t NUM_BLUE_NOISE_TEXTURES = 8;
 
-		float rayMarchingAnisotropy = 0.7f;
-		float rayMarchingDensity = 10.0f;
+		float rayMarchingAnisotropy = - 0.3f;
+		float rayMarchingDensity = 5.0f;
+		float VolumeLightMul = 2.5; 
 
 
 
@@ -493,6 +494,12 @@ namespace X2
 			glm::vec4 bias_near_far_pow;
 			glm::vec4 aniso_density_scattering_absorption;
 			glm::vec4 frustumRays[4];
+
+			glm::vec4 windDir_Speed{ 0.0f };
+			glm::vec4 fogParams{0.0f}; //constant , Height Fog Exponent, Height Fog Offset, Height Fog Amount
+
+			uint32_t FogVolumeCount = { 0 };
+			FogVolume boxFogVolumes[100];
 
 		} RayMarchingDataUB;
 

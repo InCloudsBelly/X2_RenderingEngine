@@ -35,13 +35,16 @@ float slice_thickness(int z)
 vec4 ScatterStep(int z, vec3 accumulatedLight, float accumulatedTransmittance, vec3 sliceLight, float sliceDensity)
 {
 	float thickness = slice_thickness(z);
-	float  sliceTransmittance = exp(-sliceDensity * thickness * 0.01f);
+	float delta = thickness /(u_RayMarching.bias_near_far_pow.z - u_RayMarching.bias_near_far_pow.y);
+	float  sliceTransmittance = exp(-sliceDensity * delta);
 
 	// Seb Hillaire's improved transmission by calculating an integral over slice depth instead of
 	// constant per slice value. Light still constant per slice, but that's acceptable. See slide 28 of
 	// Physically-based & Unified Volumetric Rendering in Frostbite
 	// http://www.frostbite.com/2015/08/physically-based-unified-volumetric-rendering-in-frostbite/
 	vec3 sliceLightIntegral = sliceLight * (1.0 - sliceTransmittance) / sliceDensity;
+	// vec3 sliceLightIntegral = sliceLight * sliceTransmittance;
+
 
 	accumulatedLight += sliceLightIntegral * accumulatedTransmittance;
 	accumulatedTransmittance *= sliceTransmittance;

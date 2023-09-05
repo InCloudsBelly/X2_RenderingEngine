@@ -449,6 +449,12 @@ namespace X2 {
 		glm::vec3 TurbidityAzimuthInclination = { 2.0, 0.0, 0.0 };
 	};
 
+
+	struct FogVolumeComponent
+	{
+		int fogIndex = 0; //unused
+	};
+
 	//struct AudioListenerComponent
 	//{
 	//	//int ListenerID = -1;

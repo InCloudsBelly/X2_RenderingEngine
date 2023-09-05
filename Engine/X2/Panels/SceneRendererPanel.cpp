@@ -357,6 +357,7 @@ namespace X2 {
 				UI::BeginPropertyGrid();
 				UI::Property("Anisotropy", options.rayMarchingAnisotropy, 0.01f, -1.0f, 1.0f);
 				UI::Property("Density", options.rayMarchingDensity, 0.05f, 0.0f, 20.0f);
+				UI::Property("Volumetric Multipler", options.VolumeLightMul, 0.05f, 0.5f, 5.0f);
 
 				// TODO(Yan): move this to somewhere else
 				UI::Image(m_Context->m_BloomDirtTexture, ImVec2(64, 64));

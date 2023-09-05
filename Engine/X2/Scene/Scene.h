@@ -66,6 +66,15 @@ namespace X2 {
 		char Padding1[3]{ 0, 0, 0 };
 	};
 
+
+	struct FogVolume
+	{
+		glm::vec3 Position = { 0.0f, 0.0f, 0.0f };
+		glm::vec3 extent{ 1.0f };
+		glm::mat4 localToWorld = glm::mat4(1.0f);
+		glm::mat4 worldToLocal = glm::mat4(1.0f);
+	};
+
 	struct LightEnvironment
 	{
 		static constexpr size_t MaxDirectionalLights = 4;
@@ -277,11 +286,15 @@ namespace X2 {
 		Ref<Environment> m_Environment;
 		float m_EnvironmentIntensity = 0.0f;
 
+		// Volumetric Fog
+		std::vector<FogVolume> m_FogVolumes;
+
 		std::vector<std::function<void()>> m_PostUpdateQueue;
 
 		float m_SkyboxLod = 1.0f;
 		bool m_IsPlaying = false;
 		bool m_ShouldSimulate = false;
+
 
 		friend class Entity;
 		friend class Prefab;
