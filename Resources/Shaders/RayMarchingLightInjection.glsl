@@ -20,8 +20,10 @@
 layout(set = 0, binding = 5) uniform sampler2DArray u_ShadowMapTexture;
 layout(set = 0, binding = 6) uniform sampler2D u_BlueNoise;
 
+
+layout(set = 0, binding = 7) uniform sampler3D u_History;
 // OutPut 
-layout(binding = 7, rgba16f) uniform writeonly image3D o_VoxelGrid;
+layout(binding = 8, rgba16f) uniform writeonly image3D o_VoxelGrid;
 
 
 vec3 id_to_uv_with_jitter(ivec3 id, float n, float f, float jitter)
@@ -72,7 +74,8 @@ void main()
 	float viewZ = n * pow(f/n , (float(outputCoord.z) + 0.5f + jitter) / float(VOXEL_GRID_SIZE_Z));
 	
 	float k = viewZ/(f-n);
-	vec3 worldPos = FrustumRay(uv, u_RayMarching.frustumRays) * k + u_Scene.CameraPosition;
+	vec3 rayDir = FrustumRay(uv, u_RayMarching.frustumRays) ;
+	vec3 worldPos = rayDir * k + u_Scene.CameraPosition;
 
     // Get the view direction from the current voxel.
     vec3 Wo = normalize(u_Scene.CameraPosition - worldPos.xyz);
@@ -165,6 +168,30 @@ void main()
 
 
     vec4 color_and_density = vec4(lighting * density *  u_RayMarching.aniso_density_scattering_absorption.z, density);
+
+
+
+		float viewZ_without_Jitter = n * pow(f/n , (float(outputCoord.z) + 0.5f) / float(VOXEL_GRID_SIZE_Z));
+		vec3 worldPos_without_Jitter = rayDir * (viewZ_without_Jitter/(f-n)) + u_Scene.CameraPosition;
+
+		vec4 pNdc_History = u_TAA.ViewProjectionMatrixHistory * vec4(worldPos_without_Jitter, 1.0f);
+		pNdc_History.xyz /= pNdc_History.w;
+
+		vec3 uv_History;
+		uv_History.xy = pNdc_History.xy * 0.5f + 0.5f;
+
+		//LinearizeDepth
+		float linearDepth_History = u_Camera.ProjectionMatrix[3][2] / (pNdc_History.z + u_Camera.ProjectionMatrix[2][2] );
+
+		vec2 params = vec2(1.0 / log2(f/n), -(log2(n))/log2(f/n));
+		uv_History.z = max(log2(linearDepth_History)* params.x + params.y, 0.0f);
+
+		vec4  history  = textureLod(u_History, uv_History, 0.0f) ;
+
+
+		color_and_density = mix(history, color_and_density, 0.05f);
+
+
      // Write out lighting.
     imageStore(o_VoxelGrid, outputCoord, vec4(color_and_density));
 

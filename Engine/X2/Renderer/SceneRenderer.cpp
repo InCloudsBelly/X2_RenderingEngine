@@ -1035,13 +1035,19 @@ namespace X2 {
 			
 			//1.Light Injection
 			{
-				spec.DebugName = "Light Injection Grid";
-				m_lightInjectionImage = Ref<VulkanImage2D>::Create(spec);
-				m_lightInjectionImage->Invalidate();
+				spec.DebugName = "Light Injection Grid 0";
+				m_lightInjectionImage[0] = Ref<VulkanImage2D>::Create(spec);
+				m_lightInjectionImage[0]->Invalidate();
+
+				spec.DebugName = "Light Injection Grid 1";
+				m_lightInjectionImage[1] = Ref<VulkanImage2D>::Create(spec);
+				m_lightInjectionImage[1]->Invalidate();
 
 				Ref<VulkanShader> shader = Renderer::GetShaderLibrary()->Get("RayMarchingLightInjection");
 				m_RayInjectionPipeline = Ref<VulkanComputePipeline>::Create(shader);
-				m_RayInjectionMaterial = Ref<VulkanMaterial>::Create(shader, "RayMarchingLightInjection");
+
+				m_RayInjectionMaterial[0] = Ref<VulkanMaterial>::Create(shader, "RayMarchingLightInjection 0");
+				m_RayInjectionMaterial[1] = Ref<VulkanMaterial>::Create(shader, "RayMarchingLightInjection 1");
 			}
 
 			// 2.Scattering
@@ -1052,7 +1058,8 @@ namespace X2 {
 
 				Ref<VulkanShader> shader = Renderer::GetShaderLibrary()->Get("RayMarchingScattering");
 				m_ScatteringPipeline = Ref<VulkanComputePipeline>::Create(shader);
-				m_ScatteringMaterial = Ref<VulkanMaterial>::Create(shader, "RayMarchingScattering");
+				m_ScatteringMaterial[0] = Ref<VulkanMaterial>::Create(shader, "RayMarchingScattering 0 ");
+				m_ScatteringMaterial[1] = Ref<VulkanMaterial>::Create(shader, "RayMarchingScattering 1 ");
 			}
 		}
 
@@ -1314,6 +1321,24 @@ namespace X2 {
 				instance->m_GTAODenoiseMaterial[1]->Set("u_Edges", instance->m_GTAOEdgesOutputImage);
 				instance->m_GTAODenoiseMaterial[1]->Set("u_AOTerm", instance->m_GTAODenoiseImage);
 				instance->m_GTAODenoiseMaterial[1]->Set("o_AOTerm", instance->m_GTAOOutputImage);
+
+
+				//Froxel Volume Fog
+				instance->m_RayInjectionMaterial[0]->Set("o_VoxelGrid", instance->m_lightInjectionImage[0]);
+				instance->m_RayInjectionMaterial[0]->Set("u_History", instance->m_lightInjectionImage[1]);
+				instance->m_RayInjectionMaterial[0]->Set("u_ShadowMapTexture", instance->m_ShadowPassPipelines[0]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
+
+
+				instance->m_RayInjectionMaterial[1]->Set("o_VoxelGrid", instance->m_lightInjectionImage[1]);
+				instance->m_RayInjectionMaterial[1]->Set("u_History", instance->m_lightInjectionImage[0]);
+				instance->m_RayInjectionMaterial[1]->Set("u_ShadowMapTexture", instance->m_ShadowPassPipelines[0]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
+
+
+				instance->m_ScatteringMaterial[0]->Set("i_VoxelGrid", instance->m_lightInjectionImage[0]);
+				instance->m_ScatteringMaterial[0]->Set("o_VoxelGrid", instance->m_ScatteringImage);
+
+				instance->m_ScatteringMaterial[1]->Set("i_VoxelGrid", instance->m_lightInjectionImage[1]);
+				instance->m_ScatteringMaterial[1]->Set("o_VoxelGrid", instance->m_ScatteringImage);
 			});
 	}
 
@@ -2601,20 +2626,22 @@ namespace X2 {
 
 	void SceneRenderer::RayMarchingPass()
 	{
-		m_RayInjectionMaterial->Set("u_ShadowMapTexture", m_ShadowPassPipelines[0]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
-		m_RayInjectionMaterial->Set("u_BlueNoise", m_BlueNoiseTextures[0]->GetImage());
-		m_RayInjectionMaterial->Set("o_VoxelGrid", m_lightInjectionImage);
+		static int FroxelIndex = 0;
 
+		int swapIndex = FroxelIndex % 2;
 
-		m_ScatteringMaterial->Set("i_VoxelGrid", m_lightInjectionImage);
-		m_ScatteringMaterial->Set("o_VoxelGrid", m_ScatteringImage);
+		m_RayInjectionMaterial[swapIndex]->Set("u_BlueNoise", m_BlueNoiseTextures[FroxelIndex]->GetImage());
 
 
 		m_GPUTimeQueries.RayMarchingQuery = m_CommandBuffer->BeginTimestampQuery();
-		Renderer::DispatchComputeShader(m_CommandBuffer, m_RayInjectionPipeline, m_UniformBufferSet, nullptr, m_RayInjectionMaterial, m_RayInjectionWorkGroups);
+		Renderer::DispatchComputeShader(m_CommandBuffer, m_RayInjectionPipeline, m_UniformBufferSet, nullptr, m_RayInjectionMaterial[swapIndex], m_RayInjectionWorkGroups);
 
-		Renderer::DispatchComputeShader(m_CommandBuffer, m_ScatteringPipeline, m_UniformBufferSet, nullptr, m_ScatteringMaterial, m_ScatteringWorkGroups);
+		Renderer::DispatchComputeShader(m_CommandBuffer, m_ScatteringPipeline, m_UniformBufferSet, nullptr, m_ScatteringMaterial[swapIndex], m_ScatteringWorkGroups);
 		m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.RayMarchingQuery);
+
+
+		if (++ FroxelIndex == 8)
+			FroxelIndex = 0;
 	}
 
 

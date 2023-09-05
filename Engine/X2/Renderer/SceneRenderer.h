@@ -548,7 +548,7 @@ namespace X2
 		Ref<VulkanStorageBufferSet> m_StorageBufferSet;
 
 		float LightDistance = 0.1f;
-		float CascadeSplitLambda = 0.7f;
+		float CascadeSplitLambda = 0.35f;
 		glm::vec4 CascadeSplits;
 		float CascadeFarPlaneOffset = 20.0f, CascadeNearPlaneOffset = -20.0f;
 		float m_ScaleShadowCascadesToOrigin = 0.0f;
@@ -607,16 +607,16 @@ namespace X2
 			 glm::vec2(0.0625f, 8.0f / 9),
 		};
 
-		//Ray Marching
+		//Volume Fog & Light
 		Ref<VulkanComputePipeline> m_RayInjectionPipeline;
-		Ref<VulkanMaterial> m_RayInjectionMaterial;
+		Ref<VulkanMaterial> m_RayInjectionMaterial[2];
 		glm::uvec3 m_RayInjectionWorkGroups{ 1 };
-		Ref<VulkanImage2D> m_lightInjectionImage;
+		Ref<VulkanImage2D> m_lightInjectionImage[2];//history, current
 		std::vector<Ref<VulkanTexture2D>> m_BlueNoiseTextures;
 
 
 		Ref<VulkanComputePipeline> m_ScatteringPipeline;
-		Ref<VulkanMaterial> m_ScatteringMaterial;
+		Ref<VulkanMaterial> m_ScatteringMaterial[2];
 		glm::uvec3 m_ScatteringWorkGroups{ 1 };
 		Ref<VulkanImage2D> m_ScatteringImage;
 
