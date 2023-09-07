@@ -14,7 +14,6 @@ Entities:
       AssetID: 94030502098353208
       MaterialTable:
         0: 0
-        1: 0
       Visible: true
   - Entity: 786525488897351341
     TagComponent:
@@ -114,6 +113,18 @@ Entities:
       MaterialTable:
         0: 0
       Visible: true
+  - Entity: 6782218775165887986
+    TagComponent:
+      Tag: Fog Volume
+    Parent: 0
+    Children:
+      []
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [9, 9, 9]
+    FogVolumeComponent:
+      {}
   - Entity: 8082160342895275715
     TagComponent:
       Tag: Torus
@@ -155,7 +166,7 @@ Entities:
       Rotation: [0, 0, 0]
       Scale: [23.8875065, 1, 15.7124214]
     StaticMeshComponent:
-      AssetID: 11101590624827737328
+      AssetID: 17213642029256428448
       MaterialTable:
         0: 0
       Visible: true

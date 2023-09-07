@@ -62,4 +62,5 @@ vec4 textureTricubic(sampler3D tex, vec3 coord)
 	tex001 = mix(tex011, tex001, g0.y); // Weigh along the y-direction
 
 	return mix(tex001, tex000, g0.z); // Weigh along the z-direction
+	//return mix(tex000, tex001, g0.z); // Weigh along the z-direction
 }

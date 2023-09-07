@@ -452,7 +452,7 @@ namespace X2 {
 
 	struct FogVolumeComponent
 	{
-		int fogIndex = 0; //unused
+		float fogDensity = 5.0f; //unused
 	};
 
 	//struct AudioListenerComponent

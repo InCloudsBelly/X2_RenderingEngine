@@ -383,6 +383,9 @@ Assets:
   - Handle: 15645219971788278502
     FilePath: Meshes/Source/Sponza/16275776544635328252.png
     Type: Texture
+  - Handle: 15860143073155036476
+    FilePath: scenes/FogSponza.xscene
+    Type: Scene
   - Handle: 16082962571370269090
     FilePath: Meshes/Source/Sponza/8503262930880235456.jpg
     Type: Texture

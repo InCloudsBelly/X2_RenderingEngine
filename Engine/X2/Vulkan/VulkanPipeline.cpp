@@ -88,7 +88,7 @@ namespace X2 {
 		Ref<VulkanPipeline> instance = this;
 		Renderer::Submit([instance]() mutable
 			{
-				// X2_CORE_WARN("[VulkanPipeline] Creating pipeline {0}", instance->m_Specification.DebugName);
+				 //X2_CORE_INFO("[VulkanPipeline] Creating pipeline {0}", instance->m_Specification.DebugName);
 
 				VkDevice device = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
 				X2_CORE_ASSERT(instance->m_Specification.Shader);

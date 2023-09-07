@@ -1,0 +1,97 @@
+Scene: RenderingTests
+Entities:
+  - Entity: 492260644621164234
+    TagComponent:
+      Tag: Cube
+    Parent: 0
+    Children:
+      []
+    TransformComponent:
+      Position: [-1.60720575, 0.901592851, -0.730437458]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+    StaticMeshComponent:
+      AssetID: 13712476291031164119
+      MaterialTable:
+        0: 0
+        1: 0
+        2: 0
+        3: 0
+        4: 0
+        5: 0
+        6: 0
+        7: 0
+        8: 0
+        9: 0
+        10: 0
+        11: 0
+        12: 0
+        13: 0
+        14: 0
+        15: 0
+        16: 0
+        17: 0
+        18: 0
+        19: 0
+        20: 0
+        21: 0
+        22: 0
+        23: 0
+        24: 0
+        25: 0
+      Visible: true
+  - Entity: 2066381356863510197
+    TagComponent:
+      Tag: Fog Volume
+    Parent: 0
+    Children:
+      []
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [30, 30, 30]
+    FogVolumeComponent:
+      {}
+  - Entity: 11266527304938774427
+    TagComponent:
+      Tag: Directional Light
+    Parent: 15655314229017363675
+    Children:
+      []
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [-1.81974757, -1.07038581, 2.84921575]
+      Scale: [0.000999998068, 0.999999523, 0.999997616]
+    DirectionalLightComponent:
+      Intensity: 1
+      Radiance: [1, 1, 1]
+      CastShadows: true
+      SoftShadows: true
+      LightSize: 0.5
+      ShadowAmount: 1
+  - Entity: 15655314229017363675
+    TagComponent:
+      Tag: Lighting
+    Parent: 0
+    Children:
+      - Handle: 11266527304938774427
+      - Handle: 17485239510661114609
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, 0, 0]
+      Scale: [1, 1, 1]
+  - Entity: 17485239510661114609
+    TagComponent:
+      Tag: Sky Light
+    Parent: 15655314229017363675
+    Children:
+      []
+    TransformComponent:
+      Position: [0, 0, 0]
+      Rotation: [0, -0, 0]
+      Scale: [1, 1, 1]
+    SkyLightComponent:
+      EnvironmentMap: 12190767050637799107
+      Intensity: 0.100000001
+      Lod: 0
+      DynamicSky: false

@@ -73,16 +73,15 @@ void main()
     ivec3 outputCoord = ivec3(gl_WorkGroupID.xyz) * ivec3(LOCAL_SIZE_X, LOCAL_SIZE_Y, LOCAL_SIZE_Z) + ivec3(gl_LocalInvocationID.xyz);
 
     ivec2 noise_coord = (outputCoord.xy + ivec2(0, 1) * outputCoord.z * BLUE_NOISE_TEXTURE_SIZE) % BLUE_NOISE_TEXTURE_SIZE;
-    float jitter = 0;
-	
+    
+	float jitter  = 0.0f;
 	if(u_FroxelFog.enableJitter)
 	{
-		float jitter = texelFetch(u_BlueNoise, noise_coord, 0).r;
+		jitter = texelFetch(u_BlueNoise, noise_coord, 0).r;
     	jitter = (jitter - 0.5f) * 0.999f;
 	}
 
-
-	vec2 uv = vec2((float(outputCoord.x) + 0.5f)/ float(VOXEL_GRID_SIZE_X),  (float(outputCoord.y) + 0.5f)/ float(VOXEL_GRID_SIZE_Y)) ;
+	vec2 uv = vec2((float(outputCoord.x) + 0.5f)/ float(VOXEL_GRID_SIZE_X),  (float(outputCoord.y) + 0.5f)/ float(VOXEL_GRID_SIZE_Y)) + vec2(jitter, -jitter) * u_ScreenData.InvFullResolution;
 
 	float f = u_FroxelFog.bias_near_far_pow.z;
 	float n = u_FroxelFog.bias_near_far_pow.y;
@@ -189,14 +188,15 @@ void main()
     vec4 color_and_density = vec4(lighting * den *  u_FroxelFog.aniso_density_multipler_absorption.z, den);
 
 
-	if (u_FroxelFog. enableTemperalAccumulating){
+	if(u_FroxelFog.enableTemperalAccumulating)
+	{
 		float viewZ_without_Jitter = n * pow(f/n , (float(outputCoord.z) + 0.5f) / float(VOXEL_GRID_SIZE_Z));
 		vec3 worldPos_without_Jitter = rayDir * (viewZ_without_Jitter/(f-n)) + u_Scene.CameraPosition;
 
 		vec4 pNdc_History = u_TAA.ViewProjectionMatrixHistory * vec4(worldPos_without_Jitter, 1.0f);
 		pNdc_History.xyz /= pNdc_History.w;
 
-		vec3 uv_History; 
+		vec3 uv_History;
 		uv_History.xy = pNdc_History.xy * 0.5f + 0.5f ;
 
 		//LinearizeDepth

@@ -25,13 +25,15 @@ void main()
 
 layout (location = 0) in vec2 texcoord;
 
+
 layout(location = 0) out vec4 outColor;
 
 // PBR texture inputs
+layout(set = 0, binding = 0) uniform sampler2D u_colorHistory;
 layout(set = 0, binding = 1) uniform sampler2D u_color;
 layout(set = 0, binding = 2) uniform sampler2D u_velocity;
 layout(set = 0, binding = 3) uniform sampler2D u_depth;
-layout(set = 0, binding = 4) uniform sampler2D u_colorHistory;
+
 
 bool clipped = false;
 

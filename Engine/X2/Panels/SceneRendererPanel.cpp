@@ -103,7 +103,7 @@ namespace X2 {
 				tenFrameAverageTime("Hierarchical Depth", commandBuffer, frameIndex, gpuTimeQueries.HierarchicalDepthQuery);
 				tenFrameAverageTime("Pre-Integration", commandBuffer, frameIndex, gpuTimeQueries.PreIntegrationQuery);
 				tenFrameAverageTime("Light Culling Pass", commandBuffer, frameIndex, gpuTimeQueries.LightCullingPassQuery);
-				tenFrameAverageTime("Ray Marching Pass", commandBuffer, frameIndex, gpuTimeQueries.RayMarchingQuery);
+				tenFrameAverageTime("Ray Marching Pass", commandBuffer, frameIndex, gpuTimeQueries.FroxelFogQuery);
 				tenFrameAverageTime("Geometry Pass", commandBuffer, frameIndex, gpuTimeQueries.GeometryPassQuery);
 				tenFrameAverageTime("Pre-Convoluted Pass", commandBuffer, frameIndex, gpuTimeQueries.PreConvolutionQuery);
 				tenFrameAverageTime("HBAO Pass", commandBuffer, frameIndex, gpuTimeQueries.HBAOPassQuery);
@@ -351,25 +351,17 @@ namespace X2 {
 
 
 
-			if (UI::PropertyGridHeader("Volume Fog"))
+			if (UI::PropertyGridHeader("Volume Fog & Light"))
 			{
 
 				UI::BeginPropertyGrid();
-				UI::Property("Anisotropy", options.rayMarchingAnisotropy, 0.01f, -1.0f, 1.0f);
-				UI::Property("Density", options.rayMarchingDensity, 0.05f, 0.0f, 20.0f);
-				UI::Property("Volumetric Multipler", options.VolumeLightMul, 0.05f, 0.5f, 5.0f);
+				UI::Property("Anisotropy", options.froxelFogAnisotropy, 0.01f, -1.0f, 1.0f);
+				UI::Property("Density", options.froxelFogDensity, 0.05f, 0.0f, 20.0f);
+				UI::Property("Volumetric Multipler", options.froxelFogLightMul, 0.05f, 0.5f, 5.0f);
 
-				// TODO(Yan): move this to somewhere else
-				UI::Image(m_Context->m_BloomDirtTexture, ImVec2(64, 64));
-				if (ImGui::IsItemHovered())
-				{
-					if (ImGui::IsItemClicked())
-					{
-						std::string filename = FileSystem::OpenFileDialog().string();
-						if (!filename.empty())
-							m_Context->m_BloomDirtTexture = Ref<VulkanTexture2D>::Create(TextureSpecification(), filename);
-					}
-				}
+				UI::Property("Enable Temperal Accumulating", options.froxelFogEnableTemperalAccumulating);
+				UI::Property("Enable BlueNoise Jitter", options.froxelFogEnableJitter);
+				UI::Property("Enable Fast Jitter", options.froxelFogFastJitter);
 
 				UI::EndPropertyGrid();
 				UI::EndTreeNode();

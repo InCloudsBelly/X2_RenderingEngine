@@ -2332,9 +2332,21 @@ namespace X2 {
 		DrawComponent<FogVolumeComponent>("FogVolume", [&](FogVolumeComponent& firstComponent, const std::vector<UUID>& entities, const bool isMultiEdit)
 			{
 				UI::BeginPropertyGrid();
-				ImGui::Text("FogVolume Now Only Supports Boxes & controlled by Transform Component");
+
+				ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isMultiEdit&& IsInconsistentPrimitive<float, FogVolumeComponent>([](const FogVolumeComponent& other) { return other.fogDensity; }));
+				if (UI::Property("FogDensity", firstComponent.fogDensity, 0.05f, 0.05f, 20.0f))
+				{
+					for (auto& entityID : entities)
+					{
+						Entity entity = m_Context->GetEntityWithUUID(entityID);
+						entity.GetComponent<FogVolumeComponent>().fogDensity = firstComponent.fogDensity;
+					}
+				}
+				ImGui::PopItemFlag();
+
 				UI::EndPropertyGrid();
-			}, EditorResources::PointLightIcon);
+
+			}, EditorResources::SpriteIcon);
 
 		DrawComponent<SpriteRendererComponent>("Sprite Renderer", [&](SpriteRendererComponent& firstComponent, const std::vector<UUID>& entities, const bool isMultiEdit)
 			{

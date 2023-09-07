@@ -245,6 +245,25 @@ namespace X2 {
 
 			VulkanContext::GetCurrentDevice()->FlushCommandBuffer(commandBuffer);
 		}
+		else if (m_Specification.Usage == ImageUsage::Attachment && !Utils::IsDepthFormat(m_Specification.Format))
+		{
+			// Transition image to TRANSFER_DST layout
+			VkCommandBuffer commandBuffer = VulkanContext::GetCurrentDevice()->GetCommandBuffer(true);
+
+			VkImageSubresourceRange subresourceRange = {};
+			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			subresourceRange.baseMipLevel = 0;
+			subresourceRange.levelCount = m_Specification.Mips;
+			subresourceRange.layerCount = m_Specification.Layers;
+
+			Utils::InsertImageMemoryBarrier(commandBuffer, m_Info.Image,
+				0, 0,
+				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+				subresourceRange);
+
+			VulkanContext::GetCurrentDevice()->FlushCommandBuffer(commandBuffer);
+		}
 
 		UpdateDescriptor();
 	}
@@ -385,6 +404,15 @@ namespace X2 {
 			m_DescriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 		else if (m_Specification.Usage == ImageUsage::HostRead)
 			m_DescriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+		else if (m_Specification.Usage == ImageUsage::Attachment)
+		{
+			if(Utils::IsDepthFormat(m_Specification.Format))
+				m_DescriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+			else
+				m_DescriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
+		}
+			
+
 
 		m_DescriptorImageInfo.imageView = m_Info.ImageView;
 		m_DescriptorImageInfo.sampler = m_Info.Sampler;

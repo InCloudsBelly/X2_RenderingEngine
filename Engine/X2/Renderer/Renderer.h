@@ -110,7 +110,6 @@ namespace X2 {
 		static void EndFrame();
 
 		static void SetSceneEnvironment(Ref<SceneRenderer> sceneRenderer, Ref<Environment> environment, Ref<VulkanImage2D> shadow, Ref<VulkanImage2D> spotShadow);
-		static void SetSceneEnvironment(Ref<SceneRenderer> sceneRenderer, Ref<Environment> environment, Ref<VulkanImage2D> shadow, Ref<VulkanImage2D> spotShadow, Ref<VulkanImage2D> rayMarchingGrid);
 		static Ref<Environment> CreateEnvironmentMap(const std::string& filepath);
 		static Ref<VulkanTextureCube> CreatePreethamSky(float turbidity, float azimuth, float inclination);
 

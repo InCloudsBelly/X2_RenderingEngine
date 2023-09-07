@@ -113,25 +113,30 @@ layout(std140, binding = 25) uniform TAAUBO
 struct FogVolume
 {
 	vec3 position;
-	vec3 extent;
-	mat4 localToWorld;
+	float density;
 	mat4 worldToLocal;
 };
 
-layout(std140, binding = 26) uniform RayMarcingUBO
+layout(std140, binding = 26) uniform FroxelFogUBO
 {
 	vec4 bias_near_far_pow;
-	vec4 aniso_density_scattering_absorption;
+	vec4 aniso_density_multipler_absorption;
 	vec4 frustumRays[4];
 
 	vec4 windDir_Speed;
 	vec4 fogParams;
 	
+	bool enableJitter;
+	bool enableTemperalAccumulating;
+	
+} u_FroxelFog;
+
+
+layout(std140, binding = 27) uniform FogVolumes
+{
 	uint FogVolumeCount;
 	FogVolume FogVolumes[100];
-
-} u_RayMarching;
-
+}u_FogVoulumes;
 
 
 

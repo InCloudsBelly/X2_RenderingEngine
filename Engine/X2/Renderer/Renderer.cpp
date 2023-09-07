@@ -218,7 +218,7 @@ namespace X2 {
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/PostProcessing/SMAANeighborBlend.glsl");
 
 		//TAA
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/PostProcessing/TAA.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/TAA/TAA.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/TAA/PBR_Static_TAA.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/TAA/PreDepth_TAA.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/TAA/TAA_ToneMapping.glsl");
@@ -226,8 +226,9 @@ namespace X2 {
 		//Renderer::GetShaderLibrary()->Load("Resources/Shaders/TAA/Skybox_TAA.glsl");
 
 		//Ray Marching
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/RayMarchingLightInjection.glsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shaders/RayMarchingScattering.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/FroxelFog/FroxelFog_LightInjection.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/FroxelFog/FroxelFog_Scattering.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/FroxelFog/FroxelFog_Compositing.glsl");
 
 
 
@@ -427,10 +428,6 @@ namespace X2 {
 		s_RendererAPI->SetSceneEnvironment(sceneRenderer, environment, shadow, spotShadow);
 	}
 
-	void Renderer::SetSceneEnvironment(Ref<SceneRenderer> sceneRenderer, Ref<Environment> environment, Ref<VulkanImage2D> shadow, Ref<VulkanImage2D> spotShadow, Ref<VulkanImage2D> rayMarchingGrid)
-	{
-		s_RendererAPI->SetSceneEnvironment(sceneRenderer, environment, shadow, spotShadow, rayMarchingGrid);
-	}
 
 	Ref<Environment> Renderer::CreateEnvironmentMap(const std::string& filepath)
 	{

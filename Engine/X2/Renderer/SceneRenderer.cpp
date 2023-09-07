@@ -9,6 +9,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/compatibility.hpp>
 
+
+#include <random>
+
 #include "Renderer2D.h"
 
 
@@ -44,7 +47,8 @@ namespace X2 {
 		HBAOData = 18,
 		SMAAData = 24,
 		TAAData = 25,
-		RayMarchingData = 26 
+		FroxelFogData = 26, 
+		FogVolumesData = 27
 	};
 
 	static std::vector<std::thread> s_ThreadPool;
@@ -109,7 +113,9 @@ namespace X2 {
 		m_UniformBufferSet->Create(sizeof(UBSpotShadowData), 20);
 		m_UniformBufferSet->Create(sizeof(UBSMAAData), 24);
 		m_UniformBufferSet->Create(sizeof(UBTAAData), 25);
-		m_UniformBufferSet->Create(sizeof(UBRayMarchingData), 26);
+		m_UniformBufferSet->Create(sizeof(UBFroxelFogData), 26);
+
+		m_UniformBufferSet->Create(sizeof(UBFroxelFogData), 27);
 
 
 
@@ -905,12 +911,15 @@ namespace X2 {
 
 		//TAA
 		{
+
 			ImageSpecification imageSpec;
 			imageSpec.Format = ImageFormat::RGBA32F;
-			imageSpec.DebugName = "TAA_Color_Image0";
-			Ref<VulkanImage2D> image0 = Ref<VulkanImage2D>::Create(imageSpec);
-			image0->Invalidate();
-			m_TAAToneMappedPreColorImage = image0;
+			imageSpec.Layers = 1;
+			imageSpec.Usage = ImageUsage::Storage;
+			imageSpec.DebugName = "TAA_Color_Image 0";
+			m_TAAToneMappedPreColorImage = Ref<VulkanImage2D>::Create(imageSpec);
+			m_TAAToneMappedPreColorImage->Invalidate();
+
 
 			//imageSpec.DebugName = "TAA_Color_Image1";
 			//Ref<VulkanImage2D> image1 = Ref<VulkanImage2D>::Create(imageSpec);
@@ -933,7 +942,7 @@ namespace X2 {
 			FramebufferSpecification framebufferSpec;
 			framebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 			framebufferSpec.Attachments.Attachments.emplace_back(ImageFormat::RGBA32F);
-			//framebufferSpec.ExistingImages[0] = m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage(0);
+			//framebufferSpec.ExistingImages[0] = m_TAAToneMappedPreColorImage;
 			framebufferSpec.DebugName = "TAA";
 			framebufferSpec.Attachments.Attachments[0].Blend = false;
 			framebufferSpec.ClearColorOnLoad = false;
@@ -965,7 +974,7 @@ namespace X2 {
 			framebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 			framebufferSpec.Attachments = { ImageFormat::RGBA32F }; 
 			//framebufferSpec.ExistingImages[0] = m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage(0);
-			framebufferSpec.Attachments.Attachments[0].Blend = true;
+			framebufferSpec.Attachments.Attachments[0].Blend = false;
 
 			framebufferSpec.DebugName = "TAA-ToneMapping";
 			framebufferSpec.ClearColorOnLoad = false;
@@ -1036,30 +1045,70 @@ namespace X2 {
 			//1.Light Injection
 			{
 				spec.DebugName = "Light Injection Grid 0";
-				m_lightInjectionImage[0] = Ref<VulkanImage2D>::Create(spec);
-				m_lightInjectionImage[0]->Invalidate();
+				m_FroxelFog_lightInjectionImage[0] = Ref<VulkanImage2D>::Create(spec);
+				m_FroxelFog_lightInjectionImage[0]->Invalidate();
 
 				spec.DebugName = "Light Injection Grid 1";
-				m_lightInjectionImage[1] = Ref<VulkanImage2D>::Create(spec);
-				m_lightInjectionImage[1]->Invalidate();
+				m_FroxelFog_lightInjectionImage[1] = Ref<VulkanImage2D>::Create(spec);
+				m_FroxelFog_lightInjectionImage[1]->Invalidate();
 
-				Ref<VulkanShader> shader = Renderer::GetShaderLibrary()->Get("RayMarchingLightInjection");
-				m_RayInjectionPipeline = Ref<VulkanComputePipeline>::Create(shader);
+				Ref<VulkanShader> shader = Renderer::GetShaderLibrary()->Get("FroxelFog_LightInjection");
+				m_FroxelFog_RayInjectionPipeline = Ref<VulkanComputePipeline>::Create(shader);
 
-				m_RayInjectionMaterial[0] = Ref<VulkanMaterial>::Create(shader, "RayMarchingLightInjection 0");
-				m_RayInjectionMaterial[1] = Ref<VulkanMaterial>::Create(shader, "RayMarchingLightInjection 1");
+				m_FroxelFog_RayInjectionMaterial[0] = Ref<VulkanMaterial>::Create(shader, "FroxelFogLightInjection 0");
+				m_FroxelFog_RayInjectionMaterial[1] = Ref<VulkanMaterial>::Create(shader, "FroxelFogLightInjection 1");
 			}
 
 			// 2.Scattering
 			{
 				spec.DebugName = "Scattering Grid";
-				m_ScatteringImage = Ref<VulkanImage2D>::Create(spec);
-				m_ScatteringImage->Invalidate();
+				m_FroxelFog_ScatteringImage = Ref<VulkanImage2D>::Create(spec);
+				m_FroxelFog_ScatteringImage->Invalidate();
 
-				Ref<VulkanShader> shader = Renderer::GetShaderLibrary()->Get("RayMarchingScattering");
-				m_ScatteringPipeline = Ref<VulkanComputePipeline>::Create(shader);
-				m_ScatteringMaterial[0] = Ref<VulkanMaterial>::Create(shader, "RayMarchingScattering 0 ");
-				m_ScatteringMaterial[1] = Ref<VulkanMaterial>::Create(shader, "RayMarchingScattering 1 ");
+				Ref<VulkanShader> shader = Renderer::GetShaderLibrary()->Get("FroxelFog_Scattering");
+				m_FroxelFog_ScatteringPipeline = Ref<VulkanComputePipeline>::Create(shader);
+				m_FroxelFog_ScatteringMaterial[0] = Ref<VulkanMaterial>::Create(shader, "FroxelFogScattering 0 ");
+				m_FroxelFog_ScatteringMaterial[1] = Ref<VulkanMaterial>::Create(shader, "FroxelFogScattering 1 ");
+			}
+
+			//3. Compositing
+			{
+				ImageSpecification imageSpec;
+				imageSpec.Format = ImageFormat::RGBA32F;
+				imageSpec.Layers = 1;
+				imageSpec.Usage = ImageUsage::Storage;
+				imageSpec.DebugName = "FroxelFog_ColorTemp_Image";
+				m_FroxelFog_ColorTempImage = Ref<VulkanImage2D>::Create(imageSpec);
+				m_FroxelFog_ColorTempImage->Invalidate();
+
+				PipelineSpecification pipelineSpecification;
+				pipelineSpecification.Layout = {
+					{ ShaderDataType::Float3, "a_Position" },
+					{ ShaderDataType::Float2, "a_TexCoord" },
+				};
+				pipelineSpecification.BackfaceCulling = false;
+				pipelineSpecification.DepthTest = false;
+				pipelineSpecification.DepthWrite = false;
+				pipelineSpecification.DebugName = "FroxelFog_Compositing";
+				auto shader = Renderer::GetShaderLibrary()->Get("FroxelFog_Compositing");
+				pipelineSpecification.Shader = shader;
+
+				FramebufferSpecification framebufferSpec;
+				framebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
+				framebufferSpec.Attachments = { ImageFormat::RGBA32F };
+				framebufferSpec.ExistingImages[0] = m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
+				framebufferSpec.Attachments.Attachments[0].Blend = false;
+
+				framebufferSpec.DebugName = "FroxelFog_Compositing";
+				framebufferSpec.ClearColorOnLoad = false;
+
+				RenderPassSpecification renderPassSpec;
+				renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
+				renderPassSpec.DebugName = framebufferSpec.DebugName;
+				pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+
+				m_FroxelFog_CompositePipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+				m_FroxelFog_CompositeMaterial = Ref<VulkanMaterial>::Create(shader, "FroxelFog_Compositing");
 			}
 		}
 
@@ -1324,21 +1373,21 @@ namespace X2 {
 
 
 				//Froxel Volume Fog
-				instance->m_RayInjectionMaterial[0]->Set("o_VoxelGrid", instance->m_lightInjectionImage[0]);
-				instance->m_RayInjectionMaterial[0]->Set("u_History", instance->m_lightInjectionImage[1]);
-				instance->m_RayInjectionMaterial[0]->Set("u_ShadowMapTexture", instance->m_ShadowPassPipelines[0]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
+				instance->m_FroxelFog_RayInjectionMaterial[0]->Set("o_VoxelGrid", instance->m_FroxelFog_lightInjectionImage[0]);
+				instance->m_FroxelFog_RayInjectionMaterial[0]->Set("u_History", instance->m_FroxelFog_lightInjectionImage[1]);
+				instance->m_FroxelFog_RayInjectionMaterial[0]->Set("u_ShadowMapTexture", instance->m_ShadowPassPipelines[0]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
 
 
-				instance->m_RayInjectionMaterial[1]->Set("o_VoxelGrid", instance->m_lightInjectionImage[1]);
-				instance->m_RayInjectionMaterial[1]->Set("u_History", instance->m_lightInjectionImage[0]);
-				instance->m_RayInjectionMaterial[1]->Set("u_ShadowMapTexture", instance->m_ShadowPassPipelines[0]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
+				instance->m_FroxelFog_RayInjectionMaterial[1]->Set("o_VoxelGrid", instance->m_FroxelFog_lightInjectionImage[1]);
+				instance->m_FroxelFog_RayInjectionMaterial[1]->Set("u_History", instance->m_FroxelFog_lightInjectionImage[0]);
+				instance->m_FroxelFog_RayInjectionMaterial[1]->Set("u_ShadowMapTexture", instance->m_ShadowPassPipelines[0]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
 
 
-				instance->m_ScatteringMaterial[0]->Set("i_VoxelGrid", instance->m_lightInjectionImage[0]);
-				instance->m_ScatteringMaterial[0]->Set("o_VoxelGrid", instance->m_ScatteringImage);
+				instance->m_FroxelFog_ScatteringMaterial[0]->Set("i_VoxelGrid", instance->m_FroxelFog_lightInjectionImage[0]);
+				instance->m_FroxelFog_ScatteringMaterial[0]->Set("o_VoxelGrid", instance->m_FroxelFog_ScatteringImage);
 
-				instance->m_ScatteringMaterial[1]->Set("i_VoxelGrid", instance->m_lightInjectionImage[1]);
-				instance->m_ScatteringMaterial[1]->Set("o_VoxelGrid", instance->m_ScatteringImage);
+				instance->m_FroxelFog_ScatteringMaterial[1]->Set("i_VoxelGrid", instance->m_FroxelFog_lightInjectionImage[1]);
+				instance->m_FroxelFog_ScatteringMaterial[1]->Set("o_VoxelGrid", instance->m_FroxelFog_ScatteringImage);
 			});
 	}
 
@@ -1481,9 +1530,9 @@ namespace X2 {
 		m_CurTransformMap->clear();
 
 		
-		m_TAAJitterCounter++;
-		if (m_TAAJitterCounter >= 8)
-			m_TAAJitterCounter = 0;
+		m_HaltonJitterCounter++;
+		if (m_HaltonJitterCounter >= 8)
+			m_HaltonJitterCounter = 0;
 
 
 		m_SceneData.SceneCamera = camera;
@@ -1526,6 +1575,10 @@ namespace X2 {
 			m_TAAToneUnMappingPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
 			//m_TAACurColorImage->Resize(m_ViewportWidth, m_ViewportHeight);
 			m_TAAToneMappedPreColorImage->Resize(m_ViewportWidth, m_ViewportHeight);
+
+			// Froxel Fog Composite Resize cb
+			m_FroxelFog_CompositePipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->Resize(m_ViewportWidth, m_ViewportHeight);
+			m_FroxelFog_ColorTempImage->Resize(m_ViewportWidth, m_ViewportHeight);
 
 
 			m_VisibilityTexture->Resize(m_ViewportWidth, m_ViewportHeight);
@@ -1618,17 +1671,17 @@ namespace X2 {
 				uint32_t LOCAL_SIZE_Y = 2u;
 				uint32_t LOCAL_SIZE_Z = 16u;
 
-				m_RayInjectionWorkGroups.x = static_cast<uint32_t>(ceil(float(m_Options.VOXEL_GRID_SIZE_X) / float(LOCAL_SIZE_X)));
-				m_RayInjectionWorkGroups.y = static_cast<uint32_t>(ceil(float(m_Options.VOXEL_GRID_SIZE_Y) / float(LOCAL_SIZE_Y)));
-				m_RayInjectionWorkGroups.z = static_cast<uint32_t>(ceil(float(m_Options.VOXEL_GRID_SIZE_Z) / float(LOCAL_SIZE_Z)));
+				m_FroxelFog_RayInjectionWorkGroups.x = static_cast<uint32_t>(ceil(float(m_Options.VOXEL_GRID_SIZE_X) / float(LOCAL_SIZE_X)));
+				m_FroxelFog_RayInjectionWorkGroups.y = static_cast<uint32_t>(ceil(float(m_Options.VOXEL_GRID_SIZE_Y) / float(LOCAL_SIZE_Y)));
+				m_FroxelFog_RayInjectionWorkGroups.z = static_cast<uint32_t>(ceil(float(m_Options.VOXEL_GRID_SIZE_Z) / float(LOCAL_SIZE_Z)));
 
 				//2.Scattering
 				LOCAL_SIZE_X = 64u;
 				LOCAL_SIZE_Y = 2u;
 
-				m_ScatteringWorkGroups.x = static_cast<uint32_t>(ceil(float(m_Options.VOXEL_GRID_SIZE_X) / float(LOCAL_SIZE_X)));
-				m_ScatteringWorkGroups.y = static_cast<uint32_t>(ceil(float(m_Options.VOXEL_GRID_SIZE_Y) / float(LOCAL_SIZE_Y)));
-				m_ScatteringWorkGroups.z = 1;
+				m_FroxelFog_ScatteringWorkGroups.x = static_cast<uint32_t>(ceil(float(m_Options.VOXEL_GRID_SIZE_X) / float(LOCAL_SIZE_X)));
+				m_FroxelFog_ScatteringWorkGroups.y = static_cast<uint32_t>(ceil(float(m_Options.VOXEL_GRID_SIZE_Y) / float(LOCAL_SIZE_Y)));
+				m_FroxelFog_ScatteringWorkGroups.z = 1;
 			}
 
 			//SSR
@@ -1669,7 +1722,8 @@ namespace X2 {
 		UBSpotLights& spotLightData = SpotLightUB;
 		UBSpotShadowData& spotShadowData = SpotShadowDataUB;
 		UBTAAData& taaData = TAADataUB;
-		UBRayMarchingData& rayMarchingData = RayMarchingDataUB;
+		UBFroxelFogData& froxelFogData = FroxelFogDataUB;
+		UBFogVolumesData& fogVolumesData = FogVolumes;
 		Ref<SceneRenderer> instance = this;
 
 		
@@ -1820,12 +1874,12 @@ namespace X2 {
 
 		Renderer::SetSceneEnvironment(this, m_SceneData.SceneEnvironment,
 			m_ShadowPassPipelines[0]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage(),
-			m_SpotShadowPassPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage(),
-			m_ScatteringImage);
+			m_SpotShadowPassPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage()
+		);
 
 
 		//TAA
-		taaData.ScreenSpaceJitter = (m_TAAHaltonSequence[m_TAAJitterCounter] - 0.5f) * glm::vec2(m_InvViewportWidth, m_InvViewportHeight);
+		taaData.ScreenSpaceJitter = (m_TAAHaltonSequence[m_HaltonJitterCounter] - 0.5f) * glm::vec2(m_InvViewportWidth, m_InvViewportHeight);
 
 		glm::mat4 jitterMatrix(sceneCamera.Camera.GetProjectionMatrix());
 		jitterMatrix[2][0] += taaData.ScreenSpaceJitter.x * 2;
@@ -1843,9 +1897,9 @@ namespace X2 {
 			});
 
 
-		//RayMarching
-		rayMarchingData.bias_near_far_pow = glm::vec4(0.002f , m_SceneData.SceneCamera.Near, m_SceneData.SceneCamera.Far, 1.0f);
-		rayMarchingData.aniso_density_scattering_absorption = glm::vec4(m_Options.rayMarchingAnisotropy, m_Options.rayMarchingDensity, m_Options.VolumeLightMul, 0.0f);
+		//FroxelFog
+		froxelFogData.bias_near_far_pow = glm::vec4(0.002f , m_SceneData.SceneCamera.Near, m_SceneData.SceneCamera.Far, 1.0f);
+		froxelFogData.aniso_density_multipler_absorption = glm::vec4(m_Options.froxelFogAnisotropy, m_Options.froxelFogDensity, m_Options.froxelFogLightMul, 0.0f);
 
 		glm::vec2 frustumUVs[4] = {{0,0}, {1,0}, {0,1}, {1,1}};
 		for (uint32_t i = 0; i < 4; ++i)
@@ -1856,19 +1910,30 @@ namespace X2 {
 			glm::vec4 WorldCornerPos = cameraData.InverseView * glm::vec4(ViewCornerPos, 1.0);
 			WorldCornerPos /= WorldCornerPos.w;
 			
-			rayMarchingData.frustumRays[i] = WorldCornerPos - glm::vec4(cameraPosition, 1.0);
+			froxelFogData.frustumRays[i] = WorldCornerPos - glm::vec4(cameraPosition, 1.0);
 		}
 
-		const auto fogVolumes = m_Scene->m_FogVolumes;
-		rayMarchingData.FogVolumeCount = fogVolumes.size();
-		std::memcpy(rayMarchingData.boxFogVolumes, fogVolumes.data(), (uint32_t)(fogVolumes.size() * sizeof FogVolume)); //(Karim) Do we really have to copy that?
+		froxelFogData.fogParams = { m_Options.froxelFogDensity , 0.0f, 0.0f, 0.0f };
+		froxelFogData.enableJitter = m_Options.froxelFogEnableJitter;
+		froxelFogData.enableTemperalAccumulating = m_Options.froxelFogEnableTemperalAccumulating;
 
-		Renderer::Submit([instance, rayMarchingData]() mutable
+		Renderer::Submit([instance, froxelFogData]() mutable
 			{
 				const uint32_t bufferIndex = Renderer::RT_GetCurrentFrameIndex();
-				instance->m_UniformBufferSet->Get(Binding::RayMarchingData, 0, bufferIndex)->RT_SetData(&rayMarchingData, sizeof(rayMarchingData));
+				instance->m_UniformBufferSet->Get(Binding::FroxelFogData, 0, bufferIndex)->RT_SetData(&froxelFogData, sizeof(froxelFogData));
 			});
 
+
+		//Fog Volumes
+		const auto fogVolumes = m_Scene->m_FogVolumes;
+		fogVolumesData.FogVolumeCount = int(fogVolumes.size());
+		std::memcpy(fogVolumesData.boxFogVolumes, fogVolumes.data(), (uint32_t)(fogVolumes.size() * sizeof FogVolume)); //(Karim) Do we really have to copy that?
+
+		Renderer::Submit([instance, fogVolumesData]() mutable
+			{
+				const uint32_t bufferIndex = Renderer::RT_GetCurrentFrameIndex();
+				instance->m_UniformBufferSet->Get(Binding::FogVolumesData, 0, bufferIndex)->RT_SetData(&fogVolumesData, 16ull + sizeof(FogVolume) * fogVolumesData.FogVolumeCount);
+			});
 	}
 
 	void SceneRenderer::EndScene()
@@ -2624,20 +2689,77 @@ namespace X2 {
 		m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.LightCullingPassQuery);
 	}
 
-	void SceneRenderer::RayMarchingPass()
+	void SceneRenderer::FroxelFogPass()
 	{
 		static int FroxelIndex = 0;
 
+		std::default_random_engine e;
+		std::uniform_int_distribution<int> u(0, 7);
+		e.seed(time(0)/2);
+
 		int swapIndex = FroxelIndex % 2;
 
-		m_RayInjectionMaterial[swapIndex]->Set("u_BlueNoise", m_BlueNoiseTextures[FroxelIndex]->GetImage());
+		int randIndex;
+		if (m_Options.froxelFogFastJitter)
+			randIndex = FroxelIndex;
+		else
+			randIndex = u(e);
+		m_FroxelFog_RayInjectionMaterial[swapIndex]->Set("u_BlueNoise", m_BlueNoiseTextures[randIndex]->GetImage()); //random noise index;
 
 
-		m_GPUTimeQueries.RayMarchingQuery = m_CommandBuffer->BeginTimestampQuery();
-		Renderer::DispatchComputeShader(m_CommandBuffer, m_RayInjectionPipeline, m_UniformBufferSet, nullptr, m_RayInjectionMaterial[swapIndex], m_RayInjectionWorkGroups);
+		m_GPUTimeQueries.FroxelFogQuery = m_CommandBuffer->BeginTimestampQuery();
+		Renderer::DispatchComputeShader(m_CommandBuffer, m_FroxelFog_RayInjectionPipeline, m_UniformBufferSet, nullptr, m_FroxelFog_RayInjectionMaterial[swapIndex], m_FroxelFog_RayInjectionWorkGroups);
 
-		Renderer::DispatchComputeShader(m_CommandBuffer, m_ScatteringPipeline, m_UniformBufferSet, nullptr, m_ScatteringMaterial[swapIndex], m_ScatteringWorkGroups);
-		m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.RayMarchingQuery);
+		Renderer::DispatchComputeShader(m_CommandBuffer, m_FroxelFog_ScatteringPipeline, m_UniformBufferSet, nullptr, m_FroxelFog_ScatteringMaterial[swapIndex], m_FroxelFog_ScatteringWorkGroups);
+		
+		
+		auto instance = this;
+
+
+		Renderer::Submit([instance]() mutable
+			{
+				auto inputImage = instance->m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
+
+				Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
+					VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+					VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
+
+
+				VkImageCopy copyRegion{};
+				copyRegion.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+				copyRegion.srcOffset = { 0, 0, 0 }; // 从源图像的哪个位置开始复制
+				copyRegion.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+				copyRegion.dstOffset = { 0, 0, 0 }; // 复制到目标图像的哪个位置
+				copyRegion.extent = { inputImage->GetWidth(), inputImage->GetHeight(), 1 }; // 复制的区域的大小
+
+				vkCmdCopyImage(
+					instance->m_CommandBuffer->GetActiveCommandBuffer(),
+					inputImage->GetImageInfo().Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+					instance->m_FroxelFog_ColorTempImage->GetImageInfo().Image, VK_IMAGE_LAYOUT_GENERAL,
+					1, &copyRegion
+				);
+
+
+				Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
+					VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+					VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+					VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+					{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
+
+			});
+
+		m_FroxelFog_CompositeMaterial->Set("u_color", m_FroxelFog_ColorTempImage);
+		m_FroxelFog_CompositeMaterial->Set("u_depth", m_PreDepthPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
+		m_FroxelFog_CompositeMaterial->Set("u_FrovelGrid", m_FroxelFog_ScatteringImage);
+
+		Renderer::BeginRenderPass(m_CommandBuffer, m_FroxelFog_CompositePipeline->GetSpecification().RenderPass);
+		Renderer::SubmitFullscreenQuad(m_CommandBuffer, m_FroxelFog_CompositePipeline, m_UniformBufferSet, m_FroxelFog_CompositeMaterial);
+		Renderer::EndRenderPass(m_CommandBuffer);
+
+		
+		m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.FroxelFogQuery);
 
 
 		if (++ FroxelIndex == 8)
@@ -3558,53 +3680,7 @@ namespace X2 {
 		{
 			//Cpoy Cuurent Color Image
 			Ref<SceneRenderer> instance = this;
-			//Renderer::Submit([instance]() mutable
-			//	{
-			//		auto inputImage = instance->m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
-
-			//		Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
-			//			VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT,
-			//			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			//			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-			//			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
-
-			//		Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), instance->m_TAACurColorImage->GetImageInfo().Image,
-			//			 VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
-			//			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			//			VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-			//			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
-
-
-			//		VkImageCopy copyRegion{};
-			//		copyRegion.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-			//		copyRegion.srcOffset = { 0, 0, 0 }; // 从源图像的哪个位置开始复制
-			//		copyRegion.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-			//		copyRegion.dstOffset = { 0, 0, 0 }; // 复制到目标图像的哪个位置
-			//		copyRegion.extent = { inputImage->GetWidth(), inputImage->GetHeight(), 1 }; // 复制的区域的大小
-
-			//		vkCmdCopyImage(
-			//			instance->m_CommandBuffer->GetActiveCommandBuffer(),
-			//			inputImage->GetImageInfo().Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-			//			instance->m_TAACurColorImage->GetImageInfo().Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			//			1, &copyRegion
-			//		);
-
-
-			//		Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
-			//			VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT,
-			//			VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			//			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-			//			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
-
-			//		Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), instance->m_TAACurColorImage->GetImageInfo().Image,
-			//			VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-			//			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-			//			VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-			//			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
-
-
-
-			//	});
+			
 
 			//Tone Mapping Pass
 			m_TAAToneMappingMaterial->Set("u_color", m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>());
@@ -3614,17 +3690,6 @@ namespace X2 {
 			Renderer::SubmitFullscreenQuad(m_CommandBuffer, m_TAAToneMappingPipeline, m_UniformBufferSet, m_TAAToneMappingMaterial);
 			Renderer::EndRenderPass(m_CommandBuffer);
 
-
-			Renderer::Submit([instance]() mutable
-				{
-					auto inputImage = instance->m_TAAToneMappingPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
-
-					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
-						VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-						VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-						VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
-				});
 
 			//TAA Pass
 			m_TAAMaterial->Set("u_color", m_TAAToneMappingPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>());
@@ -3647,21 +3712,19 @@ namespace X2 {
 	
 
 
+			//Renderer::CopyImage(m_CommandBuffer,
+			//	m_TAAPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>(),
+			//	m_TAAToneMappedPreColorImage);
+
+			//Copy to Prev Image
 			Renderer::Submit([instance]() mutable
 				{
 					auto inputImage = instance->m_TAAPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
 
-
 					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
 						VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
-						VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+						VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
 						VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
-						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
-
-					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), instance->m_TAAToneMappedPreColorImage->GetImageInfo().Image,
-						VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
-						VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-						VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
 						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
 
 
@@ -3675,21 +3738,15 @@ namespace X2 {
 					vkCmdCopyImage(
 						instance->m_CommandBuffer->GetActiveCommandBuffer(),
 						inputImage->GetImageInfo().Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-						instance->m_TAAToneMappedPreColorImage->GetImageInfo().Image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+						instance->m_TAAToneMappedPreColorImage->GetImageInfo().Image, VK_IMAGE_LAYOUT_GENERAL,
 						1, &copyRegion
 					);
 
 
 					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
-						VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_SHADER_READ_BIT,
-						VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-						VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
-
-					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), instance->m_TAAToneMappedPreColorImage->GetImageInfo().Image,
-						VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-						VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-						VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+						VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+						VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+						VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
 						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
 
 				});
@@ -3724,20 +3781,6 @@ namespace X2 {
 		}
 
 		{
-
-			Ref<SceneRenderer> instance = this;
-			Renderer::Submit([instance]() mutable
-				{
-					auto inputImage = instance->m_SMAABlendWeightPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
-
-					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
-						VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
-						VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-						VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-						{ VK_IMAGE_ASPECT_COLOR_BIT, 0, inputImage->GetSpecification().Mips, 0, 1 });
-				});
-			
-
 			// Second Pass BlendWeight 
 			m_SMAABlendWeightMaterial->Set("colorTex", m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage(0));
 			m_SMAABlendWeightMaterial->Set("edgesTex", m_SMAAEdgeDetectionPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage());
@@ -3752,7 +3795,6 @@ namespace X2 {
 
 		
 		}
-
 
 		
 		{
@@ -3788,7 +3830,6 @@ namespace X2 {
 			HZBCompute();
 			PreIntegration();
 			LightCullingPass();
-			RayMarchingPass();
 			GeometryPass();
 
 			// HBAO
@@ -3810,6 +3851,10 @@ namespace X2 {
 
 			if (m_Options.EnableGTAO || m_Options.EnableHBAO)
 				AOComposite();
+
+			FroxelFogPass();
+
+
 
 			PreConvolutionCompute();
 

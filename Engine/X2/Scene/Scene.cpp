@@ -615,16 +615,15 @@ namespace X2 {
 			{
 				auto fogVolumes = m_Registry.group<FogVolumeComponent>(entt::get<TransformComponent>);
 				m_FogVolumes.resize(fogVolumes.size());
-				uint32_t pointLightIndex = 0;
+				uint32_t fogIndex = 0;
 				for (auto entity : fogVolumes)
 				{
 					auto [transformComponent, fogVolumeComponent] = fogVolumes.get<TransformComponent, FogVolumeComponent>(entity);
 					auto transform = GetWorldSpaceTransform(Entity(entity, this));
-					m_FogVolumes[pointLightIndex++] = {
+					m_FogVolumes[fogIndex++] = {
 						transform.Translation,
-						transform.Scale,
-						transform.GetTransform(),
-						glm::inverse(transform.GetTransform()),
+						fogVolumeComponent.fogDensity,
+						glm::inverse(transform.GetTransform())
 					};
 
 				}

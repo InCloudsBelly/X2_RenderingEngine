@@ -43,7 +43,6 @@ namespace X2 {
 		virtual void SubmitFullscreenQuadWithOverrides(Ref<VulkanRenderCommandBuffer> renderCommandBuffer, Ref<VulkanPipeline> pipeline, Ref<VulkanUniformBufferSet> uniformBufferSet, Ref<VulkanMaterial> material, Buffer vertexShaderOverrides, Buffer fragmentShaderOverrides) ;
 
 		virtual void SetSceneEnvironment(Ref<SceneRenderer> sceneRenderer, Ref<Environment> environment, Ref<VulkanImage2D> shadow, Ref<VulkanImage2D> spotShadow) ;
-		virtual void SetSceneEnvironment(Ref<SceneRenderer> sceneRenderer, Ref<Environment> environment, Ref<VulkanImage2D> shadow, Ref<VulkanImage2D> spotShadow, Ref<VulkanImage2D> rayMarchingGrid);
 
 		virtual Ref<Environment> CreateEnvironmentMap(const std::string& filepath) ;
 		virtual Ref<VulkanTextureCube> CreatePreethamSky(float turbidity, float azimuth, float inclination) ;

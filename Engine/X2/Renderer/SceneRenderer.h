@@ -64,17 +64,20 @@ namespace X2
 		//TAA
 		float TAAFeedback = 0.1f;
 
-		// Ray Marching
+		// Froxel Volume Fog & light
 		uint32_t VOXEL_GRID_SIZE_X = 160;
 		uint32_t VOXEL_GRID_SIZE_Y = 90;
 		uint32_t VOXEL_GRID_SIZE_Z = 128;
 
 		uint32_t NUM_BLUE_NOISE_TEXTURES = 8;
+	
+		float froxelFogAnisotropy = - 0.3f;
+		float froxelFogDensity = 0.5f;
+		float froxelFogLightMul = 2.5;
 
-		float rayMarchingAnisotropy = - 0.3f;
-		float rayMarchingDensity = 5.0f;
-		float VolumeLightMul = 2.5; 
-
+		bool froxelFogEnableJitter = true;
+		bool froxelFogEnableTemperalAccumulating = true;
+		bool froxelFogFastJitter = false;
 
 
 	};
@@ -298,7 +301,7 @@ namespace X2
 		void HZBCompute();
 		void PreIntegration();
 		void LightCullingPass();
-		void RayMarchingPass();
+		void FroxelFogPass();
 		void GeometryPass();
 		void PreConvolutionCompute();
 		void JumpFloodPass();
@@ -489,19 +492,30 @@ namespace X2
 
 		} TAADataUB;
 
-		struct UBRayMarchingData
+		struct UBFroxelFogData
 		{
 			glm::vec4 bias_near_far_pow;
-			glm::vec4 aniso_density_scattering_absorption;
+			glm::vec4 aniso_density_multipler_absorption;
 			glm::vec4 frustumRays[4];
 
 			glm::vec4 windDir_Speed{ 0.0f };
 			glm::vec4 fogParams{0.0f}; //constant , Height Fog Exponent, Height Fog Offset, Height Fog Amount
 
+			bool enableJitter = true;
+			char Padding0[3]{ 0, 0, 0 };
+			bool enableTemperalAccumulating = true;
+			char Padding1[3]{ 0, 0, 0 };
+
+
+		} FroxelFogDataUB;
+
+		struct UBFogVolumesData {
+
 			uint32_t FogVolumeCount = { 0 };
+			glm::vec3 Padding{};
 			FogVolume boxFogVolumes[100];
 
-		} RayMarchingDataUB;
+		} FogVolumes;
 
 		// GTAO
 		Ref<VulkanImage2D> m_GTAOOutputImage;
@@ -586,7 +600,7 @@ namespace X2
 		Ref<VulkanImage2D> m_TAAToneMappedPreColorImage;
 
 		Ref<VulkanImage2D> m_TAAVelocityImage = nullptr;
-		Ref<VulkanPipeline> m_TAAPipeline;
+		Ref<VulkanPipeline> m_TAAPipeline;//current & history;
 		Ref<VulkanMaterial> m_TAAMaterial;
 		Ref<VulkanPipeline> m_TAAToneMappingPipeline;
 		Ref<VulkanMaterial> m_TAAToneMappingMaterial;
@@ -594,7 +608,7 @@ namespace X2
 		Ref<VulkanMaterial> m_TAAToneUnMappingMaterial;
 
 
-		uint32_t m_TAAJitterCounter = 0;
+		uint32_t m_HaltonJitterCounter = 0;
 		glm::vec2 m_TAAHaltonSequence[8] =
 		{
 			 glm::vec2(0.5f, 1.0f / 3),
@@ -608,21 +622,20 @@ namespace X2
 		};
 
 		//Volume Fog & Light
-		Ref<VulkanComputePipeline> m_RayInjectionPipeline;
-		Ref<VulkanMaterial> m_RayInjectionMaterial[2];
-		glm::uvec3 m_RayInjectionWorkGroups{ 1 };
-		Ref<VulkanImage2D> m_lightInjectionImage[2];//history, current
+		Ref<VulkanComputePipeline> m_FroxelFog_RayInjectionPipeline;
+		Ref<VulkanMaterial> m_FroxelFog_RayInjectionMaterial[2];
+		glm::uvec3 m_FroxelFog_RayInjectionWorkGroups{ 1 };
+		Ref<VulkanImage2D> m_FroxelFog_lightInjectionImage[2];//history, current
 		std::vector<Ref<VulkanTexture2D>> m_BlueNoiseTextures;
-
-
-		Ref<VulkanComputePipeline> m_ScatteringPipeline;
-		Ref<VulkanMaterial> m_ScatteringMaterial[2];
-		glm::uvec3 m_ScatteringWorkGroups{ 1 };
-		Ref<VulkanImage2D> m_ScatteringImage;
-
-
-
-
+		//Scattering
+		Ref<VulkanComputePipeline> m_FroxelFog_ScatteringPipeline;
+		Ref<VulkanMaterial> m_FroxelFog_ScatteringMaterial[2];
+		glm::uvec3 m_FroxelFog_ScatteringWorkGroups{ 1 };
+		Ref<VulkanImage2D> m_FroxelFog_ScatteringImage;
+		//composite
+		Ref<VulkanPipeline> m_FroxelFog_CompositePipeline;
+		Ref<VulkanMaterial> m_FroxelFog_CompositeMaterial;
+		Ref<VulkanImage2D> m_FroxelFog_ColorTempImage;
 
 
 
@@ -816,7 +829,7 @@ namespace X2
 			uint32_t TAAQuery = -1;
 			uint32_t JumpFloodPassQuery = -1;
 			uint32_t CompositePassQuery = -1;
-			uint32_t RayMarchingQuery = -1;
+			uint32_t FroxelFogQuery = -1;
 
 		} m_GPUTimeQueries;
 

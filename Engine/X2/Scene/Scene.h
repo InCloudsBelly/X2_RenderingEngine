@@ -69,10 +69,9 @@ namespace X2 {
 
 	struct FogVolume
 	{
-		glm::vec3 Position = { 0.0f, 0.0f, 0.0f };
-		glm::vec3 extent{ 1.0f };
-		glm::mat4 localToWorld = glm::mat4(1.0f);
-		glm::mat4 worldToLocal = glm::mat4(1.0f);
+		glm::vec3 position;
+		float density;
+		glm::mat4 worldToLocal = glm::mat4(1.0f); // Only Need this to calculate if worldPos is in VolumeFog;
 	};
 
 	struct LightEnvironment
