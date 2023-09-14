@@ -45,8 +45,8 @@ namespace X2
 		submesh.Transform = transform;
 		m_Submeshes.push_back(submesh);
 
-		m_VertexBuffer = Ref<VulkanVertexBuffer>::Create(m_Vertices.data(), (uint32_t)(m_Vertices.size() * sizeof(Vertex)));
-		m_IndexBuffer = Ref<VulkanIndexBuffer>::Create(m_Indices.data(), (uint32_t)(m_Indices.size() * sizeof(Index)));
+		m_VertexBuffer = CreateRef<VulkanVertexBuffer>(m_Vertices.data(), (uint32_t)(m_Vertices.size() * sizeof(Vertex)));
+		m_IndexBuffer = CreateRef<VulkanIndexBuffer>(m_Indices.data(), (uint32_t)(m_Indices.size() * sizeof(Index)));
 	}
 
 	MeshSource::MeshSource(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const std::vector<Submesh>& submeshes)
@@ -55,8 +55,8 @@ namespace X2
 		// Generate a new asset handle
 		Handle = {};
 
-		m_VertexBuffer = Ref<VulkanVertexBuffer>::Create(m_Vertices.data(), (uint32_t)(m_Vertices.size() * sizeof(Vertex)));
-		m_IndexBuffer = Ref<VulkanIndexBuffer>::Create(m_Indices.data(), (uint32_t)(m_Indices.size() * sizeof(Index)));
+		m_VertexBuffer = CreateRef<VulkanVertexBuffer>(m_Vertices.data(), (uint32_t)(m_Vertices.size() * sizeof(Vertex)));
+		m_IndexBuffer = CreateRef<VulkanIndexBuffer>(m_Indices.data(), (uint32_t)(m_Indices.size() * sizeof(Index)));
 
 		// TODO: generate bounding box for submeshes, etc.
 	}
@@ -103,7 +103,7 @@ namespace X2
 		SetSubmeshes({});
 
 		const auto& meshMaterials = meshSource->GetMaterials();
-		m_Materials = Ref<MaterialTable>::Create((uint32_t)meshMaterials.size());
+		m_Materials = CreateRef<MaterialTable>((uint32_t)meshMaterials.size());
 		for (size_t i = 0; i < meshMaterials.size(); i++)
 			m_Materials->SetMaterial((uint32_t)i, AssetManager::CreateMemoryOnlyAsset<MaterialAsset>(meshMaterials[i]));
 	}
@@ -117,7 +117,7 @@ namespace X2
 		SetSubmeshes(submeshes);
 
 		const auto& meshMaterials = meshSource->GetMaterials();
-		m_Materials = Ref<MaterialTable>::Create((uint32_t)meshMaterials.size());
+		m_Materials = CreateRef<MaterialTable>((uint32_t)meshMaterials.size());
 		for (size_t i = 0; i < meshMaterials.size(); i++)
 			m_Materials->SetMaterial((uint32_t)i, AssetManager::CreateMemoryOnlyAsset<MaterialAsset>(meshMaterials[i]));
 	}
@@ -161,7 +161,7 @@ namespace X2
 
 		const auto& meshMaterials = meshSource->GetMaterials();
 		uint32_t numMaterials = static_cast<uint32_t>(meshMaterials.size());
-		m_Materials = Ref<MaterialTable>::Create(numMaterials);
+		m_Materials = CreateRef<MaterialTable>(numMaterials);
 		for (uint32_t i = 0; i < numMaterials; i++)
 			m_Materials->SetMaterial(i, AssetManager::CreateMemoryOnlyAsset<MaterialAsset>(meshMaterials[i]));
 	}
@@ -176,7 +176,7 @@ namespace X2
 
 		const auto& meshMaterials = meshSource->GetMaterials();
 		uint32_t numMaterials = static_cast<uint32_t>(meshMaterials.size());
-		m_Materials = Ref<MaterialTable>::Create(numMaterials);
+		m_Materials = CreateRef<MaterialTable>(numMaterials);
 		for (uint32_t i = 0; i < numMaterials; i++)
 			m_Materials->SetMaterial(i, AssetManager::CreateMemoryOnlyAsset<MaterialAsset>(meshMaterials[i]));
 	}

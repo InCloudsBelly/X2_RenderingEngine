@@ -79,6 +79,10 @@ namespace X2
 		bool froxelFogEnableTemperalAccumulating = true;
 		bool froxelFogFastJitter = false;
 
+		float heightFogExponent = 0.0f;
+		float heightFogOffset = 0.0f ;
+		float heightFogAmount = 0.0f;
+
 
 	};
 
@@ -143,7 +147,7 @@ namespace X2
 		Tiering::Renderer::RendererTieringSettings Tiering;
 	};
 
-	class SceneRenderer : public RefCounted
+	class SceneRenderer 
 	{
 	public:
 		struct Statistics
@@ -167,7 +171,7 @@ namespace X2
 		// Should only be called at initialization.
 		void InitOptions();
 
-		void SetScene(Ref<Scene> scene);
+		void SetScene(Scene* scene);
 
 		void SetViewportSize(uint32_t width, uint32_t height);
 
@@ -327,7 +331,7 @@ namespace X2
 
 		void UpdateStatistics();
 	private:
-		Ref<Scene> m_Scene;
+		Scene* m_Scene;
 		SceneRendererSpecification m_Specification;
 		Ref<VulkanRenderCommandBuffer> m_CommandBuffer;
 
@@ -521,7 +525,7 @@ namespace X2
 		Ref<VulkanImage2D> m_GTAOOutputImage;
 		Ref<VulkanImage2D> m_GTAODenoiseImage;
 		// Points to m_GTAOOutputImage or m_GTAODenoiseImage!
-		Ref<VulkanImage2D> m_GTAOFinalImage; //TODO: WeakRef!
+		Ref<VulkanImage2D> m_GTAOFinalImage; //TODO: Weak!
 		Ref<VulkanImage2D> m_GTAOEdgesOutputImage;
 		Ref<VulkanImage2D> m_GTAODebugOutputImage;
 		Ref<VulkanComputePipeline> m_GTAOPipeline;

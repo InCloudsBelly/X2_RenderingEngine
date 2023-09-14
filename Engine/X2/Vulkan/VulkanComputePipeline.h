@@ -10,10 +10,11 @@
 
 namespace X2 {
 
-	class VulkanComputePipeline : public RefCounted
+	class VulkanComputePipeline 
 	{
 	public:
 		VulkanComputePipeline(Ref<VulkanShader> computeShader);
+		~VulkanComputePipeline();
 
 		void Execute(VkDescriptorSet* descriptorSets, uint32_t descriptorSetCount, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
 
@@ -22,12 +23,14 @@ namespace X2 {
 		void Dispatch(VkDescriptorSet descriptorSet, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) const;
 		virtual void End();
 
-		virtual Ref<VulkanShader> GetShader() { return m_Shader; }
+		virtual VulkanShader* GetShader() { return m_Shader.get(); }
 
 		VkCommandBuffer GetActiveCommandBuffer() { return m_ActiveComputeCommandBuffer; }
 
 		void SetPushConstants(const void* data, uint32_t size) const;
 		void CreatePipeline();
+
+		static void ReleaseComputeFence();
 	private:
 		void RT_CreatePipeline();
 	private:

@@ -13,7 +13,7 @@ namespace X2 {
 	static const char* s_ShaderRegistryPath = "Resources/Cache/Shader/ShaderRegistry.cache";
 
 
-	VkShaderStageFlagBits VulkanShaderCache::HasChanged(Ref<VulkanShaderCompiler> shader)
+	VkShaderStageFlagBits VulkanShaderCache::HasChanged(VulkanShaderCompiler* shader)
 	{
 		std::map<std::string, std::map<VkShaderStageFlagBits, StageData>> shaderCache;
 

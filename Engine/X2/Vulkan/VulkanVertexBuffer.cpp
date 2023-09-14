@@ -13,7 +13,7 @@ namespace X2 {
 	{
 		m_LocalData.Allocate(size);
 
-		Ref<VulkanVertexBuffer> instance = this;
+		VulkanVertexBuffer* instance = this;
 		Renderer::Submit([instance]() mutable
 			{
 				auto device = VulkanContext::GetCurrentDevice();
@@ -33,7 +33,7 @@ namespace X2 {
 	{
 		m_LocalData = Buffer::Copy(data, size);
 
-		Ref<VulkanVertexBuffer> instance = this;
+		VulkanVertexBuffer* instance = this;
 		Renderer::Submit([instance]() mutable
 			{
 				auto device = VulkanContext::GetCurrentDevice();
@@ -110,7 +110,7 @@ namespace X2 {
 
 		X2_CORE_ASSERT(size <= m_LocalData.Size);
 		memcpy(m_LocalData.Data, (uint8_t*)buffer + offset, size);;
-		Ref<VulkanVertexBuffer> instance = this;
+		VulkanVertexBuffer* instance = this;
 		Renderer::Submit([instance, size, offset]() mutable
 			{
 				instance->RT_SetData(instance->m_LocalData.Data, size, offset);

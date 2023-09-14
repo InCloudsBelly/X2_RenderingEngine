@@ -16,11 +16,11 @@ namespace X2 {
 			uint8_t Mips;
 		};
 	public:
-		static uint64_t SerializeToFile(Ref<VulkanTextureCube> textureCube, FileStreamWriter& stream);
+		static uint64_t SerializeToFile(VulkanTextureCube* textureCube, FileStreamWriter& stream);
 		static Ref<VulkanTextureCube> DeserializeTextureCube(FileStreamReader& stream);
 
 		static uint64_t SerializeTexture2DToFile(const std::filesystem::path& filepath, FileStreamWriter& stream);
-		static uint64_t SerializeTexture2DToFile(Ref<VulkanTexture2D> texture, FileStreamWriter& stream);
+		static uint64_t SerializeTexture2DToFile(VulkanTexture2D* texture, FileStreamWriter& stream);
 		static uint64_t SerializeTexture2DToFile(Buffer imageBuffer, const Texture2DMetadata& metadata, FileStreamWriter& stream);
 		static Ref<VulkanTexture2D> DeserializeTexture2D(FileStreamReader& stream);
 	};

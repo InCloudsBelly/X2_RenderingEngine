@@ -64,19 +64,19 @@ namespace X2 {
 			}
 
 			panelMap[id] = panelData;
-			return panelData.Panel.As<TPanel>();
+			return std::dynamic_pointer_cast<TPanel>(panelData.Panel);
 		}
 
 		template<typename TPanel, typename... TArgs>
 		Ref<TPanel> AddPanel(PanelCategory category, const char* strID, bool isOpenByDefault, TArgs&&... args)
 		{
-			return AddPanel<TPanel>(category, PanelData{ strID, strID, Ref<TPanel>::Create(std::forward<TArgs>(args)...), isOpenByDefault });
+			return AddPanel<TPanel>(category, PanelData{ strID, strID, CreateRef<TPanel>(std::forward<TArgs>(args)...), isOpenByDefault });
 		}
 
 		template<typename TPanel, typename... TArgs>
 		Ref<TPanel> AddPanel(PanelCategory category, const char* strID, const char* displayName, bool isOpenByDefault, TArgs&&... args)
 		{
-			return AddPanel<TPanel>(category, PanelData{ strID, displayName, Ref<TPanel>::Create(std::forward<TArgs>(args)...), isOpenByDefault });
+			return AddPanel<TPanel>(category, PanelData{ strID, displayName, CreateRef<TPanel>(std::forward<TArgs>(args)...), isOpenByDefault });
 		}
 
 		template<typename TPanel>

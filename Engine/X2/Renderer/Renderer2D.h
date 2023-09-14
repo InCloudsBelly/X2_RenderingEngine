@@ -20,7 +20,7 @@ namespace X2 {
 		bool SwapChainTarget = false;
 	};
 
-	class Renderer2D : public RefCounted
+	class Renderer2D 
 	{
 	public:
 		Renderer2D(const Renderer2DSpecification& specification = Renderer2DSpecification());
@@ -65,7 +65,7 @@ namespace X2 {
 
 		void DrawLine(const glm::vec3& p0, const glm::vec3& p1, const glm::vec4& color = glm::vec4(1.0f));
 
-		void DrawAABB(const AABB& aabb, const glm::mat4& transform, const glm::vec4& color = glm::vec4(1.0f));
+		void DrawAABB(const Volume::AABB& aabb, const glm::mat4& transform, const glm::vec4& color = glm::vec4(1.0f));
 		void DrawAABB(Ref<Mesh> mesh, const glm::mat4& transform, const glm::vec4& color = glm::vec4(1.0f));
 
 		void DrawString(const std::string& string, const glm::vec3& position, float maxWidth, const glm::vec4& color = glm::vec4(1.0f));

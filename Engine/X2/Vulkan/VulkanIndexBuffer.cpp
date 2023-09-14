@@ -17,7 +17,7 @@ namespace X2 {
 	{
 		m_LocalData = Buffer::Copy(data, size);
 
-		Ref<VulkanIndexBuffer> instance = this;
+		VulkanIndexBuffer* instance = this;
 		Renderer::Submit([instance]() mutable
 			{
 				auto device = VulkanContext::GetCurrentDevice();

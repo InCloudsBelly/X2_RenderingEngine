@@ -38,7 +38,7 @@
 
 namespace X2 {
 
-	SceneSerializer::SceneSerializer(const Ref<Scene>& scene)
+	SceneSerializer::SceneSerializer(Scene* scene)
 		: m_Scene(scene)
 	{
 	}
@@ -768,7 +768,7 @@ namespace X2 {
 		/*auto entities = m_Scene->GetAllEntitiesWith<AnimationComponent>();
 		for (auto e : entities)
 		{
-			Entity entity = { e, m_Scene.Raw() };
+			Entity entity = { e, m_Scene.get() };
 			auto& anim = entity.GetComponent<AnimationComponent>();
 			if (anim.AnimationData->m_IsAnimationPlaying)
 				anim.AnimationData->m_AnimationTime = 0.0f;
@@ -790,7 +790,7 @@ namespace X2 {
 
 		// Serialize sorted entities
 		for (auto [id, entity] : sortedEntityMap)
-			SerializeEntity(out, { entity, m_Scene.Raw() });
+			SerializeEntity(out, { entity, m_Scene });
 
 		out << YAML::EndSeq;
 
@@ -836,7 +836,7 @@ namespace X2 {
 		X2_CORE_ASSERT(false);
 	}
 
-	void SceneSerializer::DeserializeEntities(YAML::Node& entitiesNode, Ref<Scene> scene)
+	void SceneSerializer::DeserializeEntities(YAML::Node& entitiesNode, Scene* scene)
 	{
 		for (auto entity : entitiesNode)
 		{

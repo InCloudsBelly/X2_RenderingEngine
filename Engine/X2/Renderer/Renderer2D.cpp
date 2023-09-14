@@ -31,9 +31,9 @@ namespace X2 {
 	void Renderer2D::Init()
 	{
 		if (m_Specification.SwapChainTarget)
-			m_RenderCommandBuffer = Ref<VulkanRenderCommandBuffer>::Create("Renderer2D", true);
+			m_RenderCommandBuffer = CreateRef<VulkanRenderCommandBuffer>("Renderer2D", true);
 		else
-			m_RenderCommandBuffer = Ref<VulkanRenderCommandBuffer>::Create(0, "Renderer2D");
+			m_RenderCommandBuffer = CreateRef<VulkanRenderCommandBuffer>(0, "Renderer2D");
 
 		uint32_t framesInFlight = Renderer::GetConfig().FramesInFlight;
 
@@ -44,12 +44,12 @@ namespace X2 {
 		framebufferSpec.ClearColor = { 0.1f, 0.5f, 0.5f, 1.0f };
 		framebufferSpec.DebugName = "Renderer2D Framebuffer";
 
-		Ref<VulkanFramebuffer> framebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
+		Ref<VulkanFramebuffer> framebuffer = CreateRef<VulkanFramebuffer>(framebufferSpec);
 
 		RenderPassSpecification renderPassSpec;
 		renderPassSpec.TargetFramebuffer = framebuffer;
 		renderPassSpec.DebugName = "Renderer2D";
-		Ref<VulkanRenderPass> renderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+		Ref<VulkanRenderPass> renderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
 
 		{
 			PipelineSpecification pipelineSpecification;
@@ -64,13 +64,13 @@ namespace X2 {
 				{ ShaderDataType::Float, "a_TexIndex" },
 				{ ShaderDataType::Float, "a_TilingFactor" }
 			};
-			m_QuadPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+			m_QuadPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
 
 			m_QuadVertexBuffer.resize(framesInFlight);
 			m_QuadVertexBufferBase.resize(framesInFlight);
 			for (uint32_t i = 0; i < framesInFlight; i++)
 			{
-				m_QuadVertexBuffer[i] = Ref<VulkanVertexBuffer>::Create(MaxVertices * sizeof(QuadVertex));
+				m_QuadVertexBuffer[i] = CreateRef<VulkanVertexBuffer>(MaxVertices * sizeof(QuadVertex));
 				m_QuadVertexBufferBase[i] = hnew QuadVertex[MaxVertices];
 			}
 
@@ -90,7 +90,7 @@ namespace X2 {
 				offset += 4;
 			}
 
-			m_QuadIndexBuffer = Ref<VulkanIndexBuffer>::Create(quadIndices, MaxIndices);
+			m_QuadIndexBuffer = CreateRef<VulkanIndexBuffer>(quadIndices, MaxIndices);
 			hdelete[] quadIndices;
 		}
 
@@ -116,15 +116,15 @@ namespace X2 {
 				{ ShaderDataType::Float3, "a_Position" },
 				{ ShaderDataType::Float4, "a_Color" }
 			};
-			m_LinePipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+			m_LinePipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
 			pipelineSpecification.DepthTest = false;
-			m_LineOnTopPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+			m_LineOnTopPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
 
 			m_LineVertexBuffer.resize(framesInFlight);
 			m_LineVertexBufferBase.resize(framesInFlight);
 			for (uint32_t i = 0; i < framesInFlight; i++)
 			{
-				m_LineVertexBuffer[i] = Ref<VulkanVertexBuffer>::Create(MaxLineVertices * sizeof(LineVertex));
+				m_LineVertexBuffer[i] = CreateRef<VulkanVertexBuffer>(MaxLineVertices * sizeof(LineVertex));
 				m_LineVertexBufferBase[i] = hnew LineVertex[MaxLineVertices];
 			}
 
@@ -132,7 +132,7 @@ namespace X2 {
 			for (uint32_t i = 0; i < MaxLineIndices; i++)
 				lineIndices[i] = i;
 
-			m_LineIndexBuffer = Ref<VulkanIndexBuffer>::Create(lineIndices, MaxLineIndices);
+			m_LineIndexBuffer = CreateRef<VulkanIndexBuffer>(lineIndices, MaxLineIndices);
 			hdelete[] lineIndices;
 		}
 
@@ -150,14 +150,14 @@ namespace X2 {
 				{ ShaderDataType::Float, "a_TexIndex" }
 			};
 
-			m_TextPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
-			m_TextMaterial = Ref<VulkanMaterial>::Create(pipelineSpecification.Shader);
+			m_TextPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
+			m_TextMaterial = CreateRef<VulkanMaterial>(pipelineSpecification.Shader);
 
 			m_TextVertexBuffer.resize(framesInFlight);
 			m_TextVertexBufferBase.resize(framesInFlight);
 			for (uint32_t i = 0; i < framesInFlight; i++)
 			{
-				m_TextVertexBuffer[i] = Ref<VulkanVertexBuffer>::Create(MaxVertices * sizeof(TextVertex));
+				m_TextVertexBuffer[i] = CreateRef<VulkanVertexBuffer>(MaxVertices * sizeof(TextVertex));
 				m_TextVertexBufferBase[i] = hnew TextVertex[MaxVertices];
 			}
 
@@ -177,7 +177,7 @@ namespace X2 {
 				offset += 4;
 			}
 
-			m_TextIndexBuffer = Ref<VulkanIndexBuffer>::Create(textQuadIndices, MaxIndices);
+			m_TextIndexBuffer = CreateRef<VulkanIndexBuffer>(textQuadIndices, MaxIndices);
 			hdelete[] textQuadIndices;
 		}
 
@@ -194,23 +194,23 @@ namespace X2 {
 				{ ShaderDataType::Float2, "a_LocalPosition" },
 				{ ShaderDataType::Float4, "a_Color" }
 			};
-			m_CirclePipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
-			m_CircleMaterial = Ref<VulkanMaterial>::Create(pipelineSpecification.Shader);
+			m_CirclePipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
+			m_CircleMaterial = CreateRef<VulkanMaterial>(pipelineSpecification.Shader);
 
 			m_CircleVertexBuffer.resize(framesInFlight);
 			m_CircleVertexBufferBase.resize(framesInFlight);
 			for (uint32_t i = 0; i < framesInFlight; i++)
 			{
-				m_CircleVertexBuffer[i] = Ref<VulkanVertexBuffer>::Create(MaxVertices * sizeof(QuadVertex));
+				m_CircleVertexBuffer[i] = CreateRef<VulkanVertexBuffer>(MaxVertices * sizeof(QuadVertex));
 				m_CircleVertexBufferBase[i] = hnew CircleVertex[MaxVertices];
 			}
 		}
 
-		m_UniformBufferSet = Ref<VulkanUniformBufferSet>::Create(framesInFlight);
+		m_UniformBufferSet = CreateRef<VulkanUniformBufferSet>(framesInFlight);
 		m_UniformBufferSet->Create(sizeof(UBCamera), 0);
 
-		m_QuadMaterial = Ref<VulkanMaterial>::Create(m_QuadPipeline->GetSpecification().Shader, "QuadMaterial");
-		m_LineMaterial = Ref<VulkanMaterial>::Create(m_LinePipeline->GetSpecification().Shader, "LineMaterial");
+		m_QuadMaterial = CreateRef<VulkanMaterial>(m_QuadPipeline->GetSpecification().Shader, "QuadMaterial");
+		m_LineMaterial = CreateRef<VulkanMaterial>(m_LinePipeline->GetSpecification().Shader, "LineMaterial");
 
 	}
 
@@ -328,7 +328,7 @@ namespace X2 {
 			Renderer::Submit([lineWidth = m_LineWidth, renderCommandBuffer = m_RenderCommandBuffer]()
 				{
 					uint32_t frameIndex = Renderer::RT_GetCurrentFrameIndex();
-					VkCommandBuffer commandBuffer = renderCommandBuffer.As<VulkanRenderCommandBuffer>()->GetCommandBuffer(frameIndex);
+					VkCommandBuffer commandBuffer = renderCommandBuffer->GetCommandBuffer(frameIndex);
 					vkCmdSetLineWidth(commandBuffer, lineWidth);
 				});
 			Renderer::RenderGeometry(m_RenderCommandBuffer, m_LinePipeline, m_UniformBufferSet, nullptr, m_LineMaterial, m_LineVertexBuffer[frameIndex], m_LineIndexBuffer, glm::mat4(1.0f), m_LineIndexCount);
@@ -396,19 +396,19 @@ namespace X2 {
 			{
 				PipelineSpecification pipelineSpecification = m_QuadPipeline->GetSpecification();
 				pipelineSpecification.RenderPass = renderPass;
-				m_QuadPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+				m_QuadPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
 			}
 
 			{
 				PipelineSpecification pipelineSpecification = m_LinePipeline->GetSpecification();
 				pipelineSpecification.RenderPass = renderPass;
-				m_LinePipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+				m_LinePipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
 			}
 
 			{
 				PipelineSpecification pipelineSpecification = m_TextPipeline->GetSpecification();
 				pipelineSpecification.RenderPass = renderPass;
-				m_TextPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+				m_TextPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
 			}
 		}
 	}
@@ -416,7 +416,7 @@ namespace X2 {
 	void Renderer2D::OnRecreateSwapchain()
 	{
 		if (m_Specification.SwapChainTarget)
-			m_RenderCommandBuffer = Ref<VulkanRenderCommandBuffer>::Create("Renderer2D", true);
+			m_RenderCommandBuffer = CreateRef<VulkanRenderCommandBuffer>("Renderer2D", true);
 	}
 
 	void Renderer2D::FlushAndReset()
@@ -565,7 +565,7 @@ namespace X2 {
 		float textureIndex = 0.0f;
 		for (uint32_t i = 1; i < m_TextureSlotIndex; i++)
 		{
-			if (*m_TextureSlots[i].Raw() == *texture.Raw())
+			if (*m_TextureSlots[i].get() == *texture.get())
 			{
 				textureIndex = (float)i;
 				break;
@@ -958,7 +958,7 @@ namespace X2 {
 		}
 	}
 
-	void Renderer2D::DrawAABB(const AABB& aabb, const glm::mat4& transform, const glm::vec4& color /*= glm::vec4(1.0f)*/)
+	void Renderer2D::DrawAABB(const Volume::AABB& aabb, const glm::mat4& transform, const glm::vec4& color /*= glm::vec4(1.0f)*/)
 	{
 		glm::vec4 min = { aabb.Min.x, aabb.Min.y, aabb.Min.z, 1.0f };
 		glm::vec4 max = { aabb.Max.x, aabb.Max.y, aabb.Max.z, 1.0f };
@@ -1037,7 +1037,7 @@ namespace X2 {
 
 		for (uint32_t i = 0; i < m_FontTextureSlotIndex; i++)
 		{
-			if (*m_FontTextureSlots[i].Raw() == *fontAtlas.Raw())
+			if (*m_FontTextureSlots[i].get() == *fontAtlas.get())
 			{
 				textureIndex = (float)i;
 				break;

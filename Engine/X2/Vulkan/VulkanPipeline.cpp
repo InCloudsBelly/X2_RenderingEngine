@@ -69,7 +69,7 @@ namespace X2 {
 		X2_CORE_ASSERT(spec.Shader);
 		X2_CORE_ASSERT(spec.RenderPass);
 		Invalidate();
-		Renderer::RegisterShaderDependency(spec.Shader, this);
+		Renderer::RegisterShaderDependency(spec.Shader.get(), this);
 	}
 
 	VulkanPipeline::~VulkanPipeline()
@@ -85,12 +85,21 @@ namespace X2 {
 
 	void VulkanPipeline::Invalidate()
 	{
-		Ref<VulkanPipeline> instance = this;
+		VulkanPipeline* instance = this;
 		Renderer::Submit([instance]() mutable
 			{
+				VkDevice device = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
+
+				if (instance->m_VulkanPipeline)
+				{
+					vkDestroyPipeline(device, instance->m_VulkanPipeline, nullptr);
+					vkDestroyPipelineCache(device, instance->m_PipelineCache, nullptr);
+					vkDestroyPipelineLayout(device, instance->m_PipelineLayout, nullptr);
+
+				}
+
 				 //X2_CORE_INFO("[VulkanPipeline] Creating pipeline {0}", instance->m_Specification.DebugName);
 
-				VkDevice device = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
 				X2_CORE_ASSERT(instance->m_Specification.Shader);
 				Ref<VulkanShader> vulkanShader = Ref<VulkanShader>(instance->m_Specification.Shader);
 				Ref<VulkanFramebuffer> framebuffer = instance->m_Specification.RenderPass->GetSpecification().TargetFramebuffer;
@@ -340,6 +349,8 @@ namespace X2 {
 
 				// Create rendering pipeline using the specified states
 				VK_CHECK_RESULT(vkCreateGraphicsPipelines(device, instance->m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &instance->m_VulkanPipeline));
+				//X2_CORE_INFO("Renderer: Create Pipeline: {0} pipeline = {1}", instance->m_Specification.DebugName, (const void*)instance->m_VulkanPipeline);
+
 				VKUtils::SetDebugUtilsObjectName(device, VK_OBJECT_TYPE_PIPELINE, instance->m_Specification.DebugName, instance->m_VulkanPipeline);
 
 				// Shader modules are no longer needed once the graphics pipeline has been created
@@ -353,7 +364,7 @@ namespace X2 {
 				if (!shaderDescriptorSets.empty())
 				{
 					// Write default descriptor set... this overlaps materials somewhat, definitely requires more thought
-					instance->m_DescriptorSet = vulkanShader->CreateDescriptorSets();
+					instance->m_DescriptorSet = vulkanShader->CreateOrGetDescriptorSets();
 					std::vector<VkWriteDescriptorSet> writeDescriptors;
 
 					for (auto&& [set, shaderDescriptorSet] : shaderDescriptorSets)
@@ -380,7 +391,7 @@ namespace X2 {
 
 	void VulkanPipeline::SetUniformBuffer(Ref<VulkanUniformBuffer> uniformBuffer, uint32_t binding, uint32_t set)
 	{
-		Ref<VulkanPipeline> instance = this;
+		VulkanPipeline* instance = this;
 		Renderer::Submit([instance, uniformBuffer, binding, set]() mutable
 			{
 				instance->RT_SetUniformBuffer(uniformBuffer, binding, set);
@@ -412,7 +423,7 @@ namespace X2 {
 
 #if 0
 		if (m_DescriptorSetMap.find(set) == m_DescriptorSetMap.end())
-			m_DescriptorSetMap[set] = vulkanShader->CreateDescriptorSets(set);
+			m_DescriptorSetMap[set] = vulkanShader->CreateOrGetDescriptorSets(set);
 
 		VkWriteDescriptorSet writeDescriptorSet = {};
 		writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

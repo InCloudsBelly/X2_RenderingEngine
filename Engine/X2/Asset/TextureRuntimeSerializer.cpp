@@ -5,7 +5,7 @@
 
 namespace X2 {
 
-	uint64_t TextureRuntimeSerializer::SerializeToFile(Ref<VulkanTextureCube> textureCube, FileStreamWriter& stream)
+	uint64_t TextureRuntimeSerializer::SerializeToFile(VulkanTextureCube* textureCube, FileStreamWriter& stream)
 	{
 		struct TextureCubeMetadata
 		{
@@ -16,7 +16,6 @@ namespace X2 {
 
 		uint64_t startPosition = stream.GetStreamPosition();
 
-		Ref<VulkanTextureCube> vulkanTextureCube = textureCube.As<VulkanTextureCube>();
 
 		// Wait for one second
 		for (int i = 0; i < 1; i++)
@@ -30,7 +29,7 @@ namespace X2 {
 		}
 
 		Buffer buffer;
-		vulkanTextureCube->CopyToHostBuffer(buffer);
+		textureCube->CopyToHostBuffer(buffer);
 
 		TextureCubeMetadata metadata;
 		metadata.Width = textureCube->GetWidth();
@@ -67,8 +66,8 @@ namespace X2 {
 		spec.Height = metadata.Height;
 		spec.Format = (ImageFormat)metadata.Format;
 
-		Ref<VulkanTextureCube> textureCube = Ref<VulkanTextureCube>::Create(spec);
-		textureCube.As<VulkanTextureCube>()->CopyFromBuffer(buffer, metadata.Mips);
+		Ref<VulkanTextureCube> textureCube = CreateRef<VulkanTextureCube>(spec);
+		textureCube->CopyFromBuffer(buffer, metadata.Mips);
 		return textureCube;
 	}
 
@@ -84,7 +83,7 @@ namespace X2 {
 		return writtenSize;
 	}
 
-	uint64_t TextureRuntimeSerializer::SerializeTexture2DToFile(Ref<VulkanTexture2D> texture, FileStreamWriter& stream)
+	uint64_t TextureRuntimeSerializer::SerializeTexture2DToFile(VulkanTexture2D* texture, FileStreamWriter& stream)
 	{
 		// NOTE(Yan): serializing/deserializing mips is not support atm
 		Texture2DMetadata metadata;
@@ -93,7 +92,7 @@ namespace X2 {
 		metadata.Format = (uint16_t)texture->GetFormat();
 		metadata.Mips = 1;
 		Buffer imageBuffer;
-		texture.As<VulkanTexture2D>()->CopyToHostBuffer(imageBuffer);
+		texture->CopyToHostBuffer(imageBuffer);
 
 		uint64_t writtenSize = SerializeTexture2DToFile(imageBuffer, metadata, stream);
 		imageBuffer.Release();
@@ -125,7 +124,7 @@ namespace X2 {
 		spec.Format = (ImageFormat)metadata.Format;
 		spec.GenerateMips = true;
 
-		Ref<VulkanTexture2D> texture = Ref<VulkanTexture2D>::Create(spec, buffer);
+		Ref<VulkanTexture2D> texture = CreateRef<VulkanTexture2D>(spec, buffer);
 		buffer.Release();
 		return texture;
 	}

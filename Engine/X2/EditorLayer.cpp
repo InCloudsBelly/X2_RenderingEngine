@@ -156,7 +156,7 @@ namespace X2 {
 
 		////////////////////////////////////////////////////////
 
-		m_Renderer2D = Ref<Renderer2D>::Create();
+		m_Renderer2D = CreateRef<Renderer2D>();
 
 		if (!m_UserPreferences->StartupProject.empty())
 			OpenProject(m_UserPreferences->StartupProject);
@@ -185,8 +185,8 @@ namespace X2 {
 		//AssetManager::UnloadAllAssetPacks();
 		//AssetManager::AddAssetPack(assetPack);
 
-		m_ViewportRenderer = Ref<SceneRenderer>::Create(m_CurrentScene);
-		m_SecondViewportRenderer = Ref<SceneRenderer>::Create(m_CurrentScene);
+		m_ViewportRenderer = CreateRef<SceneRenderer>(m_CurrentScene);
+		//m_SecondViewportRenderer = CreateRef<SceneRenderer>(m_CurrentScene);
 		m_FocusedRenderer = m_ViewportRenderer;
 		sceneRendererPanel->SetContext(m_FocusedRenderer);
 
@@ -227,7 +227,7 @@ namespace X2 {
 
 		m_SceneState = SceneState::Play;
 
-		m_RuntimeScene = Ref<Scene>::Create();
+		m_RuntimeScene = CreateRef<Scene>();
 		m_EditorScene->CopyTo(m_RuntimeScene);
 		m_RuntimeScene->SetSceneTransitionCallback([this](const std::string& scene) { QueueSceneTransition(scene); });
 		//ScriptEngine::SetSceneContext(m_RuntimeScene, m_ViewportRenderer);
@@ -264,7 +264,7 @@ namespace X2 {
 
 		m_SceneState = SceneState::Simulate;
 
-		m_SimulationScene = Ref<Scene>::Create();
+		m_SimulationScene = CreateRef<Scene>();
 		m_EditorScene->CopyTo(m_SimulationScene);
 
 		AssetEditorPanel::SetSceneContext(m_SimulationScene);
@@ -348,7 +348,7 @@ namespace X2 {
 					{
 						Ref<VulkanTextureCube> radianceMap = environment->RadianceMap;
 						FileStreamWriter writer("RadianceMap.textureCube");
-						TextureRuntimeSerializer::SerializeToFile(radianceMap, writer);
+						TextureRuntimeSerializer::SerializeToFile(radianceMap.get(), writer);
 					}
 				}
 			}
@@ -357,8 +357,8 @@ namespace X2 {
 
 	void EditorLayer::OnSceneTransition(const std::string& scene)
 	{
-		Ref<Scene> newScene = Ref<Scene>::Create();
-		SceneSerializer serializer(newScene);
+		Ref<Scene> newScene = CreateRef<Scene>();
+		SceneSerializer serializer(newScene.get());
 		if (serializer.Deserialize((Project::GetAssetDirectory() / scene).string()))
 		{
 			newScene->SetViewportSize(m_ViewportRenderer->GetViewportWidth(), m_ViewportRenderer->GetViewportHeight());
@@ -1542,11 +1542,11 @@ namespace X2 {
 				{
 					if (asset->GetAssetType() == AssetType::MeshSource)
 					{
-						OnCreateMeshFromMeshSource({}, asset.As<MeshSource>());
+						OnCreateMeshFromMeshSource({}, std::dynamic_pointer_cast<MeshSource>(asset));
 					}
 					else if (asset->GetAssetType() == AssetType::Mesh)
 					{
-						Ref<Mesh> mesh = asset.As<Mesh>();
+						Ref<Mesh> mesh = std::dynamic_pointer_cast<Mesh>(asset);
 						const auto& submeshIndices = mesh->GetSubmeshes();
 						const auto& submeshes = mesh->GetMeshSource()->GetSubmeshes();
 						Entity rootEntity = m_EditorScene->InstantiateMesh(mesh, true);
@@ -1554,7 +1554,7 @@ namespace X2 {
 					}
 					else if (asset->GetAssetType() == AssetType::StaticMesh)
 					{
-						Ref<StaticMesh> staticMesh = asset.As<StaticMesh>();
+						Ref<StaticMesh> staticMesh = std::dynamic_pointer_cast<StaticMesh>(asset);
 						auto& assetData = Project::GetEditorAssetManager()->GetMetadata(staticMesh->Handle);
 						Entity entity = m_EditorScene->CreateEntity(assetData.FilePath.stem().string());
 						entity.AddComponent<StaticMeshComponent>(staticMesh->Handle);
@@ -1562,7 +1562,7 @@ namespace X2 {
 					}
 					else if (asset->GetAssetType() == AssetType::Prefab)
 					{
-						Ref<Prefab> prefab = asset.As<Prefab>();
+						Ref<Prefab> prefab = std::dynamic_pointer_cast<Prefab>(asset);
 						m_EditorScene->Instantiate(prefab);
 					}
 				}
@@ -1807,14 +1807,14 @@ namespace X2 {
 								for (uint32_t submeshIndex : submeshIndices)
 								{
 									glm::mat4 transform = m_CurrentScene->GetWorldSpaceTransformMatrix(entity);
-									const AABB& aabb = submeshes[submeshIndex].BoundingBox;
+									const Volume::AABB& aabb = submeshes[submeshIndex].BoundingBox;
 									m_Renderer2D->DrawAABB(aabb, transform * submeshes[submeshIndex].Transform, glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
 								}
 							}
 							else
 							{
 								glm::mat4 transform = m_CurrentScene->GetWorldSpaceTransformMatrix(entity);
-								const AABB& aabb = mesh->GetMeshSource()->GetBoundingBox();
+								const Volume::AABB& aabb = mesh->GetMeshSource()->GetBoundingBox();
 								m_Renderer2D->DrawAABB(aabb, transform, glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
 							}
 						}
@@ -1834,14 +1834,14 @@ namespace X2 {
 								for (uint32_t submeshIndex : submeshIndices)
 								{
 									glm::mat4 transform = m_CurrentScene->GetWorldSpaceTransformMatrix(entity);
-									const AABB& aabb = submeshes[submeshIndex].BoundingBox;
+									const Volume::AABB& aabb = submeshes[submeshIndex].BoundingBox;
 									m_Renderer2D->DrawAABB(aabb, transform * submeshes[submeshIndex].Transform, glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
 								}
 							}
 							else
 							{
 								glm::mat4 transform = m_CurrentScene->GetWorldSpaceTransformMatrix(entity);
-								const AABB& aabb = mesh->GetMeshSource()->GetBoundingBox();
+								const Volume::AABB& aabb = mesh->GetMeshSource()->GetBoundingBox();
 								m_Renderer2D->DrawAABB(aabb, transform, glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
 							}
 						}
@@ -1853,12 +1853,12 @@ namespace X2 {
 				auto dynamicMeshEntities = m_CurrentScene->GetAllEntitiesWith<MeshComponent>();
 				for (auto e : dynamicMeshEntities)
 				{
-					Entity entity = { e, m_CurrentScene.Raw() };
+					Entity entity = { e, m_CurrentScene.get() };
 					glm::mat4 transform = m_CurrentScene->GetWorldSpaceTransformMatrix(entity);
 					auto mesh = AssetManager::GetAsset<Mesh>(entity.GetComponent<MeshComponent>().Mesh);
 					if (mesh)
 					{
-						const AABB& aabb = mesh->GetMeshSource()->GetBoundingBox();
+						const Volume::AABB& aabb = mesh->GetMeshSource()->GetBoundingBox();
 						m_Renderer2D->DrawAABB(aabb, transform, glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
 					}
 				}
@@ -1866,12 +1866,12 @@ namespace X2 {
 				auto staticMeshEntities = m_CurrentScene->GetAllEntitiesWith<StaticMeshComponent>();
 				for (auto e : staticMeshEntities)
 				{
-					Entity entity = { e, m_CurrentScene.Raw() };
+					Entity entity = { e, m_CurrentScene.get() };
 					glm::mat4 transform = m_CurrentScene->GetWorldSpaceTransformMatrix(entity);
 					auto mesh = AssetManager::GetAsset<StaticMesh>(entity.GetComponent<StaticMeshComponent>().StaticMesh);
 					if (mesh)
 					{
-						const AABB& aabb = mesh->GetMeshSource()->GetBoundingBox();
+						const Volume::AABB& aabb = mesh->GetMeshSource()->GetBoundingBox();
 						m_Renderer2D->DrawAABB(aabb, transform, glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f });
 					}
 				}
@@ -1884,7 +1884,7 @@ namespace X2 {
 				auto entities = m_CurrentScene->GetAllEntitiesWith<PointLightComponent>();
 				for (auto e : entities)
 				{
-					Entity entity = { e, m_CurrentScene.Raw() };
+					Entity entity = { e, m_CurrentScene.get() };
 					m_Renderer2D->DrawQuadBillboard(m_CurrentScene->GetWorldSpaceTransform(entity).Translation, { 1.0f, 1.0f }, EditorResources::PointLightIcon);
 				}
 			}
@@ -1893,7 +1893,7 @@ namespace X2 {
 				auto entities = m_CurrentScene->GetAllEntitiesWith<SpotLightComponent>();
 				for (auto e : entities)
 				{
-					Entity entity = { e, m_CurrentScene.Raw() };
+					Entity entity = { e, m_CurrentScene.get() };
 					m_Renderer2D->DrawQuadBillboard(m_CurrentScene->GetWorldSpaceTransform(entity).Translation, { 1.0f, 1.0f }, EditorResources::SpotLightIcon);
 				}
 			}
@@ -1902,7 +1902,7 @@ namespace X2 {
 				auto entities = m_CurrentScene->GetAllEntitiesWith<CameraComponent>();
 				for (auto e : entities)
 				{
-					Entity entity = { e, m_CurrentScene.Raw() };
+					Entity entity = { e, m_CurrentScene.get() };
 					m_Renderer2D->DrawQuadBillboard(m_CurrentScene->GetWorldSpaceTransform(entity).Translation, { 1.0f, 1.0f }, EditorResources::CameraIcon);
 				}
 			}
@@ -1911,7 +1911,7 @@ namespace X2 {
 				auto entities = m_CurrentScene->GetAllEntitiesWith<AudioComponent>();
 				for (auto e : entities)
 				{
-					Entity entity = { e, m_CurrentScene.Raw() };
+					Entity entity = { e, m_CurrentScene.get() };
 					m_Renderer2D->DrawQuadBillboard(m_CurrentScene->GetWorldSpaceTransform(entity).Translation, { 1.0f, 1.0f }, EditorResources::AudioIcon);
 				}
 			}*/
@@ -2074,7 +2074,7 @@ namespace X2 {
 		if (Project::GetActive())
 			CloseProject();
 
-		Ref<Project> project = Ref<Project>::Create();
+		Ref<Project> project = CreateRef<Project>();
 		Project::SetActive(project);
 
 		m_PanelManager->OnProjectChanged(project);
@@ -2159,7 +2159,7 @@ namespace X2 {
 		if (Project::GetActive())
 			CloseProject();
 
-		Ref<Project> project = Ref<Project>::Create();
+		Ref<Project> project = CreateRef<Project>();
 		ProjectSerializer serializer(project);
 		serializer.Deserialize(filepath);
 		Project::SetActive(project);
@@ -2226,12 +2226,12 @@ namespace X2 {
 		//MiniAudioEngine::SetSceneContext(nullptr);
 		AssetEditorPanel::SetSceneContext(nullptr);
 		m_ViewportRenderer->SetScene(nullptr);
-		m_SecondViewportRenderer->SetScene(nullptr);
+		//m_SecondViewportRenderer->SetScene(nullptr);
 		m_RuntimeScene = nullptr;
 		m_CurrentScene = nullptr;
 
 		// Check that m_EditorScene is the last one (so setting it null here will destroy the scene)
-		X2_CORE_ASSERT(m_EditorScene->GetRefCount() == 1, "Scene will not be destroyed after project is closed - something is still holding scene refs!");
+		X2_CORE_ASSERT(m_EditorScene.use_count() == 1, "Scene will not be destroyed after project is closed - something is still holding scene refs!");
 		m_EditorScene = nullptr;
 
 		//PhysicsLayerManager::ClearLayers();
@@ -2245,7 +2245,7 @@ namespace X2 {
 		SelectionManager::DeselectAll();
 
 		//ScriptEngine::SetSceneContext(nullptr, nullptr);
-		m_EditorScene = Ref<Scene>::Create(name, true);
+		m_EditorScene = CreateRef<Scene>(name, true);
 		m_PanelManager->SetSceneContext(m_EditorScene);
 		//ScriptEngine::SetSceneContext(m_EditorScene, m_ViewportRenderer);
 		//MiniAudioEngine::SetSceneContext(m_EditorScene);
@@ -2257,9 +2257,9 @@ namespace X2 {
 		m_CurrentScene = m_EditorScene;
 
 		if (m_ViewportRenderer)
-			m_ViewportRenderer->SetScene(m_CurrentScene);
-		if (m_SecondViewportRenderer)
-			m_SecondViewportRenderer->SetScene(m_CurrentScene);
+			m_ViewportRenderer->SetScene(m_CurrentScene.get());
+		//if (m_SecondViewportRenderer)
+		//	m_SecondViewportRenderer->SetScene(m_CurrentScene.get());
 	}
 
 	bool EditorLayer::OpenScene()
@@ -2300,8 +2300,8 @@ namespace X2 {
 		// NOTE(Peter): We set the scene context to nullptr here to make sure all old script entities have been destroyed
 		//ScriptEngine::SetSceneContext(nullptr, nullptr);
 
-		Ref<Scene> newScene = Ref<Scene>::Create("New Scene", true);
-		SceneSerializer serializer(newScene);
+		Ref<Scene> newScene = CreateRef<Scene>("New Scene", true);
+		SceneSerializer serializer(newScene.get());
 		serializer.Deserialize(filepath);
 		m_EditorScene = newScene;
 		m_SceneFilePath = filepath.string();
@@ -2320,9 +2320,9 @@ namespace X2 {
 		m_CurrentScene = m_EditorScene;
 
 		if (m_ViewportRenderer)
-			m_ViewportRenderer->SetScene(m_CurrentScene);
-		if (m_SecondViewportRenderer)
-			m_SecondViewportRenderer->SetScene(m_CurrentScene);
+			m_ViewportRenderer->SetScene(m_CurrentScene.get());
+		//if (m_SecondViewportRenderer)
+		//	m_SecondViewportRenderer->SetScene(m_CurrentScene.get());
 
 		return true;
 	}
@@ -2337,7 +2337,7 @@ namespace X2 {
 	{
 		if (!m_SceneFilePath.empty())
 		{
-			SceneSerializer serializer(m_EditorScene);
+			SceneSerializer serializer(m_EditorScene.get());
 			serializer.Serialize(m_SceneFilePath);
 
 			m_TimeSinceLastSave = 0.0f;
@@ -2356,7 +2356,7 @@ namespace X2 {
 	{
 		if (!m_SceneFilePath.empty())
 		{
-			SceneSerializer serializer(m_EditorScene);
+			SceneSerializer serializer(m_EditorScene.get());
 			serializer.Serialize(m_SceneFilePath + ".auto"); // this isn't perfect as there is a non-zero chance (admittedly small) of overwriting some existing .auto file that the user actually wanted)
 
 			// Need to save the audio command registry also, as otherwise there's a chance .auto saved scene refers to non-existent audio asset ids
@@ -2385,7 +2385,7 @@ namespace X2 {
 		if (!filepath.has_extension())
 			filepath += SceneSerializer::DefaultExtension;
 
-		SceneSerializer serializer(m_EditorScene);
+		SceneSerializer serializer(m_EditorScene.get());
 		serializer.Serialize(filepath.string());
 
 		std::filesystem::path path = filepath;
@@ -3056,52 +3056,52 @@ namespace X2 {
 		ImGui::End();
 #endif
 
-		if (m_ShowSecondViewport)
-		{
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-			ImGui::Begin("Second Viewport");
+		//if (m_ShowSecondViewport)
+		//{
+		//	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+		//	ImGui::Begin("Second Viewport");
 
-			m_ViewportPanel2MouseOver = ImGui::IsWindowHovered();
-			m_ViewportPanel2Focused = ImGui::IsWindowFocused();
+		//	m_ViewportPanel2MouseOver = ImGui::IsWindowHovered();
+		//	m_ViewportPanel2Focused = ImGui::IsWindowFocused();
 
-			auto viewportOffset = ImGui::GetCursorPos(); // includes tab bar
-			auto viewportSize = ImGui::GetContentRegionAvail();
-			if (viewportSize.x > 1 && viewportSize.y > 1)
-			{
-				m_SecondViewportRenderer->SetViewportSize((uint32_t)viewportSize.x, (uint32_t)viewportSize.y);
-				m_SecondEditorCamera.SetViewportSize((uint32_t)viewportSize.x, (uint32_t)viewportSize.y);
+		//	auto viewportOffset = ImGui::GetCursorPos(); // includes tab bar
+		//	auto viewportSize = ImGui::GetContentRegionAvail();
+		//	if (viewportSize.x > 1 && viewportSize.y > 1)
+		//	{
+		//		m_SecondViewportRenderer->SetViewportSize((uint32_t)viewportSize.x, (uint32_t)viewportSize.y);
+		//		m_SecondEditorCamera.SetViewportSize((uint32_t)viewportSize.x, (uint32_t)viewportSize.y);
 
-				// Render viewport image
-				UI::Image(m_SecondViewportRenderer->GetFinalPassImage(), viewportSize, { 0, 1 }, { 1, 0 });
+		//		// Render viewport image
+		//		UI::Image(m_SecondViewportRenderer->GetFinalPassImage(), viewportSize, { 0, 1 }, { 1, 0 });
 
-				auto windowSize = ImGui::GetWindowSize();
-				ImVec2 minBound = ImGui::GetWindowPos();
-				minBound.x += viewportOffset.x;
-				minBound.y += viewportOffset.y;
+		//		auto windowSize = ImGui::GetWindowSize();
+		//		ImVec2 minBound = ImGui::GetWindowPos();
+		//		minBound.x += viewportOffset.x;
+		//		minBound.y += viewportOffset.y;
 
-				ImVec2 maxBound = { minBound.x + windowSize.x, minBound.y + windowSize.y };
-				m_SecondViewportBounds[0] = { minBound.x, minBound.y };
-				m_SecondViewportBounds[1] = { maxBound.x, maxBound.y };
+		//		ImVec2 maxBound = { minBound.x + windowSize.x, minBound.y + windowSize.y };
+		//		m_SecondViewportBounds[0] = { minBound.x, minBound.y };
+		//		m_SecondViewportBounds[1] = { maxBound.x, maxBound.y };
 
-				if (m_ViewportPanel2MouseOver)
-					UI_DrawGizmos();
+		//		if (m_ViewportPanel2MouseOver)
+		//			UI_DrawGizmos();
 
-				UI_HandleAssetDrop();
-			}
-			ImGui::End();
-			ImGui::PopStyleVar();
-		}
-		else
-		{
-			m_ViewportPanel2MouseOver = false;
-		}
+		//		UI_HandleAssetDrop();
+		//	}
+		//	ImGui::End();
+		//	ImGui::PopStyleVar();
+		//}
+		//else
+		//{
+		//	m_ViewportPanel2MouseOver = false;
+		//}
 
 		m_PanelManager->OnImGuiRender();
 
 		if (m_ViewportPanelFocused)
 			m_FocusedRenderer = m_ViewportRenderer;
-		else if (m_ViewportPanel2Focused)
-			m_FocusedRenderer = m_SecondViewportRenderer;
+		//else if (m_ViewportPanel2Focused)
+		//	m_FocusedRenderer = m_SecondViewportRenderer;
 
 		if (m_ShowMetricsTool)
 			ImGui::ShowMetricsWindow(&m_ShowMetricsTool);
@@ -3336,7 +3336,7 @@ namespace X2 {
 			auto meshEntities = m_CurrentScene->GetAllEntitiesWith<MeshComponent>();
 			for (auto e : meshEntities)
 			{
-				Entity entity = { e, m_CurrentScene.Raw() };
+				Entity entity = { e, m_CurrentScene.get() };
 				auto& mc = entity.GetComponent<MeshComponent>();
 				auto mesh = AssetManager::GetAsset<Mesh>(mc.Mesh);
 				if (!mesh || mesh->IsFlagSet(AssetFlag::Missing))
@@ -3346,19 +3346,19 @@ namespace X2 {
 				float lastT = std::numeric_limits<float>::max();
 				auto& submesh = submeshes[mc.SubmeshIndex];
 				glm::mat4 transform = m_CurrentScene->GetWorldSpaceTransformMatrix(entity);
-				Ray ray = {
+				Volume::Ray ray = {
 					glm::inverse(transform) * glm::vec4(origin, 1.0f),
 					glm::inverse(glm::mat3(transform)) * direction
 				};
 
 				float t;
-				bool intersects = ray.IntersectsAABB(submesh.BoundingBox, t);
+				bool intersects = ray.Intersects(submesh.BoundingBox, 0.3 ,50.0 , t);
 				if (intersects)
 				{
 					const auto& triangleCache = mesh->GetMeshSource()->GetTriangleCache(mc.SubmeshIndex);
 					for (const auto& triangle : triangleCache)
 					{
-						if (ray.IntersectsTriangle(triangle.V0.Position, triangle.V1.Position, triangle.V2.Position, t))
+						if (ray.Intersects(triangle.V0.Position, triangle.V1.Position, triangle.V2.Position, t))
 						{
 							selectionData.push_back({ entity, &submesh, t });
 							break;
@@ -3370,7 +3370,7 @@ namespace X2 {
 			auto staticMeshEntities = m_CurrentScene->GetAllEntitiesWith<StaticMeshComponent>();
 			for (auto e : staticMeshEntities)
 			{
-				Entity entity = { e, m_CurrentScene.Raw() };
+				Entity entity = { e, m_CurrentScene.get() };
 				auto& smc = entity.GetComponent<StaticMeshComponent>();
 				auto staticMesh = AssetManager::GetAsset<StaticMesh>(smc.StaticMesh);
 				if (!staticMesh || staticMesh->IsFlagSet(AssetFlag::Missing))
@@ -3382,19 +3382,19 @@ namespace X2 {
 				{
 					auto& submesh = submeshes[i];
 					glm::mat4 transform = m_CurrentScene->GetWorldSpaceTransformMatrix(entity);
-					Ray ray = {
+					Volume::Ray ray = {
 						glm::inverse(transform * submesh.Transform) * glm::vec4(origin, 1.0f),
 						glm::inverse(glm::mat3(transform * submesh.Transform)) * direction
 					};
 
 					float t;
-					bool intersects = ray.IntersectsAABB(submesh.BoundingBox, t);
+					bool intersects = ray.Intersects(submesh.BoundingBox, 0.3, 50.0, t);
 					if (intersects)
 					{
 						const auto& triangleCache = staticMesh->GetMeshSource()->GetTriangleCache(i);
 						for (const auto& triangle : triangleCache)
 						{
-							if (ray.IntersectsTriangle(triangle.V0.Position, triangle.V1.Position, triangle.V2.Position, t))
+							if (ray.Intersects(triangle.V0.Position, triangle.V1.Position, triangle.V2.Position, t))
 							{
 								selectionData.push_back({ entity, &submesh, t });
 								break;

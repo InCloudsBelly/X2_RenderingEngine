@@ -89,11 +89,11 @@ namespace X2 {
 		imageSpec.Height = m_Specification.Height;
 		imageSpec.Mips = specification.GenerateMips ? VulkanTexture2D::GetMipLevelCount() : 1;
 		imageSpec.DebugName = specification.DebugName;
-		m_Image = Ref<VulkanImage2D>::Create(imageSpec);
+		m_Image = CreateRef<VulkanImage2D>(imageSpec);
 
 		X2_CORE_ASSERT(m_Specification.Format != ImageFormat::None);
 
-		Ref<VulkanTexture2D> instance = this;
+		VulkanTexture2D* instance = this;
 		Renderer::Submit([instance]() mutable
 			{
 				instance->Invalidate();
@@ -136,9 +136,9 @@ namespace X2 {
 		imageSpec.DebugName = specification.DebugName;
 		if (specification.Storage)
 			imageSpec.Usage = ImageUsage::Storage;
-		m_Image = Ref<VulkanImage2D>::Create(imageSpec);
+		m_Image = CreateRef<VulkanImage2D>(imageSpec);
 
-		Ref<VulkanTexture2D> instance = this;
+		VulkanTexture2D* instance = this;
 		Renderer::Submit([instance]() mutable
 			{
 				instance->Invalidate();
@@ -188,7 +188,7 @@ namespace X2 {
 		if (!m_ImageData) // TODO(Yan): better management for this, probably from texture spec
 			imageSpec.Usage = ImageUsage::Storage;
 
-		Ref<VulkanImage2D> image = m_Image.As<VulkanImage2D>();
+		Ref<VulkanImage2D> image = m_Image;
 		image->RT_Invalidate();
 
 		auto& info = image->GetImageInfo();
@@ -196,9 +196,6 @@ namespace X2 {
 		if (m_ImageData)
 		{
 			VkDeviceSize size = m_ImageData.Size;
-
-			VkMemoryAllocateInfo memAllocInfo{};
-			memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
 			VulkanAllocator allocator("Texture2D");
 
@@ -331,43 +328,53 @@ namespace X2 {
 		////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		// CREATE TEXTURE SAMPLER
 		////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		
+		//Release  sampler  in RTInvalid  (construct again)
+		/*vkDestroySampler(vulkanDevice, info.Sampler, nullptr);
+		info.Sampler = nullptr;*/
+		
 
-		// Create a texture sampler
-		VkSamplerCreateInfo sampler{};
-		sampler.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-		sampler.maxAnisotropy = 1.0f;
-		sampler.magFilter = Utils::VulkanSamplerFilter(m_Specification.SamplerFilter);
-		sampler.minFilter = Utils::VulkanSamplerFilter(m_Specification.SamplerFilter);
-		sampler.mipmapMode = m_Specification.SamplerFilter == TextureFilter::Linear ? VK_SAMPLER_MIPMAP_MODE_LINEAR : VK_SAMPLER_MIPMAP_MODE_NEAREST;
-		sampler.addressModeU = Utils::VulkanSamplerWrap(m_Specification.SamplerWrap);
-		sampler.addressModeV = Utils::VulkanSamplerWrap(m_Specification.SamplerWrap);
-		sampler.addressModeW = Utils::VulkanSamplerWrap(m_Specification.SamplerWrap);
-		sampler.mipLodBias = 0.0f;
-		sampler.compareOp = VK_COMPARE_OP_NEVER;
-		sampler.minLod = 0.0f;
-		sampler.maxLod = (float)mipCount;
-		// Enable anisotropic filtering
-		// This feature is optional, so we must check if it's supported on the device
+		//// Create a texture sampler
+		//VkSamplerCreateInfo sampler{};
+		//sampler.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+		//sampler.maxAnisotropy = 1.0f;
+		//sampler.magFilter = Utils::VulkanSamplerFilter(m_Specification.SamplerFilter);
+		//sampler.minFilter = Utils::VulkanSamplerFilter(m_Specification.SamplerFilter);
+		//sampler.mipmapMode = m_Specification.SamplerFilter == TextureFilter::Linear ? VK_SAMPLER_MIPMAP_MODE_LINEAR : VK_SAMPLER_MIPMAP_MODE_NEAREST;
+		//sampler.addressModeU = Utils::VulkanSamplerWrap(m_Specification.SamplerWrap);
+		//sampler.addressModeV = Utils::VulkanSamplerWrap(m_Specification.SamplerWrap);
+		//sampler.addressModeW = Utils::VulkanSamplerWrap(m_Specification.SamplerWrap);
+		//sampler.mipLodBias = 0.0f;
+		//sampler.compareOp = VK_COMPARE_OP_NEVER;
+		//sampler.minLod = 0.0f;
+		//sampler.maxLod = (float)mipCount;
+		//// Enable anisotropic filtering
+		//// This feature is optional, so we must check if it's supported on the device
 
-		// TODO:
-		/*if (vulkanDevice->features.samplerAnisotropy) {
-				// Use max. level of anisotropy for this example
-				sampler.maxAnisotropy = 1.0f;// vulkanDevice->properties.limits.maxSamplerAnisotropy;
-				sampler.anisotropyEnable = VK_TRUE;
-		}
-		else {
-				// The device does not support anisotropic filtering
-				sampler.maxAnisotropy = 1.0;
-				sampler.anisotropyEnable = VK_FALSE;
-		}*/
-		sampler.maxAnisotropy = 1.0;
-		sampler.anisotropyEnable = VK_FALSE;
-		sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
+		//// TODO:
+		///*if (vulkanDevice->features.samplerAnisotropy) {
+		//		// Use max. level of anisotropy for this example
+		//		sampler.maxAnisotropy = 1.0f;// vulkanDevice->properties.limits.maxSamplerAnisotropy;
+		//		sampler.anisotropyEnable = VK_TRUE;
+		//}
+		//else {
+		//		// The device does not support anisotropic filtering
+		//		sampler.maxAnisotropy = 1.0;
+		//		sampler.anisotropyEnable = VK_FALSE;
+		//}*/
+		//sampler.maxAnisotropy = 1.0;
+		//sampler.anisotropyEnable = VK_FALSE;
+		//sampler.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 
-		VK_CHECK_RESULT(vkCreateSampler(vulkanDevice, &sampler, nullptr, &info.Sampler));
+		//VK_CHECK_RESULT(vkCreateSampler(vulkanDevice, &sampler, nullptr, &info.Sampler));
+		//VKUtils::SetDebugUtilsObjectName(vulkanDevice, VK_OBJECT_TYPE_SAMPLER, fmt::format("{} texture sampler", m_Specification.DebugName), info.Sampler);
 
 		if (!m_Specification.Storage)
 		{
+			//Release  ImageView  in RTInvalid  (construct again)
+			vkDestroyImageView(vulkanDevice, info.ImageView, nullptr);
+			info.ImageView = nullptr;
+
 			VkImageViewCreateInfo view{};
 			view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 			view.viewType = VK_IMAGE_VIEW_TYPE_2D;
@@ -442,7 +449,7 @@ namespace X2 {
 		auto device = VulkanContext::GetCurrentDevice();
 		auto vulkanDevice = device->GetVulkanDevice();
 
-		Ref<VulkanImage2D> image = m_Image.As<VulkanImage2D>();
+		Ref<VulkanImage2D> image = m_Image;
 		const auto& info = image->GetImageInfo();
 
 		const VkCommandBuffer blitCmd = VulkanContext::GetCurrentDevice()->GetCommandBuffer(true);
@@ -614,7 +621,7 @@ namespace X2 {
 	void VulkanTexture2D::CopyToHostBuffer(Buffer& buffer)
 	{
 		if (m_Image)
-			m_Image.As<VulkanImage2D>()->CopyToHostBuffer(buffer);
+			m_Image->CopyToHostBuffer(buffer);
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////
@@ -643,12 +650,18 @@ namespace X2 {
 		if (m_Image == nullptr)
 			return;
 
-		Renderer::SubmitResourceFree([image = m_Image, allocation = m_MemoryAlloc, texInfo = m_DescriptorImageInfo]()
+		Renderer::SubmitResourceFree([image = m_Image, allocation = m_MemoryAlloc, texInfo = m_DescriptorImageInfo, mipViews = m_PerMipImageViews]()
 			{
 				X2_CORE_TRACE_TAG("Renderer", "Destroying VulkanTextureCube");
 				auto vulkanDevice = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
 				vkDestroyImageView(vulkanDevice, texInfo.imageView, nullptr);
 				vkDestroySampler(vulkanDevice, texInfo.sampler, nullptr);
+
+				for (auto& view : mipViews)
+				{
+					if (view.second)
+						vkDestroyImageView(vulkanDevice, view.second, nullptr);
+				}
 
 				VulkanAllocator allocator("TextureCube");
 				allocator.DestroyImage(image, allocation);
@@ -674,8 +687,6 @@ namespace X2 {
 		VkFormat format = Utils::VulkanImageFormat(m_Specification.Format);
 		uint32_t mipCount = GetMipLevelCount();
 
-		VkMemoryAllocateInfo memAllocInfo{};
-		memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 
 		VulkanAllocator allocator("TextureCube");
 
@@ -863,32 +874,33 @@ namespace X2 {
 		return { width, height };
 	}
 
-	VkImageView VulkanTextureCube::CreateImageViewSingleMip(uint32_t mip)
+	VkImageView VulkanTextureCube::CreateOrGetImageViewSingleMip(uint32_t mip)
 	{
 		// TODO: assert to check mip count
+		if (m_PerMipImageViews.find(mip) == m_PerMipImageViews.end())
+		{
+			auto device = VulkanContext::GetCurrentDevice();
+			auto vulkanDevice = device->GetVulkanDevice();
 
-		auto device = VulkanContext::GetCurrentDevice();
-		auto vulkanDevice = device->GetVulkanDevice();
+			VkFormat format = Utils::VulkanImageFormat(m_Specification.Format);
 
-		VkFormat format = Utils::VulkanImageFormat(m_Specification.Format);
+			VkImageViewCreateInfo view{};
+			view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+			view.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+			view.format = format;
+			view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+			view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			view.subresourceRange.baseMipLevel = mip;
+			view.subresourceRange.baseArrayLayer = 0;
+			view.subresourceRange.layerCount = 6;
+			view.subresourceRange.levelCount = 1;
+			view.image = m_Image;
 
-		VkImageViewCreateInfo view{};
-		view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		view.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-		view.format = format;
-		view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
-		view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		view.subresourceRange.baseMipLevel = mip;
-		view.subresourceRange.baseArrayLayer = 0;
-		view.subresourceRange.layerCount = 6;
-		view.subresourceRange.levelCount = 1;
-		view.image = m_Image;
+			VK_CHECK_RESULT(vkCreateImageView(vulkanDevice, &view, nullptr, &m_PerMipImageViews[mip]));
+			VKUtils::SetDebugUtilsObjectName(vulkanDevice, VK_OBJECT_TYPE_IMAGE_VIEW, fmt::format("Texture cube mip: {}", mip), m_PerMipImageViews[mip]);
+		}
 
-		VkImageView result;
-		VK_CHECK_RESULT(vkCreateImageView(vulkanDevice, &view, nullptr, &result));
-		VKUtils::SetDebugUtilsObjectName(vulkanDevice, VK_OBJECT_TYPE_IMAGE_VIEW, fmt::format("Texture cube mip: {}", mip), result);
-
-		return result;
+		return m_PerMipImageViews[mip];
 	}
 
 	void VulkanTextureCube::GenerateMips(bool readonly)

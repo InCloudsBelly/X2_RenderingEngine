@@ -7,7 +7,7 @@
 
 namespace X2 {
 
-	class VulkanIndexBuffer : public RefCounted
+	class VulkanIndexBuffer 
 	{
 	public:
 		VulkanIndexBuffer(uint32_t size);

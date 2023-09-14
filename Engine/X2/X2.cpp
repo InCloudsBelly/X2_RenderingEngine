@@ -9,7 +9,7 @@ class X2Application : public X2::Application
 {
 public:
 	X2Application(const X2::ApplicationSpecification& specification, std::string_view projectPath)
-		: Application(specification), m_ProjectPath(projectPath), m_UserPreferences(X2::Ref<X2::UserPreferences>::Create())
+		: Application(specification), m_ProjectPath(projectPath), m_UserPreferences(X2::CreateRef<X2::UserPreferences>())
 	{
 		if (projectPath.empty())
 			m_ProjectPath = std::string(PROJECT_ROOT) + "Project/X2.xproj";

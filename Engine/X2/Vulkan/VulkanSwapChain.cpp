@@ -52,7 +52,7 @@ VKAPI_ATTR void VKAPI_CALL vkGetQueueCheckpointDataNV(
 
 namespace X2 {
 
-	void VulkanSwapChain::Init(VkInstance instance, const Ref<VulkanDevice>& device)
+	void VulkanSwapChain::Init(VkInstance instance, VulkanDevice* device)
 	{
 		m_Instance = instance;
 		m_Device = device;
@@ -424,6 +424,9 @@ namespace X2 {
 		renderPassInfo.dependencyCount = 1;
 		renderPassInfo.pDependencies = &dependency;
 
+		if (m_RenderPass)
+			vkDestroyRenderPass(m_Device->GetVulkanDevice(), m_RenderPass, nullptr);
+
 		VK_CHECK_RESULT(vkCreateRenderPass(m_Device->GetVulkanDevice(), &renderPassInfo, nullptr, &m_RenderPass));
 		VKUtils::SetDebugUtilsObjectName(device, VK_OBJECT_TYPE_RENDER_PASS, "Swapchain render pass", m_RenderPass);
 
@@ -480,6 +483,9 @@ namespace X2 {
 
 		for (auto& fence : m_WaitFences)
 			vkDestroyFence(device, fence, nullptr);
+
+		if (m_Surface)
+			vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
 
 		vkDeviceWaitIdle(device);
 	}

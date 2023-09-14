@@ -160,7 +160,7 @@ namespace X2 {
 
 	void MeshViewerPanel::SetAsset(const Ref<Asset>& asset)
 	{
-		Ref<MeshSource> meshAsset = (Ref<MeshSource>)asset;
+		Ref<MeshSource> meshAsset = std::dynamic_pointer_cast<MeshSource>(asset);
 
 		const std::string& path = meshAsset->GetFilePath();
 		size_t found = path.find_last_of("/\\");
@@ -178,16 +178,16 @@ namespace X2 {
 		auto& sceneData = m_OpenMeshes[name] = std::make_shared<MeshScene>();
 		sceneData->m_MeshAsset = meshAsset;
 		sceneData->m_Name = name;
-		sceneData->m_Scene = Ref<Scene>::Create("MeshViewerPanel", true);
+		sceneData->m_Scene = CreateRef<Scene>("MeshViewerPanel", true);
 		sceneData->m_MeshEntity = sceneData->m_Scene->CreateEntity("Mesh");
-		sceneData->m_Mesh = Ref<Mesh>::Create(sceneData->m_MeshAsset);
+		sceneData->m_Mesh = CreateRef<Mesh>(sceneData->m_MeshAsset);
 		sceneData->m_MeshEntity.AddComponent<MeshComponent>(sceneData->m_Mesh->Handle);
 		sceneData->m_MeshEntity.AddComponent<SkyLightComponent>().DynamicSky = true;
 
 		sceneData->m_DirectionaLight = sceneData->m_Scene->CreateEntity("DirectionalLight");
 		sceneData->m_DirectionaLight.AddComponent<DirectionalLightComponent>();
 		sceneData->m_DirectionaLight.GetComponent<TransformComponent>().SetRotationEuler(glm::radians(glm::vec3{ 80.0f, 10.0f, 0.0f }));
-		sceneData->m_SceneRenderer = Ref<SceneRenderer>::Create(sceneData->m_Scene);
+		sceneData->m_SceneRenderer = CreateRef<SceneRenderer>(sceneData->m_Scene);
 		sceneData->m_SceneRenderer->SetShadowSettings(-15.0f, 15.0f, 0.95f);
 
 		ResetCamera(sceneData->m_Camera);

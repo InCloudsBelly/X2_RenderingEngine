@@ -8,7 +8,7 @@
 
 namespace X2 {
 
-	class VulkanStorageBufferSet : public RefCounted
+	class VulkanStorageBufferSet 
 	{
 	public:
 		explicit VulkanStorageBufferSet(uint32_t frames)
@@ -20,7 +20,7 @@ namespace X2 {
 		{
 			for (uint32_t frame = 0; frame < m_Frames; frame++)
 			{
-				const Ref<VulkanStorageBuffer> storageBuffer = Ref<VulkanStorageBuffer>::Create(size, binding);
+				const Ref<VulkanStorageBuffer> storageBuffer = std::make_shared<VulkanStorageBuffer>(size, binding);
 				Set(storageBuffer, 0, frame);
 			}
 		}

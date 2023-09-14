@@ -99,10 +99,10 @@ namespace X2 {
 
 			WriteRegistryToFile();
 
-			Ref<T> asset = Ref<T>::Create(std::forward<Args>(args)...);
+			Ref<T> asset = CreateRef<T>(std::forward<Args>(args)...);
 			asset->Handle = metadata.Handle;
 			m_LoadedAssets[asset->Handle] = asset;
-			AssetImporter::Serialize(metadata, asset);
+			AssetImporter::Serialize(metadata, asset.get());
 
 			return asset;
 		}
@@ -112,7 +112,7 @@ namespace X2 {
 		{
 			static_assert(std::is_base_of<Asset, TAsset>::value, "CreateMemoryOnlyAsset only works for types derived from Asset");
 
-			Ref<TAsset> asset = Ref<TAsset>::Create(std::forward<TArgs>(args)...);
+			Ref<TAsset> asset = CreateRef<TAsset>(std::forward<TArgs>(args)...);
 			asset->Handle = Hash::GenerateFNVHash(name);
 
 			AssetMetadata metadata;

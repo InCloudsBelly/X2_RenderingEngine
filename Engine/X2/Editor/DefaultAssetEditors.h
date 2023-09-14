@@ -15,7 +15,7 @@ namespace X2 {
 	public:
 		MaterialEditor();
 
-		virtual void SetAsset(const Ref<Asset>& asset) override { m_MaterialAsset = (Ref<MaterialAsset>)asset; }
+		virtual void SetAsset(const Ref<Asset>& asset) override { m_MaterialAsset = std::dynamic_pointer_cast<MaterialAsset>(asset); }
 
 	private:
 		virtual void OnOpen() override;
@@ -31,7 +31,7 @@ namespace X2 {
 	public:
 		PrefabEditor();
 
-		virtual void SetAsset(const Ref<Asset>& asset) override { m_Prefab = (Ref<Prefab>)asset; m_SceneHierarchyPanel.SetSceneContext(m_Prefab->m_Scene); }
+		virtual void SetAsset(const Ref<Asset>& asset) override { m_Prefab = std::dynamic_pointer_cast<Prefab>(asset); m_SceneHierarchyPanel.SetSceneContext(m_Prefab->m_Scene); }
 
 	private:
 		virtual void OnOpen() override;
@@ -48,7 +48,7 @@ namespace X2 {
 	public:
 		TextureViewer();
 
-		virtual void SetAsset(const Ref<Asset>& asset) override { m_Asset = (Ref<Texture>)asset; }
+		virtual void SetAsset(const Ref<Asset>& asset) override { m_Asset = std::dynamic_pointer_cast<Texture>(asset); }
 
 	private:
 		virtual void OnOpen() override;

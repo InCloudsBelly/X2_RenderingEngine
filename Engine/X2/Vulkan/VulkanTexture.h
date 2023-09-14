@@ -66,7 +66,7 @@ namespace X2 {
 		virtual void Bind(uint32_t slot = 0) const override;
 
 		virtual Ref<VulkanImage2D> GetImage() const  { return m_Image; }
-		const VkDescriptorImageInfo& GetVulkanDescriptorInfo() const { return m_Image.As<VulkanImage2D>()->GetDescriptorInfo(); }
+		const VkDescriptorImageInfo& GetVulkanDescriptorInfo() const { return m_Image->GetDescriptorInfo(); }
 
 		void Lock();
 		void Unlock();
@@ -79,7 +79,7 @@ namespace X2 {
 
 		void GenerateMips();
 
-		virtual uint64_t GetHash() const { return (uint64_t)m_Image.As<VulkanImage2D>()->GetDescriptorInfo().imageView; }
+		virtual uint64_t GetHash() const { return (uint64_t)m_Image->GetDescriptorInfo().imageView; }
 		virtual TextureType GetType() const override { return TextureType::Texture2D; }
 
 		void CopyToHostBuffer(Buffer& buffer);
@@ -115,7 +115,7 @@ namespace X2 {
 		virtual TextureType GetType() const override { return TextureType::TextureCube; }
 
 		const VkDescriptorImageInfo& GetVulkanDescriptorInfo() const { return m_DescriptorImageInfo; }
-		VkImageView CreateImageViewSingleMip(uint32_t mip);
+		VkImageView CreateOrGetImageViewSingleMip(uint32_t mip);
 
 		void GenerateMips(bool readonly = false);
 
@@ -133,6 +133,7 @@ namespace X2 {
 		uint64_t m_GPUAllocationSize = 0;
 		VkImage m_Image{ nullptr };
 		VkDescriptorImageInfo m_DescriptorImageInfo = {};
+		std::map<uint32_t, VkImageView> m_PerMipImageViews;
 	};
 
 };

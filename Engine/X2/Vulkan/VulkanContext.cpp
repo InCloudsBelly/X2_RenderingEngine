@@ -131,6 +131,15 @@ namespace X2 {
 		s_VulkanInstance = nullptr;
 	}
 
+	void VulkanContext::Destroy()
+	{
+		auto vkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(s_VulkanInstance, "vkDestroyDebugUtilsMessengerEXT");
+		vkDestroyDebugUtilsMessengerEXT(s_VulkanInstance, m_DebugUtilsMessenger, nullptr);
+		VulkanAllocator::Shutdown();
+		
+		m_Device->Destroy();
+	}
+
 	void VulkanContext::Init()
 	{
 		X2_CORE_INFO_TAG("Renderer", "VulkanContext::Create");
@@ -241,7 +250,7 @@ namespace X2 {
 			VK_CHECK_RESULT(vkCreateDebugUtilsMessengerEXT(s_VulkanInstance, &debugUtilsCreateInfo, nullptr, &m_DebugUtilsMessenger));
 		}
 
-		m_PhysicalDevice = VulkanPhysicalDevice::Select();
+		m_PhysicalDevice = std::make_unique<VulkanPhysicalDevice>();// VulkanPhysicalDevice::Select();
 
 		VkPhysicalDeviceFeatures enabledFeatures;
 		memset(&enabledFeatures, 0, sizeof(VkPhysicalDeviceFeatures));
@@ -257,19 +266,15 @@ namespace X2 {
 		enabledFeatures.shaderStorageImageArrayDynamicIndexing = true;
 		enabledFeatures.shaderSampledImageArrayDynamicIndexing = true;
 
-		m_Device = Ref<VulkanDevice>::Create(m_PhysicalDevice, enabledFeatures);
+		m_Device = std::make_unique<VulkanDevice>(m_PhysicalDevice.get(), enabledFeatures);
 
-		VulkanAllocator::Init(m_Device);
+		VulkanAllocator::Init(m_Device.get());
 
-		// Pipeline Cache
-		VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
-		pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-		VK_CHECK_RESULT(vkCreatePipelineCache(m_Device->GetVulkanDevice(), &pipelineCacheCreateInfo, nullptr, &m_PipelineCache));
 	}
 
-	Ref<VulkanContext> VulkanContext::Get()
+	VulkanContext* VulkanContext::Get()
 	{
-		 return Ref<VulkanContext>(Renderer::GetContext()); 
+		 return Renderer::GetContext(); 
 	}
 
 }

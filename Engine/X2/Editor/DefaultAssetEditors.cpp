@@ -40,9 +40,9 @@ namespace X2 {
 		if (UI::Property("Transparent", transparent))
 		{
 			if (transparent)
-				m_MaterialAsset->SetMaterial(Ref<VulkanMaterial>::Create(transparentShader));
+				m_MaterialAsset->SetMaterial(CreateRef<VulkanMaterial>(transparentShader));
 			else
-				m_MaterialAsset->SetMaterial(Ref<VulkanMaterial>::Create(Renderer::GetShaderLibrary()->Get("PBR_Static")));
+				m_MaterialAsset->SetMaterial(CreateRef<VulkanMaterial>(Renderer::GetShaderLibrary()->Get("PBR_Static")));
 
 			m_MaterialAsset->m_Transparent = transparent;
 			m_MaterialAsset->SetDefaults();
@@ -62,7 +62,7 @@ namespace X2 {
 
 			auto& albedoColor = material->GetVector3("u_MaterialUniforms.AlbedoColor");
 			Ref<VulkanTexture2D> albedoMap = material->TryGetTexture2D("u_AlbedoTexture");
-			bool hasAlbedoMap = albedoMap ? !albedoMap.EqualsObject(Renderer::GetWhiteTexture()) && albedoMap->GetImage() : false;
+			bool hasAlbedoMap = albedoMap ? (albedoMap.get()!= Renderer::GetWhiteTexture().get()) && albedoMap->GetImage() : false;
 			Ref<VulkanTexture2D> albedoUITexture = hasAlbedoMap ? albedoMap : EditorResources::CheckerboardTexture;
 
 			ImVec2 textureCursorPos = ImGui::GetCursorPos();
@@ -84,7 +84,7 @@ namespace X2 {
 						if (!asset || asset->GetAssetType() != AssetType::Texture)
 							break;
 
-						albedoMap = asset.As<VulkanTexture2D>();
+						albedoMap = std::dynamic_pointer_cast<VulkanTexture2D>(asset);
 						material->Set("u_AlbedoTexture", albedoMap);
 						needsSerialize = true;
 					}
@@ -157,7 +157,7 @@ namespace X2 {
 					bool useNormalMap = material->GetFloat("u_MaterialUniforms.UseNormalMap");
 					Ref<VulkanTexture2D> normalMap = material->TryGetTexture2D("u_NormalTexture");
 
-					bool hasNormalMap = normalMap ? !normalMap.EqualsObject(Renderer::GetWhiteTexture()) && normalMap->GetImage() : false;
+					bool hasNormalMap = normalMap ? (normalMap.get() != Renderer::GetWhiteTexture().get()) && normalMap->GetImage() : false;
 					ImVec2 textureCursorPos = ImGui::GetCursorPos();
 					UI::Image(hasNormalMap ? normalMap : EditorResources::CheckerboardTexture, ImVec2(64, 64));
 
@@ -178,7 +178,7 @@ namespace X2 {
 								if (!asset || asset->GetAssetType() != AssetType::Texture)
 									break;
 
-								normalMap = asset.As<VulkanTexture2D>();
+								normalMap = std::dynamic_pointer_cast<VulkanTexture2D>(asset);
 								material->Set("u_NormalTexture", normalMap);
 								material->Set("u_MaterialUniforms.UseNormalMap", true);
 								needsSerialize = true;
@@ -237,7 +237,7 @@ namespace X2 {
 					float& metallicValue = material->GetFloat("u_MaterialUniforms.Metalness");
 
 					Ref<VulkanTexture2D> metallicRoughnessMap = material->TryGetTexture2D("u_MetallicRoughnessTexture");
-					bool hasMetallicRoughnessMap = metallicRoughnessMap ? !metallicRoughnessMap.EqualsObject(Renderer::GetWhiteTexture()) && metallicRoughnessMap->GetImage() : false;
+					bool hasMetallicRoughnessMap = metallicRoughnessMap ? (metallicRoughnessMap.get() != Renderer::GetWhiteTexture().get()) && metallicRoughnessMap->GetImage() : false;
 					ImVec2 textureCursorPos = ImGui::GetCursorPos();
 					UI::Image(hasMetallicRoughnessMap ? metallicRoughnessMap : EditorResources::CheckerboardTexture, ImVec2(64, 64));
 
@@ -258,7 +258,7 @@ namespace X2 {
 								if (!asset || asset->GetAssetType() != AssetType::Texture)
 									break;
 
-								metallicRoughnessMap = asset.As<VulkanTexture2D>();
+								metallicRoughnessMap = std::dynamic_pointer_cast<VulkanTexture2D>(asset);
 								material->Set("u_MetallicRoughnessTexture", metallicRoughnessMap);
 								needsSerialize = true;
 							}
@@ -317,7 +317,7 @@ namespace X2 {
 		}
 
 		if (needsSerialize)
-			AssetImporter::Serialize(m_MaterialAsset);
+			AssetImporter::Serialize(m_MaterialAsset.get());
 	}
 
 	TextureViewer::TextureViewer()

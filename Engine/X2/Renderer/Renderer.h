@@ -31,13 +31,29 @@ namespace X2 {
 	class ShaderLibrary;
 	class VulkanMaterial;
 
+	struct RendererData
+	{
+		Ref<ShaderLibrary> m_ShaderLibrary;
+
+		Ref<VulkanTexture2D> WhiteTexture;
+		Ref<VulkanTexture2D> BlackTexture;
+		Ref<VulkanTexture2D> BRDFLutTexture;
+		Ref<VulkanTexture2D> HilbertLut;
+		Ref<VulkanTexture2D> SMAASearchLut;
+		Ref<VulkanTexture2D> SMAAAreaLut;
+		Ref<VulkanTextureCube> BlackCubeTexture;
+
+		Ref<Environment> EmptyEnvironment;
+
+		std::unordered_map<std::string, std::string> GlobalShaderMacros;
+	};
 
 	class Renderer
 	{
 	public:
 		typedef void(*RenderCommandFn)(void*);
 
-		static Ref<VulkanContext> GetContext()
+		static VulkanContext* GetContext()
 		{
 			return Application::Get().GetWindow().GetRenderContext();
 		}
@@ -109,7 +125,7 @@ namespace X2 {
 		static void BeginFrame();
 		static void EndFrame();
 
-		static void SetSceneEnvironment(Ref<SceneRenderer> sceneRenderer, Ref<Environment> environment, Ref<VulkanImage2D> shadow, Ref<VulkanImage2D> spotShadow);
+		static void SetSceneEnvironment(SceneRenderer* sceneRenderer, Ref<Environment> environment, Ref<VulkanImage2D> shadow, Ref<VulkanImage2D> spotShadow);
 		static Ref<Environment> CreateEnvironmentMap(const std::string& filepath);
 		static Ref<VulkanTextureCube> CreatePreethamSky(float turbidity, float azimuth, float inclination);
 
@@ -138,9 +154,9 @@ namespace X2 {
 		static Ref<VulkanTextureCube> GetBlackCubeTexture();
 		static Ref<Environment> GetEmptyEnvironment();
 
-		static void RegisterShaderDependency(Ref<VulkanShader> shader, Ref<VulkanComputePipeline> computePipeline);
-		static void RegisterShaderDependency(Ref<VulkanShader> shader, Ref<VulkanPipeline> pipeline);
-		static void RegisterShaderDependency(Ref<VulkanShader> shader, Ref<VulkanMaterial> material);
+		static void RegisterShaderDependency(VulkanShader* shader, VulkanComputePipeline* computePipeline);
+		static void RegisterShaderDependency(VulkanShader* shader, VulkanPipeline* pipeline);
+		static void RegisterShaderDependency(VulkanShader* shader, VulkanMaterial* material);
 		static void OnShaderReloaded(size_t hash);
 
 		static uint32_t GetCurrentFrameIndex();
@@ -153,14 +169,16 @@ namespace X2 {
 
 		// Add known macro from shader.
 		static const std::unordered_map<std::string, std::string>& GetGlobalShaderMacros();
-		static void AcknowledgeParsedGlobalMacros(const std::unordered_set<std::string>& macros, Ref<VulkanShader> shader);
-		static void SetMacroInShader(Ref<VulkanShader> shader, const std::string& name, const std::string& value = "");
+		static void AcknowledgeParsedGlobalMacros(const std::unordered_set<std::string>& macros, VulkanShader* shader);
+		static void SetMacroInShader(VulkanShader* shader, const std::string& name, const std::string& value = "");
 		static void SetGlobalMacroInShaders(const std::string& name, const std::string& value = "");
 		// Returns true if any shader is actually updated.
 		static bool UpdateDirtyShaders();
 
 	private:
 		static RenderCommandQueue& GetRenderCommandQueue();
+
+		static RendererData* s_Data;
 	};
 
 	namespace Utils {

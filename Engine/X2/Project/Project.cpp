@@ -30,14 +30,14 @@ namespace X2 {
 		s_ActiveProject = project;
 		if (s_ActiveProject)
 		{
-			s_AssetManager = Ref<EditorAssetManager>::Create();
+			s_AssetManager = CreateRef<EditorAssetManager>();
 			//PhysicsSystem::Init();
 
 			//MiniAudioEngine::Get().OnProjectLoaded();
 
 			// AudioCommandsRegistry must be deserialized after AssetManager,
 			// otheriwse all of the command action targets are going to be invalid and cleared!
-			//WeakRef<AudioCommandRegistry> audioCommands = s_ActiveProject->m_AudioCommands;
+			//Weak<AudioCommandRegistry> audioCommands = s_ActiveProject->m_AudioCommands;
 			//if (!runtime)
 			//AudioCommandRegistry::Init(audioCommands);
 		}
@@ -55,14 +55,14 @@ namespace X2 {
 		s_ActiveProject = project;
 		if (s_ActiveProject)
 		{
-			s_AssetManager = Ref<RuntimeAssetManager>::Create();
+			s_AssetManager = CreateRef<RuntimeAssetManager>();
 			Project::GetRuntimeAssetManager()->SetAssetPack(assetPack);
 
 			//PhysicsSystem::Init();
 
 			// AudioCommandsRegistry must be deserialized after AssetManager,
 			// otheriwse all of the command action targets are going to be invalid and cleared!
-			//WeakRef<AudioCommandRegistry> audioCommands = s_ActiveProject->m_AudioCommands;
+			//Weak<AudioCommandRegistry> audioCommands = s_ActiveProject->m_AudioCommands;
 			//if (!runtime)
 			//MiniAudioEngine::Get().OnProjectLoaded();
 			//AudioCommandRegistry::Init(audioCommands);

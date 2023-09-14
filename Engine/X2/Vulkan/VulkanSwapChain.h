@@ -18,7 +18,7 @@ namespace X2 {
 	public:
 		VulkanSwapChain() = default;
 
-		void Init(VkInstance instance, const Ref<VulkanDevice>& device);
+		void Init(VkInstance instance, VulkanDevice* device);
 		void InitSurface(GLFWwindow* windowHandle);
 		void Create(uint32_t* width, uint32_t* height, bool vsync);
 		void Destroy();
@@ -64,7 +64,7 @@ namespace X2 {
 		void FindImageFormatAndColorSpace();
 	private:
 		VkInstance m_Instance = nullptr;
-		Ref<VulkanDevice> m_Device;
+		VulkanDevice* m_Device;
 		bool m_VSync = false;
 
 		VkFormat m_ColorFormat;

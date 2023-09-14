@@ -96,7 +96,7 @@ namespace X2 {
 			shaderName = found != std::string::npos ? shaderName.substr(0, found) : name;
 		}
 
-		Ref<VulkanShader> vulkanShader = Ref<VulkanShader>::Create();
+		Ref<VulkanShader> vulkanShader = CreateRef<VulkanShader>();
 		vulkanShader->m_Name = shaderName;
 		vulkanShader->m_AssetPath = name;
 		vulkanShader->TryReadReflectionData(&serializer);
@@ -125,7 +125,7 @@ namespace X2 {
 
 	Ref<ShaderPack> ShaderPack::CreateFromLibrary(Ref<ShaderLibrary> shaderLibrary, const std::filesystem::path& path)
 	{
-		Ref<ShaderPack> shaderPack = Ref<ShaderPack>::Create();
+		Ref<ShaderPack> shaderPack = CreateRef<ShaderPack>();
 
 		const auto& shaderMap = shaderLibrary->GetShaders();
 		auto& shaderPackFile = shaderPack->m_File;
@@ -140,7 +140,7 @@ namespace X2 {
 		uint32_t shaderModuleIndexArraySize = 0;
 		for (const auto& [name, shader] : shaderMap)
 		{
-			Ref<VulkanShader> vulkanShader = shader.As<VulkanShader>();
+			Ref<VulkanShader> vulkanShader = shader;
 			const auto& shaderData = vulkanShader->m_ShaderData;
 
 			shaderPackFile.Header.ShaderModuleCount += (uint32_t)shaderData.size();
@@ -174,7 +174,7 @@ namespace X2 {
 		serializer.WriteZero(shaderPackFile.Header.ShaderModuleCount * sizeof(ShaderPackFile::ShaderModuleInfo));
 		for (const auto& [name, shader] : shaderMap)
 		{
-			Ref<VulkanShader> vulkanShader = shader.As<VulkanShader>();
+			Ref<VulkanShader> vulkanShader = shader;
 
 			// Serialize reflection data
 			shaderPackFile.Index.ShaderPrograms[(uint32_t)vulkanShader->GetHash()].ReflectionDataOffset = serializer.GetStreamPosition();

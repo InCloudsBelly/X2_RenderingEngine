@@ -2,6 +2,7 @@
 
 #include "X2/Core/Application.h"
 
+
 #ifdef X2_PLATFORM_WINDOWS
 
 extern X2::Application* X2::CreateApplication(int argc, char** argv);

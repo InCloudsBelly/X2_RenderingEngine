@@ -21,7 +21,7 @@ namespace X2 {
 		m_DirtyDescriptorSets(Renderer::GetConfig().FramesInFlight, true)
 	{
 		Init();
-		Renderer::RegisterShaderDependency(shader, this);
+		Renderer::RegisterShaderDependency(shader.get(), this);
 	}
 
 	VulkanMaterial::VulkanMaterial(Ref<VulkanMaterial> material, const std::string& name)
@@ -32,9 +32,9 @@ namespace X2 {
 		if (name.empty())
 			m_Name = material->GetName();
 
-		Renderer::RegisterShaderDependency(m_Shader, this);
+		Renderer::RegisterShaderDependency(m_Shader.get(), this);
 
-		auto vulkanMaterial = material.As<VulkanMaterial>();
+		auto vulkanMaterial = material;
 		m_UniformStorageBuffer = Buffer::Copy(vulkanMaterial->m_UniformStorageBuffer.Data, vulkanMaterial->m_UniformStorageBuffer.Size);
 
 		m_ResidentDescriptors = vulkanMaterial->m_ResidentDescriptors;
@@ -59,7 +59,7 @@ namespace X2 {
 
 #define INVALIDATE_ON_RT 1
 #if INVALIDATE_ON_RT
-		Ref<VulkanMaterial> instance = this;
+		VulkanMaterial* instance = this;
 		Renderer::Submit([instance]() mutable
 			{
 				instance->Invalidate();
@@ -72,7 +72,7 @@ namespace X2 {
 	void VulkanMaterial::Invalidate()
 	{
 		uint32_t framesInFlight = Renderer::GetConfig().FramesInFlight;
-		auto shader = m_Shader.As<VulkanShader>();
+		auto shader = m_Shader;
 		if (shader->HasDescriptorSet(0))
 		{
 			const auto& shaderDescriptorSets = shader->GetShaderDescriptorSets();
@@ -161,9 +161,9 @@ namespace X2 {
 			m_Textures.resize(binding + 1);
 		m_Textures[binding] = texture;
 
-		const VkWriteDescriptorSet* wds = m_Shader.As<VulkanShader>()->GetDescriptorSet(name);
+		const VkWriteDescriptorSet* wds = m_Shader->GetDescriptorSet(name);
 		X2_CORE_ASSERT(wds);
-		m_ResidentDescriptors[binding] = std::make_shared<PendingDescriptor>(PendingDescriptor{ PendingDescriptorType::VulkanTexture2D, *wds, {}, texture.As<Texture>(), nullptr });
+		m_ResidentDescriptors[binding] = std::make_shared<PendingDescriptor>(PendingDescriptor{ PendingDescriptorType::VulkanTexture2D, *wds, {}, texture, nullptr });
 		m_PendingDescriptors.push_back(m_ResidentDescriptors.at(binding));
 
 		InvalidateDescriptorSets();
@@ -187,7 +187,7 @@ namespace X2 {
 
 		m_TextureArrays[binding][arrayIndex] = texture;
 
-		const VkWriteDescriptorSet* wds = m_Shader.As<VulkanShader>()->GetDescriptorSet(name);
+		const VkWriteDescriptorSet* wds = m_Shader->GetDescriptorSet(name);
 		X2_CORE_ASSERT(wds);
 		if (m_ResidentDescriptorArrays.find(binding) == m_ResidentDescriptorArrays.end())
 		{
@@ -221,9 +221,9 @@ namespace X2 {
 			m_Textures.resize(binding + 1);
 		m_Textures[binding] = texture;
 
-		const VkWriteDescriptorSet* wds = m_Shader.As<VulkanShader>()->GetDescriptorSet(name);
+		const VkWriteDescriptorSet* wds = m_Shader->GetDescriptorSet(name);
 		X2_CORE_ASSERT(wds);
-		m_ResidentDescriptors[binding] = std::make_shared<PendingDescriptor>(PendingDescriptor{ PendingDescriptorType::VulkanTextureCube, *wds, {}, texture.As<Texture>(), nullptr });
+		m_ResidentDescriptors[binding] = std::make_shared<PendingDescriptor>(PendingDescriptor{ PendingDescriptorType::VulkanTextureCube, *wds, {}, texture, nullptr });
 		m_PendingDescriptors.push_back(m_ResidentDescriptors.at(binding));
 
 		InvalidateDescriptorSets();
@@ -232,7 +232,7 @@ namespace X2 {
 	void VulkanMaterial::SetVulkanDescriptor(const std::string& name, const Ref<VulkanImage2D>& image)
 	{
 		X2_CORE_VERIFY(image);
-		X2_CORE_ASSERT(image.As<VulkanImage2D>()->GetImageInfo().ImageView, "ImageView is null");
+		X2_CORE_ASSERT(image->GetImageInfo().ImageView, "ImageView is null");
 
 		const ShaderResourceDeclaration* resource = FindResourceDeclaration(name);
 		X2_CORE_VERIFY(resource);
@@ -247,9 +247,9 @@ namespace X2 {
 			m_Images.resize(resource->GetRegister() + 1);
 		m_Images[resource->GetRegister()] = image;
 
-		const VkWriteDescriptorSet* wds = m_Shader.As<VulkanShader>()->GetDescriptorSet(name);
+		const VkWriteDescriptorSet* wds = m_Shader->GetDescriptorSet(name);
 		X2_CORE_ASSERT(wds);
-		m_ResidentDescriptors[binding] = std::make_shared<PendingDescriptor>(PendingDescriptor{ PendingDescriptorType::VulkanImage2D, *wds, {}, nullptr, image.As<Image>() });
+		m_ResidentDescriptors[binding] = std::make_shared<PendingDescriptor>(PendingDescriptor{ PendingDescriptorType::VulkanImage2D, *wds, {}, nullptr, image });
 		m_PendingDescriptors.push_back(m_ResidentDescriptors.at(binding));
 
 		InvalidateDescriptorSets();
@@ -409,7 +409,7 @@ namespace X2 {
 		{
 			if (descriptor->Type == PendingDescriptorType::VulkanImage2D)
 			{
-				Ref<VulkanImage2D> image = descriptor->Image.As<VulkanImage2D>();
+				Ref<VulkanImage2D> image = std::dynamic_pointer_cast<VulkanImage2D>(descriptor->Image);
 				X2_CORE_ASSERT(image->GetImageInfo().ImageView, "ImageView is null");
 				if (descriptor->WDS.pImageInfo && image->GetImageInfo().ImageView != descriptor->WDS.pImageInfo->imageView)
 				{
@@ -440,19 +440,19 @@ namespace X2 {
 			{
 				if (pd->Type == PendingDescriptorType::VulkanTexture2D)
 				{
-					Ref<VulkanTexture2D> texture = pd->Texture.As<VulkanTexture2D>();
+					Ref<VulkanTexture2D> texture = std::dynamic_pointer_cast<VulkanTexture2D>(pd->Texture);
 					pd->ImageInfo = texture->GetVulkanDescriptorInfo();
 					pd->WDS.pImageInfo = &pd->ImageInfo;
 				}
 				else if (pd->Type == PendingDescriptorType::VulkanTextureCube)
 				{
-					Ref<VulkanTextureCube> texture = pd->Texture.As<VulkanTextureCube>();
+					Ref<VulkanTextureCube> texture = std::dynamic_pointer_cast<VulkanTextureCube>(pd->Texture);
 					pd->ImageInfo = texture->GetVulkanDescriptorInfo();
 					pd->WDS.pImageInfo = &pd->ImageInfo;
 				}
 				else if (pd->Type == PendingDescriptorType::VulkanImage2D)
 				{
-					Ref<VulkanImage2D> image = pd->Image.As<VulkanImage2D>();
+					Ref<VulkanImage2D> image = std::dynamic_pointer_cast<VulkanImage2D>(pd->Image);
 					pd->ImageInfo = image->GetDescriptorInfo();
 					pd->WDS.pImageInfo = &pd->ImageInfo;
 				}
@@ -466,7 +466,7 @@ namespace X2 {
 				{
 					for (auto tex : pd->Textures)
 					{
-						Ref<VulkanTexture2D> texture = tex.As<VulkanTexture2D>();
+						Ref<VulkanTexture2D> texture = std::dynamic_pointer_cast<VulkanTexture2D>(tex);
 						arrayImageInfos.emplace_back(texture->GetVulkanDescriptorInfo());
 					}
 				}
@@ -477,7 +477,7 @@ namespace X2 {
 
 		}
 
-		auto vulkanShader = m_Shader.As<VulkanShader>();
+		auto vulkanShader = m_Shader;
 		auto descriptorSet = vulkanShader->AllocateDescriptorSet();
 		m_DescriptorSets[frameIndex] = descriptorSet;
 		for (auto& writeDescriptor : m_WriteDescriptors[frameIndex])
@@ -495,7 +495,7 @@ namespace X2 {
 		{
 			if (descriptor->Type == PendingDescriptorType::VulkanImage2D)
 			{
-				Ref<VulkanImage2D> image = descriptor->Image.As<VulkanImage2D>();
+				Ref<VulkanImage2D> image = std::dynamic_pointer_cast<VulkanImage2D>(descriptor->Image);
 				X2_CORE_ASSERT(image->GetImageInfo().ImageView, "ImageView is null");
 				if (descriptor->WDS.pImageInfo && image->GetImageInfo().ImageView != descriptor->WDS.pImageInfo->imageView)
 				{
@@ -532,19 +532,19 @@ namespace X2 {
 			{
 				if (pd->Type == PendingDescriptorType::VulkanTexture2D)
 				{
-					Ref<VulkanTexture2D> texture = pd->Texture.As<VulkanTexture2D>();
+					Ref<VulkanTexture2D> texture = std::dynamic_pointer_cast<VulkanTexture2D>(pd->Texture);
 					pd->ImageInfo = texture->GetVulkanDescriptorInfo();
 					pd->WDS.pImageInfo = &pd->ImageInfo;
 				}
 				else if (pd->Type == PendingDescriptorType::VulkanTextureCube)
 				{
-					Ref<VulkanTextureCube> texture = pd->Texture.As<VulkanTextureCube>();
+					Ref<VulkanTextureCube> texture = std::dynamic_pointer_cast<VulkanTextureCube>(pd->Texture);
 					pd->ImageInfo = texture->GetVulkanDescriptorInfo();
 					pd->WDS.pImageInfo = &pd->ImageInfo;
 				}
 				else if (pd->Type == PendingDescriptorType::VulkanImage2D)
 				{
-					Ref<VulkanImage2D> image = pd->Image.As<VulkanImage2D>();
+					Ref<VulkanImage2D> image = std::dynamic_pointer_cast<VulkanImage2D>(pd->Image);
 					pd->ImageInfo = image->GetDescriptorInfo();
 					pd->WDS.pImageInfo = &pd->ImageInfo;
 				}
@@ -558,7 +558,7 @@ namespace X2 {
 				{
 					for (auto tex : pd->Textures)
 					{
-						Ref<VulkanTexture2D> texture = tex.As<VulkanTexture2D>();
+						Ref<VulkanTexture2D> texture = std::dynamic_pointer_cast<VulkanTexture2D>(tex); 
 						arrayImageInfos.emplace_back(texture->GetVulkanDescriptorInfo());
 					}
 				}
@@ -569,7 +569,7 @@ namespace X2 {
 
 		}
 
-		auto vulkanShader = m_Shader.As<VulkanShader>();
+		auto vulkanShader = m_Shader;
 		auto descriptorSet = vulkanShader->AllocateDescriptorSet();
 		m_DescriptorSets[frameIndex] = descriptorSet;
 		for (auto& writeDescriptor : m_WriteDescriptors[frameIndex])

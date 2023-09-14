@@ -82,9 +82,9 @@ namespace X2 {
 	// MeshSerializer
 	//////////////////////////////////////////////////////////////////////////////////
 
-	void MeshSerializer::Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset) const
+	void MeshSerializer::Serialize(const AssetMetadata& metadata, Asset* asset) const
 	{
-		Ref<Mesh> mesh = asset.As<Mesh>();
+		Mesh* mesh = dynamic_cast<Mesh*>(asset);
 
 		std::string yamlString = SerializeToYAML(mesh);
 
@@ -126,7 +126,7 @@ namespace X2 {
 	{
 		Ref<Mesh> mesh = AssetManager::GetAsset<Mesh>(handle);
 
-		std::string yamlString = SerializeToYAML(mesh);
+		std::string yamlString = SerializeToYAML(mesh.get());
 		outInfo.Offset = stream.GetStreamPosition();
 		stream.WriteString(yamlString);
 		outInfo.Size = stream.GetStreamPosition() - outInfo.Offset;
@@ -147,7 +147,7 @@ namespace X2 {
 		return mesh;
 	}
 
-	std::string MeshSerializer::SerializeToYAML(Ref<Mesh> mesh) const
+	std::string MeshSerializer::SerializeToYAML(Mesh* mesh) const
 	{
 		YAML::Emitter out;
 		out << YAML::BeginMap;
@@ -190,7 +190,7 @@ namespace X2 {
 			return false; // TODO(Yan): feedback to the user
 
 		auto submeshIndices = rootNode["SubmeshIndices"].as<std::vector<uint32_t>>();
-		targetMesh = Ref<Mesh>::Create(meshSource, submeshIndices);
+		targetMesh = CreateRef<Mesh>(meshSource, submeshIndices);
 		return true;
 	}
 
@@ -198,9 +198,9 @@ namespace X2 {
 	// StaticMeshSerializer
 	//////////////////////////////////////////////////////////////////////////////////
 
-	void StaticMeshSerializer::Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset) const
+	void StaticMeshSerializer::Serialize(const AssetMetadata& metadata, Asset* asset) const
 	{
-		Ref<StaticMesh> staticMesh = asset.As<StaticMesh>();
+		StaticMesh* staticMesh = dynamic_cast<StaticMesh*>(asset);
 
 		std::string yamlString = SerializeToYAML(staticMesh);
 
@@ -235,7 +235,7 @@ namespace X2 {
 	{
 		Ref<StaticMesh> staticMesh = AssetManager::GetAsset<StaticMesh>(handle);
 
-		std::string yamlString = SerializeToYAML(staticMesh);
+		std::string yamlString = SerializeToYAML(staticMesh.get());
 		outInfo.Offset = stream.GetStreamPosition();
 		stream.WriteString(yamlString);
 		outInfo.Size = stream.GetStreamPosition() - outInfo.Offset;
@@ -256,7 +256,7 @@ namespace X2 {
 		return staticMesh;
 	}
 
-	std::string StaticMeshSerializer::SerializeToYAML(Ref<StaticMesh> staticMesh) const
+	std::string StaticMeshSerializer::SerializeToYAML(StaticMesh* staticMesh) const
 	{
 		YAML::Emitter out;
 		out << YAML::BeginMap;
@@ -294,7 +294,7 @@ namespace X2 {
 			return false; // TODO(Yan): feedback to the user
 
 		auto submeshIndices = rootNode["SubmeshIndices"].as<std::vector<uint32_t>>();
-		targetStaticMesh = Ref<StaticMesh>::Create(meshSource, submeshIndices);
+		targetStaticMesh = CreateRef<StaticMesh>(meshSource, submeshIndices);
 
 		return true;
 	}

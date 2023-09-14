@@ -21,7 +21,7 @@ namespace X2 {
 		s_Serializers[AssetType::Font] = CreateScope<FontSerializer>();
 	}
 
-	void AssetImporter::Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset)
+	void AssetImporter::Serialize(const AssetMetadata& metadata, Asset* asset)
 	{
 		if (s_Serializers.find(metadata.Type) == s_Serializers.end())
 		{
@@ -32,7 +32,7 @@ namespace X2 {
 		s_Serializers[asset->GetAssetType()]->Serialize(metadata, asset);
 	}
 
-	void AssetImporter::Serialize(const Ref<Asset>& asset)
+	void AssetImporter::Serialize(Asset* asset)
 	{
 		const AssetMetadata& metadata = Project::GetEditorAssetManager()->GetMetadata(asset->Handle);
 		Serialize(metadata, asset);

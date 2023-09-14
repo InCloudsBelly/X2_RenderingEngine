@@ -21,7 +21,7 @@ namespace X2 {
 	class AssetSerializer
 	{
 	public:
-		virtual void Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset) const = 0;
+		virtual void Serialize(const AssetMetadata& metadata, Asset* asset) const = 0;
 		virtual bool TryLoadData(const AssetMetadata& metadata, Ref<Asset>& asset) const = 0;
 
 		virtual bool SerializeToAssetPack(AssetHandle handle, FileStreamWriter& stream, AssetSerializationInfo& outInfo) const = 0;
@@ -31,7 +31,7 @@ namespace X2 {
 	class TextureSerializer : public AssetSerializer
 	{
 	public:
-		virtual void Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset) const override {}
+		virtual void Serialize(const AssetMetadata& metadata, Asset* asset) const override {}
 		virtual bool TryLoadData(const AssetMetadata& metadata, Ref<Asset>& asset) const override;
 
 		virtual bool SerializeToAssetPack(AssetHandle handle, FileStreamWriter& stream, AssetSerializationInfo& outInfo) const;
@@ -41,7 +41,7 @@ namespace X2 {
 	class FontSerializer : public AssetSerializer
 	{
 	public:
-		virtual void Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset) const override {}
+		virtual void Serialize(const AssetMetadata& metadata, Asset* asset) const override {}
 		virtual bool TryLoadData(const AssetMetadata& metadata, Ref<Asset>& asset) const override;
 
 		virtual bool SerializeToAssetPack(AssetHandle handle, FileStreamWriter& stream, AssetSerializationInfo& outInfo) const;
@@ -51,20 +51,20 @@ namespace X2 {
 	class MaterialAssetSerializer : public AssetSerializer
 	{
 	public:
-		virtual void Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset) const override;
+		virtual void Serialize(const AssetMetadata& metadata, Asset* asset) const override;
 		virtual bool TryLoadData(const AssetMetadata& metadata, Ref<Asset>& asset) const override;
 
 		virtual bool SerializeToAssetPack(AssetHandle handle, FileStreamWriter& stream, AssetSerializationInfo& outInfo) const;
 		virtual Ref<Asset> DeserializeFromAssetPack(FileStreamReader& stream, const AssetPackFile::AssetInfo& assetInfo) const;
 	private:
-		std::string SerializeToYAML(Ref<MaterialAsset> materialAsset) const;
+		std::string SerializeToYAML(MaterialAsset* materialAsset) const;
 		bool DeserializeFromYAML(const std::string& yamlString, Ref<MaterialAsset>& targetMaterialAsset) const;
 	};
 
 	class EnvironmentSerializer : public AssetSerializer
 	{
 	public:
-		virtual void Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset) const override {}
+		virtual void Serialize(const AssetMetadata& metadata, Asset* asset) const override {}
 		virtual bool TryLoadData(const AssetMetadata& metadata, Ref<Asset>& asset) const override;
 
 		virtual bool SerializeToAssetPack(AssetHandle handle, FileStreamWriter& stream, AssetSerializationInfo& outInfo) const;
@@ -76,20 +76,20 @@ namespace X2 {
 	class PrefabSerializer : public AssetSerializer
 	{
 	public:
-		virtual void Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset) const override;
+		virtual void Serialize(const AssetMetadata& metadata, Asset* asset) const override;
 		virtual bool TryLoadData(const AssetMetadata& metadata, Ref<Asset>& asset) const override;
 
 		virtual bool SerializeToAssetPack(AssetHandle handle, FileStreamWriter& stream, AssetSerializationInfo& outInfo) const;
 		virtual Ref<Asset> DeserializeFromAssetPack(FileStreamReader& stream, const AssetPackFile::AssetInfo& assetInfo) const;
 	private:
-		std::string SerializeToYAML(Ref<Prefab> prefab) const;
+		std::string SerializeToYAML(Prefab* prefab) const;
 		bool DeserializeFromYAML(const std::string& yamlString, Ref<Prefab> prefab) const;
 	};
 
 	class SceneAssetSerializer : public AssetSerializer
 	{
 	public:
-		virtual void Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset) const override;
+		virtual void Serialize(const AssetMetadata& metadata, Asset* asset) const override;
 		virtual bool TryLoadData(const AssetMetadata& metadata, Ref<Asset>& asset) const override;
 
 		virtual bool SerializeToAssetPack(AssetHandle handle, FileStreamWriter& stream, AssetSerializationInfo& outInfo) const;
@@ -100,7 +100,7 @@ namespace X2 {
 	/*class MeshColliderSerializer : public AssetSerializer
 	{
 	public:
-		virtual void Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset) const override;
+		virtual void Serialize(const AssetMetadata& metadata, Asset* asset) const override;
 		virtual bool TryLoadData(const AssetMetadata& metadata, Ref<Asset>& asset) const override;
 
 		virtual bool SerializeToAssetPack(AssetHandle handle, FileStreamWriter& stream, AssetSerializationInfo& outInfo) const;
@@ -113,7 +113,7 @@ namespace X2 {
 	/*class ScriptFileSerializer : public AssetSerializer
 	{
 	public:
-		virtual void Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset) const override;
+		virtual void Serialize(const AssetMetadata& metadata, Asset* asset) const override;
 		virtual bool TryLoadData(const AssetMetadata& metadata, Ref<Asset>& asset) const override;
 
 		virtual bool SerializeToAssetPack(AssetHandle handle, FileStreamWriter& stream, AssetSerializationInfo& outInfo) const;

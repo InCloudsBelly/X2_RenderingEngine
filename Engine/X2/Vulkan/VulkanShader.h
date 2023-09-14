@@ -100,7 +100,7 @@ namespace X2 {
 	};
 
 
-	class VulkanShader : public RefCounted
+	class VulkanShader 
 	{
 	public:
 		struct ReflectionData
@@ -164,8 +164,8 @@ namespace X2 {
 		};
 
 		ShaderMaterialDescriptorSet AllocateDescriptorSet(uint32_t set = 0);
-		ShaderMaterialDescriptorSet CreateDescriptorSets(uint32_t set = 0);
-		ShaderMaterialDescriptorSet CreateDescriptorSets(uint32_t set, uint32_t numberOfSets);
+		ShaderMaterialDescriptorSet CreateOrGetDescriptorSets(uint32_t set = 0);
+		ShaderMaterialDescriptorSet CreateOrGetDescriptorSets(uint32_t set, uint32_t numberOfSets);
 		const VkWriteDescriptorSet* GetDescriptorSet(const std::string& name, uint32_t set = 0) const;
 
 		
@@ -192,6 +192,8 @@ namespace X2 {
 		//VkDescriptorPool m_DescriptorPool = nullptr;
 
 		std::unordered_map<uint32_t, std::vector<VkDescriptorPoolSize>> m_TypeCounts;
+		std::unordered_map<uint32_t, ShaderMaterialDescriptorSet> m_ShaderMtDescSets;
+
 	private:
 		friend class ShaderCache;
 		friend class ShaderPack;
@@ -202,7 +204,7 @@ namespace X2 {
 	class ShaderPack;
 
 	// This should be eventually handled by the Asset Manager
-	class ShaderLibrary : public RefCounted
+	class ShaderLibrary 
 	{
 	public:
 		ShaderLibrary();

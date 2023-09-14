@@ -7,7 +7,7 @@
 
 namespace X2
 {
-	class VulkanPhysicalDevice : public RefCounted
+	class VulkanPhysicalDevice 
 	{
 	public:
 		struct QueueFamilyIndices
@@ -32,7 +32,6 @@ namespace X2
 
 		VkFormat GetDepthFormat() const { return m_DepthFormat; }
 
-		static Ref<VulkanPhysicalDevice> Select();
 	private:
 		VkFormat FindDepthFormat() const;
 		QueueFamilyIndices GetQueueFamilyIndices(int queueFlags);
@@ -53,7 +52,7 @@ namespace X2
 		friend class VulkanDevice;
 	};
 
-	class VulkanCommandPool : public RefCounted
+	class VulkanCommandPool 
 	{
 	public:
 		VulkanCommandPool();
@@ -70,10 +69,10 @@ namespace X2
 	};
 
 	// Represents a logical device
-	class VulkanDevice : public RefCounted
+	class VulkanDevice 
 	{
 	public:
-		VulkanDevice(const Ref<VulkanPhysicalDevice>& physicalDevice, VkPhysicalDeviceFeatures enabledFeatures);
+		VulkanDevice(VulkanPhysicalDevice* physicalDevice, VkPhysicalDeviceFeatures enabledFeatures);
 		~VulkanDevice();
 
 		void Destroy();
@@ -87,14 +86,14 @@ namespace X2
 
 		VkCommandBuffer CreateSecondaryCommandBuffer(const char* debugName);
 
-		const Ref<VulkanPhysicalDevice>& GetPhysicalDevice() const { return m_PhysicalDevice; }
+		const VulkanPhysicalDevice* GetPhysicalDevice() const { return m_PhysicalDevice; }
 		VkDevice GetVulkanDevice() const { return m_LogicalDevice; }
 	private:
 		Ref<VulkanCommandPool> GetThreadLocalCommandPool();
 		Ref<VulkanCommandPool> GetOrCreateThreadLocalCommandPool();
 	private:
 		VkDevice m_LogicalDevice = nullptr;
-		Ref<VulkanPhysicalDevice> m_PhysicalDevice;
+		VulkanPhysicalDevice* m_PhysicalDevice;
 		VkPhysicalDeviceFeatures m_EnabledFeatures;
 
 		VkQueue m_GraphicsQueue;

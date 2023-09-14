@@ -12,7 +12,7 @@ namespace X2
         glm::vec4 MarkerColor;
     };
 
-	class VulkanRenderPass : public RefCounted
+	class VulkanRenderPass 
 	{
 	public:
 		VulkanRenderPass(const RenderPassSpecification& spec);

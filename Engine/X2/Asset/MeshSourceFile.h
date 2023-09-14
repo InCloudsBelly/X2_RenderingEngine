@@ -19,7 +19,7 @@ namespace X2 {
 		struct Metadata
 		{
 			uint32_t Flags;
-			AABB BoundingBox;
+			Volume::AABB BoundingBox;
 
 			uint64_t NodeArrayOffset;
 			uint64_t NodeArraySize;

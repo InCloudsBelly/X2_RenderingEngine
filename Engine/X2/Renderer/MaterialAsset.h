@@ -67,7 +67,7 @@ namespace X2 {
 		friend class MaterialEditor;
 	};
 
-	class MaterialTable : public RefCounted
+	class MaterialTable 
 	{
 	public:
 		MaterialTable(uint32_t materialCount = 1);

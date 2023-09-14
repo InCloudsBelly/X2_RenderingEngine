@@ -1544,7 +1544,7 @@ namespace X2::UI {
 					// Convert
 					else if (asset->GetAssetType() == TConversionType::GetStaticType())
 					{
-						conversionFunc(asset.As<TConversionType>());
+						conversionFunc(std::dynamic_pointer_cast<TConversionType>(asset));
 						succeeded = false; // Must be handled by conversion function
 					}
 				}
@@ -1816,7 +1816,7 @@ namespace X2::UI {
 					Ref<Asset> asset = AssetManager::GetAsset<Asset>(assetHandle);
 					if (asset && asset->GetAssetType() == T::GetStaticType())
 					{
-						targetFunc(asset.As<T>());
+						targetFunc(std::dynamic_pointer_cast<T>(asset));
 						modified = true;
 					}
 				}
@@ -1915,7 +1915,7 @@ namespace X2::UI {
 					Ref<Asset> asset = AssetManager::GetAsset<Asset>(assetHandle);
 					if (asset && asset->GetAssetType() == supportedType)
 					{
-						object = asset.As<TAssetType>();
+						object = std::dynamic_pointer_cast<TAssetType>(asset);
 						assetDropped = true;
 					}
 				}

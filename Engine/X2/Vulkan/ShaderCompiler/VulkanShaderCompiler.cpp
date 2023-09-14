@@ -202,26 +202,26 @@ namespace X2 {
 		found = name.find_last_of('.');
 		name = found != std::string::npos ? name.substr(0, found) : name;
 
-		Ref<VulkanShader> shader = Ref<VulkanShader>::Create();
+		Ref<VulkanShader> shader = CreateRef<VulkanShader>();
 		shader->m_AssetPath = shaderSourcePath;
 		shader->m_Name = name;
 		shader->m_DisableOptimization = disableOptimization;
 
-		Ref<VulkanShaderCompiler> compiler = Ref<VulkanShaderCompiler>::Create(shaderSourcePath, disableOptimization);
+		Ref<VulkanShaderCompiler> compiler = CreateRef<VulkanShaderCompiler>(shaderSourcePath, disableOptimization);
 		compiler->Reload(forceCompile);
 
 		shader->LoadAndCreateShaders(compiler->GetSPIRVData());
 		shader->SetReflectionData(compiler->m_ReflectionData);
 		shader->CreateDescriptors();
 
-		Renderer::AcknowledgeParsedGlobalMacros(compiler->GetAcknowledgedMacros(), shader);
+		Renderer::AcknowledgeParsedGlobalMacros(compiler->GetAcknowledgedMacros(), shader.get());
 		Renderer::OnShaderReloaded(shader->GetHash());
 		return shader;
 	}
 
-	bool VulkanShaderCompiler::TryRecompile(Ref<VulkanShader> shader)
+	bool VulkanShaderCompiler::TryRecompile(VulkanShader* shader)
 	{
-		Ref<VulkanShaderCompiler> compiler = Ref<VulkanShaderCompiler>::Create(shader->m_AssetPath, shader->m_DisableOptimization);
+		Ref<VulkanShaderCompiler> compiler = CreateRef<VulkanShaderCompiler>(shader->m_AssetPath, shader->m_DisableOptimization);
 		bool compileSucceeded = compiler->Reload(true);
 		if (!compileSucceeded)
 			return false;

@@ -84,12 +84,10 @@ namespace X2 {
 		}
 
 		// Create Renderer Context
-		m_RendererContext = Ref<VulkanContext>::Create();
+		m_RendererContext = std::make_unique<VulkanContext>();
 		m_RendererContext->Init();
 
-		Ref<VulkanContext> context = m_RendererContext;
-
-		m_SwapChain.Init(VulkanContext::GetInstance(), context->GetDevice());
+		m_SwapChain.Init(VulkanContext::GetInstance(), m_RendererContext->GetDevice());
 		m_SwapChain.InitSurface(m_Window);
 
 		m_SwapChain.Create(&m_Data.Width, &m_Data.Height, m_Specification.VSync);
@@ -249,7 +247,7 @@ namespace X2 {
 	void WindowsWindow::Shutdown()
 	{
 		m_SwapChain.Destroy();
-		m_RendererContext->GetDevice()->Destroy(); // need to destroy the device _before_ windows window destructor destroys the renderer context (because device Destroy() asks for renderer context...)
+		m_RendererContext->Destroy(); //Include destroy Device
 		glfwTerminate();
 		s_GLFWInitialized = false;
 	}

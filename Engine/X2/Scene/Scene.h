@@ -189,7 +189,7 @@ namespace X2 {
 
 		UUID GetUUID() const { return m_SceneID; }
 
-		static Ref<Scene> GetScene(UUID uuid);
+		static Scene* GetScene(UUID uuid);
 
 		bool IsEditorScene() const { return m_IsEditorScene; }
 		bool IsPlaying() const { return m_IsPlaying; }

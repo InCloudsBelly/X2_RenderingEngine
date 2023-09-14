@@ -83,7 +83,7 @@ namespace X2 {
 
 	Ref<MeshSource> AssimpMeshImporter::ImportToMeshSource()
 	{
-		Ref<MeshSource> meshSource = Ref<MeshSource>::Create();
+		Ref<MeshSource> meshSource = CreateRef<MeshSource>();
 
 		X2_CORE_INFO_TAG("Mesh", "Loading mesh: {0}", m_Path.string());
 
@@ -187,7 +187,7 @@ namespace X2 {
 
 			for (const auto& submesh : meshSource->m_Submeshes)
 			{
-				AABB transformedSubmeshAABB = submesh.BoundingBox;
+				Volume::AABB transformedSubmeshAABB = submesh.BoundingBox;
 				glm::vec3 min = glm::vec3(submesh.Transform * glm::vec4(transformedSubmeshAABB.Min, 1.0f));
 				glm::vec3 max = glm::vec3(submesh.Transform * glm::vec4(transformedSubmeshAABB.Max, 1.0f));
 
@@ -280,7 +280,7 @@ namespace X2 {
 			{
 				auto aiMaterial = scene->mMaterials[i];
 				auto aiMaterialName = aiMaterial->GetName();
-				X2::Ref<VulkanMaterial> mi = Ref<VulkanMaterial>::Create(Renderer::GetShaderLibrary()->Get("PBR_Static"), aiMaterialName.data);
+				X2::Ref<VulkanMaterial> mi = CreateRef<VulkanMaterial>(Renderer::GetShaderLibrary()->Get("PBR_Static"), aiMaterialName.data);
 				meshSource->m_Materials[i] = mi;
 
 				X2_MESH_LOG("  {0} (Index = {1})", aiMaterialName.data, i);
@@ -638,7 +638,7 @@ namespace X2 {
 		}
 		else
 		{
-			auto mi = Ref<VulkanMaterial>::Create(Renderer::GetShaderLibrary()->Get("PBR_Static"), "X2-Default");
+			auto mi = CreateRef<VulkanMaterial>(Renderer::GetShaderLibrary()->Get("PBR_Static"), "X2-Default");
 			mi->Set("u_MaterialUniforms.AlbedoColor", glm::vec3(0.8f));
 			mi->Set("u_MaterialUniforms.Emission", 0.0f);
 			mi->Set("u_MaterialUniforms.Metalness", 0.0f);
@@ -653,15 +653,15 @@ namespace X2 {
 
 
 		if (meshSource->m_Vertices.size())
-			meshSource->m_VertexBuffer = Ref<VulkanVertexBuffer>::Create(meshSource->m_Vertices.data(), (uint32_t)(meshSource->m_Vertices.size() * sizeof(Vertex)));
+			meshSource->m_VertexBuffer = CreateRef<VulkanVertexBuffer>(meshSource->m_Vertices.data(), (uint32_t)(meshSource->m_Vertices.size() * sizeof(Vertex)));
 
 		/*if (meshSource->HasSkeleton())
 		{
-			meshSource->m_BoneInfluenceBuffer = Ref<VulkanVertexBuffer>::Create(meshSource->m_BoneInfluences.data(), (uint32_t)(meshSource->m_BoneInfluences.size() * sizeof(BoneInfluence)));
+			meshSource->m_BoneInfluenceBuffer = CreateRef<VulkanVertexBuffer>(meshSource->m_BoneInfluences.data(), (uint32_t)(meshSource->m_BoneInfluences.size() * sizeof(BoneInfluence)));
 		}*/
 
 		if (meshSource->m_Indices.size())
-			meshSource->m_IndexBuffer = Ref<VulkanIndexBuffer>::Create(meshSource->m_Indices.data(), (uint32_t)(meshSource->m_Indices.size() * sizeof(Index)));
+			meshSource->m_IndexBuffer = CreateRef<VulkanIndexBuffer>(meshSource->m_Indices.data(), (uint32_t)(meshSource->m_Indices.size() * sizeof(Index)));
 
 
 		return meshSource;

@@ -20,6 +20,7 @@ namespace X2 {
 		virtual void OnImGuiRender() override;
 	private:
 		Ref<VulkanRenderCommandBuffer> m_RenderCommandBuffer;
+		VkDescriptorPool m_imguiDescriptorPool;
 		float m_Time = 0.0f;
 	};
 

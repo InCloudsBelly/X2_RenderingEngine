@@ -51,7 +51,7 @@ namespace X2 {
 					spec.Width = (uint32_t)(m_Width * m_Specification.Scale);
 					spec.Height = (uint32_t)(m_Height * m_Specification.Scale);
 					spec.DebugName = fmt::format("{0}-DepthAttachment{1}", m_Specification.DebugName.empty() ? "Unnamed FB" : m_Specification.DebugName, attachmentIndex);
-					m_DepthAttachmentImage = Ref<VulkanImage2D>::Create(spec);
+					m_DepthAttachmentImage = CreateRef<VulkanImage2D>(spec);
 				}
 				else
 				{
@@ -62,7 +62,7 @@ namespace X2 {
 					spec.Width = (uint32_t)(m_Width * m_Specification.Scale);
 					spec.Height = (uint32_t)(m_Height * m_Specification.Scale);
 					spec.DebugName = fmt::format("{0}-ColorAttachment{1}", m_Specification.DebugName.empty() ? "Unnamed FB" : m_Specification.DebugName, attachmentIndex);
-					m_AttachmentImages.emplace_back(Ref<VulkanImage2D>::Create(spec));
+					m_AttachmentImages.emplace_back(CreateRef<VulkanImage2D>(spec));
 				}
 				attachmentIndex++;
 			}
@@ -83,10 +83,11 @@ namespace X2 {
 		if (m_Framebuffer)
 		{
 			VkFramebuffer framebuffer = m_Framebuffer;
-			Renderer::SubmitResourceFree([framebuffer]()
+			Renderer::SubmitResourceFree([framebuffer, renderpass = m_RenderPass]()
 				{
 					const auto device = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
 					vkDestroyFramebuffer(device, framebuffer, nullptr);
+					vkDestroyRenderPass(device, renderpass, nullptr);
 				});
 
 			// Don't free the images if we don't own them
@@ -119,7 +120,7 @@ namespace X2 {
 		if (!forceRecreate && (m_Width == width && m_Height == height))
 			return;
 
-		Ref<VulkanFramebuffer> instance = this;
+		VulkanFramebuffer* instance = this;
 		Renderer::Submit([instance, width, height]() mutable
 			{
 				instance->m_Width = (uint32_t)(width * instance->m_Specification.Scale);
@@ -143,14 +144,14 @@ namespace X2 {
 			callback(this);
 	}
 
-	void VulkanFramebuffer::AddResizeCallback(const std::function<void(Ref<VulkanFramebuffer>)>& func)
+	void VulkanFramebuffer::AddResizeCallback(const std::function<void(VulkanFramebuffer*)>& func)
 	{
 		m_ResizeCallbacks.push_back(func);
 	}
 
 	void VulkanFramebuffer::Invalidate()
 	{
-		Ref< VulkanFramebuffer> instance = this;
+		VulkanFramebuffer* instance = this;
 		Renderer::Submit([instance]() mutable
 			{
 				instance->RT_Invalidate();
@@ -190,7 +191,7 @@ namespace X2 {
 				}
 				else if (m_Specification.ExistingFramebuffer)
 				{
-					Ref<VulkanFramebuffer> existingFramebuffer = m_Specification.ExistingFramebuffer.As<VulkanFramebuffer>();
+					Ref<VulkanFramebuffer> existingFramebuffer = m_Specification.ExistingFramebuffer;
 					m_DepthAttachmentImage = existingFramebuffer->GetDepthImage();
 				}
 				else if (m_Specification.ExistingImages.find(attachmentIndex) != m_Specification.ExistingImages.end())
@@ -238,15 +239,15 @@ namespace X2 {
 				Ref<VulkanImage2D> colorAttachment;
 				if (m_Specification.ExistingFramebuffer)
 				{
-					Ref<VulkanFramebuffer> existingFramebuffer = m_Specification.ExistingFramebuffer.As<VulkanFramebuffer>();
+					Ref<VulkanFramebuffer> existingFramebuffer = m_Specification.ExistingFramebuffer;
 					Ref<VulkanImage2D> existingImage = existingFramebuffer->GetImage(attachmentIndex);
-					colorAttachment = m_AttachmentImages.emplace_back(existingImage).As<VulkanImage2D>();
+					colorAttachment = m_AttachmentImages.emplace_back(existingImage);
 				}
 				else if (m_Specification.ExistingImages.find(attachmentIndex) != m_Specification.ExistingImages.end())
 				{
 					Ref<VulkanImage2D> existingImage = m_Specification.ExistingImages[attachmentIndex];
 					X2_CORE_ASSERT(!Utils::IsDepthFormat(existingImage->GetSpecification().Format), "Trying to attach depth image as color attachment");
-					colorAttachment = existingImage.As<VulkanImage2D>();
+					colorAttachment = existingImage;
 					m_AttachmentImages[attachmentIndex] = existingImage;
 				}
 				else
@@ -259,7 +260,7 @@ namespace X2 {
 						spec.Transfer = m_Specification.Transfer;
 						spec.Width = (uint32_t)(m_Width * m_Specification.Scale);
 						spec.Height = (uint32_t)(m_Height * m_Specification.Scale);
-						colorAttachment = m_AttachmentImages.emplace_back(Ref<VulkanImage2D>::Create(spec)).As<VulkanImage2D>();
+						colorAttachment = m_AttachmentImages.emplace_back(CreateRef<VulkanImage2D>(spec));
 						X2_CORE_VERIFY(false);
 
 					}
@@ -269,7 +270,7 @@ namespace X2 {
 						ImageSpecification& spec = image->GetSpecification();
 						spec.Width = (uint32_t)(m_Width * m_Specification.Scale);
 						spec.Height = (uint32_t)(m_Height * m_Specification.Scale);
-						colorAttachment = image.As<VulkanImage2D>();
+						colorAttachment = image;
 						if (colorAttachment->GetSpecification().Layers == 1)
 							colorAttachment->RT_Invalidate(); // Create immediately
 						else if (attachmentIndex == 0 && m_Specification.ExistingImageLayers[0] == 0)// Only invalidate the first layer from only the first framebuffer
@@ -380,7 +381,7 @@ namespace X2 {
 		std::vector<VkImageView> attachments(m_AttachmentImages.size());
 		for (uint32_t i = 0; i < m_AttachmentImages.size(); i++)
 		{
-			Ref<VulkanImage2D> image = m_AttachmentImages[i].As<VulkanImage2D>();
+			Ref<VulkanImage2D> image = m_AttachmentImages[i];
 			if (image->GetSpecification().Layers > 1)
 				attachments[i] = image->GetLayerImageView(m_Specification.ExistingImageLayers[i]);
 			else
@@ -390,7 +391,7 @@ namespace X2 {
 
 		if (m_DepthAttachmentImage)
 		{
-			Ref<VulkanImage2D> image = m_DepthAttachmentImage.As<VulkanImage2D>();
+			Ref<VulkanImage2D> image = m_DepthAttachmentImage;
 			if (m_Specification.ExistingImage)
 			{
 				X2_CORE_ASSERT(m_Specification.ExistingImageLayers.size() == 1, "Depth attachments do not support deinterleaving");

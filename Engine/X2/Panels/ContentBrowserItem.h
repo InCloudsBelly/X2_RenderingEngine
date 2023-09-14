@@ -48,7 +48,7 @@ namespace X2 {
 		bool IsSet(ContentBrowserAction flag) const { return (uint16_t)flag & Field; }
 	};
 
-	class ContentBrowserItem : public RefCounted
+	class ContentBrowserItem 
 	{
 	public:
 		enum class ItemType : uint16_t
@@ -101,7 +101,7 @@ namespace X2 {
 		friend class ContentBrowserPanel;
 	};
 
-	struct DirectoryInfo : public RefCounted
+	struct DirectoryInfo 
 	{
 		AssetHandle Handle;
 		Ref<DirectoryInfo> Parent;

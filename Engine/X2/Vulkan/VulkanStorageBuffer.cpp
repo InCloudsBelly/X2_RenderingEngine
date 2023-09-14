@@ -10,7 +10,7 @@ namespace X2 {
 	VulkanStorageBuffer::VulkanStorageBuffer(uint32_t size, uint32_t binding)
 		: m_Size(size), m_Binding(binding)
 	{
-		Ref<VulkanStorageBuffer> instance = this;
+		VulkanStorageBuffer* instance = this;
 		Renderer::Submit([instance]() mutable
 			{
 				instance->RT_Invalidate();
@@ -57,7 +57,8 @@ namespace X2 {
 	void VulkanStorageBuffer::SetData(const void* data, uint32_t size, uint32_t offset)
 	{
 		memcpy(m_LocalStorage, data, size);
-		Ref<VulkanStorageBuffer> instance = this;
+
+		VulkanStorageBuffer* instance = this;
 		Renderer::Submit([instance, size, offset]() mutable
 			{
 				instance->RT_SetData(instance->m_LocalStorage, size, offset);
@@ -99,7 +100,7 @@ namespace X2 {
 	void VulkanStorageBuffer::Resize(uint32_t newSize)
 	{
 		m_Size = newSize;
-		Ref<VulkanStorageBuffer> instance = this;
+		VulkanStorageBuffer* instance = this;
 		Renderer::Submit([instance]() mutable
 			{
 				instance->RT_Invalidate();

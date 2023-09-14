@@ -150,13 +150,13 @@ namespace X2 {
 	{
 		AssetHandle Mesh;
 		uint32_t SubmeshIndex = 0;
-		Ref<X2::MaterialTable> MaterialTable = Ref<X2::MaterialTable>::Create();
+		Ref<X2::MaterialTable> MaterialTable = CreateRef<X2::MaterialTable>();
 		std::vector<UUID> BoneEntityIds; // If mesh is rigged, these are the entities whose transforms will used to "skin" the rig.
 		bool Visible = true;
 
 		MeshComponent() = default;
 		MeshComponent(const MeshComponent& other)
-			: Mesh(other.Mesh), SubmeshIndex(other.SubmeshIndex), MaterialTable(Ref<X2::MaterialTable>::Create(other.MaterialTable)), BoneEntityIds(other.BoneEntityIds)
+			: Mesh(other.Mesh), SubmeshIndex(other.SubmeshIndex), MaterialTable(CreateRef<X2::MaterialTable>(other.MaterialTable)), BoneEntityIds(other.BoneEntityIds)
 		{}
 		MeshComponent(AssetHandle mesh, uint32_t submeshIndex = 0)
 			: Mesh(mesh), SubmeshIndex(submeshIndex)
@@ -166,12 +166,12 @@ namespace X2 {
 	struct StaticMeshComponent
 	{
 		AssetHandle StaticMesh;
-		Ref<X2::MaterialTable> MaterialTable = Ref<X2::MaterialTable>::Create();
+		Ref<X2::MaterialTable> MaterialTable = CreateRef<X2::MaterialTable>();
 		bool Visible = true;
 
 		StaticMeshComponent() = default;
 		StaticMeshComponent(const StaticMeshComponent& other)
-			: StaticMesh(other.StaticMesh), MaterialTable(Ref<X2::MaterialTable>::Create(other.MaterialTable))
+			: StaticMesh(other.StaticMesh), MaterialTable(CreateRef<X2::MaterialTable>(other.MaterialTable))
 		{
 		}
 		StaticMeshComponent(AssetHandle staticMesh)

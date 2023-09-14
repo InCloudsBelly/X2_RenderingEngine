@@ -110,7 +110,7 @@ namespace X2 {
 	};
 
 
-	class VulkanVertexBuffer : public RefCounted
+	class VulkanVertexBuffer 
 	{
 	public:
 		VulkanVertexBuffer(void* data, uint32_t size, VertexBufferUsage usage = VertexBufferUsage::Static);

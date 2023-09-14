@@ -30,10 +30,10 @@ namespace X2 {
 
 	bool TextureSerializer::TryLoadData(const AssetMetadata& metadata, Ref<Asset>& asset) const
 	{
-		asset = Ref<VulkanTexture2D>::Create(TextureSpecification(), Project::GetEditorAssetManager()->GetFileSystemPathString(metadata));
+		asset = CreateRef<VulkanTexture2D>(TextureSpecification(), Project::GetEditorAssetManager()->GetFileSystemPathString(metadata));
 		asset->Handle = metadata.Handle;
 
-		bool result = asset.As<VulkanTexture2D>()->Loaded();
+		bool result = dynamic_cast<VulkanTexture2D*>(asset.get())->Loaded();
 
 		if (!result)
 			asset->SetFlag(AssetFlag::Invalid, true);
@@ -47,7 +47,7 @@ namespace X2 {
 
 		auto& metadata = Project::GetEditorAssetManager()->GetMetadata(handle);
 		Ref<VulkanTexture2D> texture = AssetManager::GetAsset<VulkanTexture2D>(handle);
-		outInfo.Size = TextureRuntimeSerializer::SerializeTexture2DToFile(texture, stream);
+		outInfo.Size = TextureRuntimeSerializer::SerializeTexture2DToFile(texture.get(), stream);
 		return true;
 	}
 
@@ -65,7 +65,7 @@ namespace X2 {
 
 	bool FontSerializer::TryLoadData(const AssetMetadata& metadata, Ref<Asset>& asset) const
 	{
-		asset = Ref<Font>::Create(Project::GetEditorAssetManager()->GetFileSystemPathString(metadata));
+		asset = CreateRef<Font>(Project::GetEditorAssetManager()->GetFileSystemPathString(metadata));
 		asset->Handle = metadata.Handle;
 
 #if 0
@@ -101,16 +101,16 @@ namespace X2 {
 		Buffer fontData;
 		stream.ReadBuffer(fontData);
 
-		return Ref<Font>::Create(name, fontData);;
+		return CreateRef<Font>(name, fontData);;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////
 	// MaterialAssetSerializer
 	//////////////////////////////////////////////////////////////////////////////////
 
-	void MaterialAssetSerializer::Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset) const
+	void MaterialAssetSerializer::Serialize(const AssetMetadata& metadata, Asset* asset) const
 	{
-		Ref<MaterialAsset> materialAsset = asset.As<MaterialAsset>();
+		MaterialAsset* materialAsset = dynamic_cast<MaterialAsset*>(asset);
 
 		std::string yamlString = SerializeToYAML(materialAsset);
 
@@ -139,7 +139,7 @@ namespace X2 {
 
 	bool MaterialAssetSerializer::SerializeToAssetPack(AssetHandle handle, FileStreamWriter& stream, AssetSerializationInfo& outInfo) const
 	{
-		Ref<MaterialAsset> materialAsset = AssetManager::GetAsset<MaterialAsset>(handle);
+		MaterialAsset* materialAsset = AssetManager::GetAsset<MaterialAsset>(handle).get();
 
 		std::string yamlString = SerializeToYAML(materialAsset);
 		outInfo.Offset = stream.GetStreamPosition();
@@ -162,7 +162,7 @@ namespace X2 {
 		return materialAsset;
 	}
 
-	std::string MaterialAssetSerializer::SerializeToYAML(Ref<MaterialAsset> materialAsset) const
+	std::string MaterialAssetSerializer::SerializeToYAML(MaterialAsset* materialAsset) const
 	{
 		YAML::Emitter out;
 		out << YAML::BeginMap; // Material
@@ -191,7 +191,7 @@ namespace X2 {
 
 			{
 				Ref<VulkanTexture2D> albedoMap = materialAsset->GetAlbedoMap();
-				bool hasAlbedoMap = albedoMap ? !albedoMap.EqualsObject(Renderer::GetWhiteTexture()) : false;
+				bool hasAlbedoMap = albedoMap ? (albedoMap.get() != Renderer::GetWhiteTexture().get()) : false;
 				AssetHandle albedoMapHandle = hasAlbedoMap ? albedoMap->Handle : AssetHandle(0);
 				X2_SERIALIZE_PROPERTY(AlbedoMap, albedoMapHandle, out);
 			}
@@ -199,21 +199,21 @@ namespace X2 {
 			{
 				{
 					Ref<VulkanTexture2D> normalMap = materialAsset->GetNormalMap();
-					bool hasNormalMap = normalMap ? !normalMap.EqualsObject(Renderer::GetWhiteTexture()) : false;
+					bool hasNormalMap = normalMap ? (normalMap.get() != Renderer::GetWhiteTexture().get()): false;
 					AssetHandle normalMapHandle = hasNormalMap ? normalMap->Handle : AssetHandle(0);
 					X2_SERIALIZE_PROPERTY(NormalMap, normalMapHandle, out);
 				}
 
 				{
 					Ref<VulkanTexture2D> metallicRoughnessMap = materialAsset->GetMetallicRoughnessMap();
-					bool hasMetallicRoughnessMap = metallicRoughnessMap ? !metallicRoughnessMap.EqualsObject(Renderer::GetWhiteTexture()) : false;
+					bool hasMetallicRoughnessMap = metallicRoughnessMap ? (metallicRoughnessMap.get() != Renderer::GetWhiteTexture().get()) : false;
 					AssetHandle metalnessMapHandle = hasMetallicRoughnessMap ? metallicRoughnessMap->Handle : AssetHandle(0);
 					X2_SERIALIZE_PROPERTY(MetallicRoughnessMap, metalnessMapHandle, out);
 				}
 
 				{
 					Ref<VulkanTexture2D> emissionMap = materialAsset->GetEmissionMap();
-					bool hasEmissionMap = emissionMap ? !emissionMap.EqualsObject(Renderer::GetBlackTexture()) : false;
+					bool hasEmissionMap = emissionMap ? (emissionMap.get() != Renderer::GetBlackTexture().get()) : false;
 					AssetHandle emissionMapHandle = hasEmissionMap ? emissionMap->Handle : AssetHandle(0);
 					X2_SERIALIZE_PROPERTY(EmissionMap, emissionMapHandle, out);
 				}
@@ -249,7 +249,7 @@ namespace X2 {
 		bool transparent = false;
 		X2_DESERIALIZE_PROPERTY(Transparent, transparent, materialNode, false);
 
-		targetMaterialAsset = Ref<MaterialAsset>::Create(transparent);
+		targetMaterialAsset = CreateRef<MaterialAsset>(transparent);
 
 		X2_DESERIALIZE_PROPERTY(AlbedoColor, targetMaterialAsset->GetAlbedoColor(), materialNode, glm::vec3(0.8f));
 		X2_DESERIALIZE_PROPERTY(Emission, targetMaterialAsset->GetEmission(), materialNode, 0.0f);
@@ -330,9 +330,9 @@ namespace X2 {
 
 		Ref<Environment> environment = AssetManager::GetAsset<Environment>(handle);
 
-		uint64_t size = TextureRuntimeSerializer::SerializeToFile(environment->RawEnvMap, stream);
-		size = TextureRuntimeSerializer::SerializeToFile(environment->RadianceMap, stream);
-		size = TextureRuntimeSerializer::SerializeToFile(environment->IrradianceMap, stream);
+		uint64_t size = TextureRuntimeSerializer::SerializeToFile(environment->RawEnvMap.get(), stream);
+		size = TextureRuntimeSerializer::SerializeToFile(environment->RadianceMap.get(), stream);
+		size = TextureRuntimeSerializer::SerializeToFile(environment->IrradianceMap.get(), stream);
 
 		// Serialize as just generic VulkanTextureCube maybe?
 		struct EnvironmentMapMetadata
@@ -351,7 +351,7 @@ namespace X2 {
 		Ref<VulkanTextureCube> rawEnvMap = TextureRuntimeSerializer::DeserializeTextureCube(stream);
 		Ref<VulkanTextureCube> radianceMap = TextureRuntimeSerializer::DeserializeTextureCube(stream);
 		Ref<VulkanTextureCube> irradianceMap = TextureRuntimeSerializer::DeserializeTextureCube(stream);
-		return Ref<Environment>::Create(rawEnvMap, radianceMap, irradianceMap);
+		return CreateRef<Environment>(rawEnvMap, radianceMap, irradianceMap);
 	}
 
 
@@ -359,9 +359,9 @@ namespace X2 {
 	// PrefabSerializer
 	//////////////////////////////////////////////////////////////////////////////////
 
-	void PrefabSerializer::Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset) const
+	void PrefabSerializer::Serialize(const AssetMetadata& metadata, Asset* asset) const
 	{
-		Ref<Prefab> prefab = asset.As<Prefab>();
+		Prefab* prefab = dynamic_cast<Prefab*>(asset);
 
 		std::string yamlString = SerializeToYAML(prefab);
 
@@ -378,7 +378,7 @@ namespace X2 {
 		std::stringstream strStream;
 		strStream << stream.rdbuf();
 
-		Ref<Prefab> prefab = Ref<Prefab>::Create();
+		Ref<Prefab> prefab = CreateRef<Prefab>();
 		bool success = DeserializeFromYAML(strStream.str(), prefab);
 		if (!success)
 			return false;
@@ -392,7 +392,7 @@ namespace X2 {
 	{
 		Ref<Prefab> prefab = AssetManager::GetAsset<Prefab>(handle);
 
-		std::string yamlString = SerializeToYAML(prefab);
+		std::string yamlString = SerializeToYAML(prefab.get());
 		outInfo.Offset = stream.GetStreamPosition();
 		stream.WriteString(yamlString);
 		outInfo.Size = stream.GetStreamPosition() - outInfo.Offset;
@@ -405,7 +405,7 @@ namespace X2 {
 		std::string yamlString;
 		stream.ReadString(yamlString);
 
-		Ref<Prefab> prefab = Ref<Prefab>::Create();
+		Ref<Prefab> prefab = CreateRef<Prefab>();
 		bool result = DeserializeFromYAML(yamlString, prefab);
 		if (!result)
 			return nullptr;
@@ -413,7 +413,7 @@ namespace X2 {
 		return prefab;
 	}
 
-	std::string PrefabSerializer::SerializeToYAML(Ref<Prefab> prefab) const
+	std::string PrefabSerializer::SerializeToYAML(Prefab* prefab) const
 	{
 		YAML::Emitter out;
 
@@ -423,7 +423,7 @@ namespace X2 {
 
 		prefab->m_Scene->m_Registry.each([&](auto entityID)
 			{
-				Entity entity = { entityID, prefab->m_Scene.Raw() };
+				Entity entity = { entityID, prefab->m_Scene.get() };
 				if (!entity || !entity.HasComponent<IDComponent>())
 					return;
 
@@ -443,7 +443,7 @@ namespace X2 {
 			return false;
 
 		YAML::Node prefabNode = data["Prefab"];
-		SceneSerializer::DeserializeEntities(prefabNode, prefab->m_Scene);
+		SceneSerializer::DeserializeEntities(prefabNode, prefab->m_Scene.get());
 		return true;
 	}
 
@@ -451,24 +451,24 @@ namespace X2 {
 	// SceneAssetSerializer
 	//////////////////////////////////////////////////////////////////////////////////
 
-	void SceneAssetSerializer::Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset) const
+	void SceneAssetSerializer::Serialize(const AssetMetadata& metadata, Asset* asset) const
 	{
-		SceneSerializer serializer(asset.As<Scene>());
+		SceneSerializer serializer(dynamic_cast<Scene*>(asset));
 		serializer.Serialize(Project::GetEditorAssetManager()->GetFileSystemPath(metadata).string());
 	}
 
 	bool SceneAssetSerializer::TryLoadData(const AssetMetadata& metadata, Ref<Asset>& asset) const
 	{
-		asset = Ref<Scene>::Create("SceneAsset", false, false);
+		asset = CreateRef<Scene>("SceneAsset", false, false);
 		asset->Handle = metadata.Handle;
 		return true;
 	}
 
 	bool SceneAssetSerializer::SerializeToAssetPack(AssetHandle handle, FileStreamWriter& stream, AssetSerializationInfo& outInfo) const
 	{
-		Ref<Scene> scene = Ref<Scene>::Create("AssetPackTemp", true, false);
+		Ref<Scene> scene = CreateRef<Scene>("AssetPackTemp", true, false);
 		const auto& metadata = Project::GetEditorAssetManager()->GetMetadata(handle);
-		SceneSerializer serializer(scene);
+		SceneSerializer serializer(scene.get());
 		if (serializer.Deserialize(Project::GetAssetDirectory() / metadata.FilePath))
 		{
 			return serializer.SerializeToAssetPack(stream, outInfo);
@@ -484,8 +484,8 @@ namespace X2 {
 
 	Ref<Scene> SceneAssetSerializer::DeserializeSceneFromAssetPack(FileStreamReader& stream, const AssetPackFile::SceneInfo& sceneInfo) const
 	{
-		Ref<Scene> scene = Ref<Scene>::Create();
-		SceneSerializer serializer(scene);
+		Ref<Scene> scene = CreateRef<Scene>();
+		SceneSerializer serializer(scene.get());
 		if (serializer.DeserializeFromAssetPack(stream, sceneInfo))
 			return scene;
 
@@ -496,7 +496,7 @@ namespace X2 {
 	// MeshColliderSerializer
 	//////////////////////////////////////////////////////////////////////////////////
 
-	//void MeshColliderSerializer::Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset) const
+	//void MeshColliderSerializer::Serialize(const AssetMetadata& metadata, Asset* asset) const
 	//{
 	//	Ref<MeshColliderAsset> meshCollider = asset.As<MeshColliderAsset>();
 
@@ -599,7 +599,7 @@ namespace X2 {
 	// ScriptFileSerializer
 	//////////////////////////////////////////////////////////////////////////////////
 
-	//void ScriptFileSerializer::Serialize(const AssetMetadata& metadata, const Ref<Asset>& asset) const
+	//void ScriptFileSerializer::Serialize(const AssetMetadata& metadata, Asset* asset) const
 	//{
 	//	std::ofstream stream(Project::GetEditorAssetManager()->GetFileSystemPath(metadata));
 	//	X2_CORE_VERIFY(stream.is_open());

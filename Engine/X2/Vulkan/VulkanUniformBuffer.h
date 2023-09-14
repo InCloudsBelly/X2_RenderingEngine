@@ -5,7 +5,7 @@
 
 namespace X2 {
 
-	class VulkanUniformBuffer : public RefCounted
+	class VulkanUniformBuffer 
 	{
 	public:
 		VulkanUniformBuffer(uint32_t size, uint32_t binding);

@@ -10,7 +10,7 @@
 
 namespace X2 {
 
-	static std::map<VkImage, WeakRef<VulkanImage2D>> s_ImageReferences;
+	static std::map<VkImage, VulkanImage2D*> s_ImageReferences;
 
 	VulkanImage2D::VulkanImage2D(const ImageSpecification& specification)
 		: m_Specification(specification)
@@ -23,7 +23,7 @@ namespace X2 {
 		if (m_Info.Image)
 		{
 			const VulkanImageInfo& info = m_Info;
-			Renderer::SubmitResourceFree([info, layerViews = m_PerLayerImageViews]()
+			Renderer::SubmitResourceFree([info, layerViews = m_PerLayerImageViews, name = m_Specification.DebugName]()
 				{
 					const auto vulkanDevice = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
 					vkDestroyImageView(vulkanDevice, info.ImageView, nullptr);
@@ -39,7 +39,7 @@ namespace X2 {
 					allocator.DestroyImage(info.Image, info.MemoryAlloc);
 					s_ImageReferences.erase(info.Image);
 
-					X2_CORE_WARN_TAG("Renderer", "VulkanImage2D::Release ImageView = {0}", (const void*)info.ImageView);
+					//X2_CORE_WARN("Renderer: VulkanImage2D::Release ImageView = {0}", (const void*)info.ImageView);
 				});
 			m_PerLayerImageViews.clear();
 		}
@@ -47,7 +47,7 @@ namespace X2 {
 
 	void VulkanImage2D::Invalidate()
 	{
-		Ref<VulkanImage2D> instance = this;
+		VulkanImage2D* instance = this;
 		Renderer::Submit([instance]() mutable
 			{
 				instance->RT_Invalidate();
@@ -270,7 +270,7 @@ namespace X2 {
 
 	void VulkanImage2D::CreatePerLayerImageViews()
 	{
-		Ref<VulkanImage2D> instance = this;
+		VulkanImage2D* instance = this;
 		Renderer::Submit([instance]() mutable
 			{
 				instance->RT_CreatePerLayerImageViews();
@@ -313,7 +313,7 @@ namespace X2 {
 	{
 		if (m_PerMipImageViews.find(mip) == m_PerMipImageViews.end())
 		{
-			Ref<VulkanImage2D> instance = this;
+			VulkanImage2D* instance = this;
 			Renderer::Submit([instance, mip]() mutable
 				{
 					instance->RT_GetMipImageView(mip);
@@ -420,7 +420,7 @@ namespace X2 {
 		//X2_CORE_WARN_TAG("Renderer", "VulkanImage2D::UpdateDescriptor to ImageView = {0}", (const void*)m_Info.ImageView);
 	}
 
-	const std::map<VkImage, WeakRef<VulkanImage2D>>& VulkanImage2D::GetImageRefs()
+	const std::map<VkImage, VulkanImage2D*>& VulkanImage2D::GetImageRefs()
 	{
 		return s_ImageReferences;
 	}
@@ -587,6 +587,7 @@ VkFormat X2::Utils::VulkanImageFormat(ImageFormat format)
 	case ImageFormat::RGBA:					return VK_FORMAT_R8G8B8A8_UNORM;
 	case ImageFormat::RGBA16F:				return VK_FORMAT_R16G16B16A16_SFLOAT;
 	case ImageFormat::RGBA32F:				return VK_FORMAT_R32G32B32A32_SFLOAT;
+	case ImageFormat::A2B10G10R10U:			return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
 	case ImageFormat::B10R11G11UF:			return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
 	case ImageFormat::DEPTH32FSTENCIL8UINT: return VK_FORMAT_D32_SFLOAT_S8_UINT;
 	case ImageFormat::DEPTH32F:				return VK_FORMAT_D32_SFLOAT;

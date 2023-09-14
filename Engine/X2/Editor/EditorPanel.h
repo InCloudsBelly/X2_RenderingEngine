@@ -7,7 +7,7 @@
 
 namespace X2 {
 
-	class EditorPanel : public RefCounted
+	class EditorPanel 
 	{
 	public:
 		virtual ~EditorPanel() = default;

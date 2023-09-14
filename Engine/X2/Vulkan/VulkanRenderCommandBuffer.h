@@ -9,7 +9,7 @@
 
 namespace X2 {
 
-	class VulkanRenderCommandBuffer : public RefCounted
+	class VulkanRenderCommandBuffer 
 	{
 	public:
 		VulkanRenderCommandBuffer(uint32_t count = 0, std::string debugName = "");

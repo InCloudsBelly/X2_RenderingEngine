@@ -9,7 +9,7 @@
 
 namespace X2 {
 
-	class ShaderPack : public RefCounted
+	class ShaderPack 
 	{
 	public:
 		ShaderPack() = default;

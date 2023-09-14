@@ -42,7 +42,7 @@ namespace X2 {
 		virtual void SubmitFullscreenQuad(Ref<VulkanRenderCommandBuffer> renderCommandBuffer, Ref<VulkanPipeline> pipeline, Ref<VulkanUniformBufferSet> uniformBufferSet, Ref<VulkanStorageBufferSet> storageBufferSet, Ref<VulkanMaterial> material) ;
 		virtual void SubmitFullscreenQuadWithOverrides(Ref<VulkanRenderCommandBuffer> renderCommandBuffer, Ref<VulkanPipeline> pipeline, Ref<VulkanUniformBufferSet> uniformBufferSet, Ref<VulkanMaterial> material, Buffer vertexShaderOverrides, Buffer fragmentShaderOverrides) ;
 
-		virtual void SetSceneEnvironment(Ref<SceneRenderer> sceneRenderer, Ref<Environment> environment, Ref<VulkanImage2D> shadow, Ref<VulkanImage2D> spotShadow) ;
+		virtual void SetSceneEnvironment(SceneRenderer* sceneRenderer, Ref<Environment> environment, Ref<VulkanImage2D> shadow, Ref<VulkanImage2D> spotShadow) ;
 
 		virtual Ref<Environment> CreateEnvironmentMap(const std::string& filepath) ;
 		virtual Ref<VulkanTextureCube> CreatePreethamSky(float turbidity, float azimuth, float inclination) ;
@@ -66,6 +66,8 @@ namespace X2 {
 		static uint32_t GetDescriptorAllocationCount(uint32_t frameIndex = 0);
 
 		static int32_t& GetSelectedDrawCall();
+
+		static void ReleaseResoueces();
 	public:
 		static VkDescriptorSet RT_AllocateDescriptorSet(VkDescriptorSetAllocateInfo& allocInfo);
 	};

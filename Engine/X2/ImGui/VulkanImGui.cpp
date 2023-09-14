@@ -17,7 +17,7 @@ namespace X2::UI {
 	ImTextureID GetTextureID(Ref<VulkanTexture2D> texture)
 	{
 
-		Ref<VulkanTexture2D> vulkanTexture = texture.As<VulkanTexture2D>();
+		Ref<VulkanTexture2D> vulkanTexture = texture;
 		const VkDescriptorImageInfo& imageInfo = vulkanTexture->GetVulkanDescriptorInfo();
 		if (!imageInfo.imageView)
 			return nullptr;
@@ -29,7 +29,7 @@ namespace X2::UI {
 
 	void Image(const Ref<VulkanImage2D>& image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
 	{
-		Ref<VulkanImage2D> vulkanImage = image.As<VulkanImage2D>();
+		Ref<VulkanImage2D> vulkanImage = image;
 		const auto& imageInfo = vulkanImage->GetImageInfo();
 		if (!imageInfo.ImageView)
 			return;
@@ -39,7 +39,7 @@ namespace X2::UI {
 
 	void Image(const Ref<VulkanImage2D>& image, uint32_t imageLayer, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
 	{
-			Ref<VulkanImage2D> vulkanImage = image.As<VulkanImage2D>();
+			Ref<VulkanImage2D> vulkanImage = image;
 			auto imageInfo = vulkanImage->GetImageInfo();
 			imageInfo.ImageView = vulkanImage->GetLayerImageView(imageLayer);
 			if (!imageInfo.ImageView)
@@ -50,7 +50,7 @@ namespace X2::UI {
 
 	void ImageMip(const Ref<VulkanImage2D>& image, uint32_t mip, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
 	{
-		Ref<VulkanImage2D> vulkanImage = image.As<VulkanImage2D>();
+		Ref<VulkanImage2D> vulkanImage = image;
 		auto imageInfo = vulkanImage->GetImageInfo();
 		imageInfo.ImageView = vulkanImage->GetMipImageView(mip);
 		if (!imageInfo.ImageView)
@@ -62,7 +62,7 @@ namespace X2::UI {
 
 	void Image(const Ref<VulkanTexture2D>& texture, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, const ImVec4& tint_col, const ImVec4& border_col)
 	{
-		Ref<VulkanTexture2D> vulkanTexture = texture.As<VulkanTexture2D>();
+		Ref<VulkanTexture2D> vulkanTexture = texture;
 		const VkDescriptorImageInfo& imageInfo = vulkanTexture->GetVulkanDescriptorInfo();
 		if (!imageInfo.imageView)
 			return;
@@ -77,7 +77,7 @@ namespace X2::UI {
 
 	bool ImageButton(const char* stringID, const Ref<VulkanImage2D>& image, const ImVec2& size, const ImVec2& uv0, const ImVec2& uv1, int frame_padding, const ImVec4& bg_col, const ImVec4& tint_col)
 	{
-		Ref<VulkanImage2D> vulkanImage = image.As<VulkanImage2D>();
+		Ref<VulkanImage2D> vulkanImage = image;
 		const auto& imageInfo = vulkanImage->GetImageInfo();
 		if (!imageInfo.ImageView)
 			return false;
@@ -103,7 +103,7 @@ namespace X2::UI {
 			return false;
 
 
-		Ref<VulkanTexture2D> vulkanTexture = texture.As<VulkanTexture2D>();
+		Ref<VulkanTexture2D> vulkanTexture = texture;
 			
 		// This is technically okay, could mean that GPU just hasn't created the texture yet
 		X2_CORE_VERIFY(vulkanTexture->GetImage()); 

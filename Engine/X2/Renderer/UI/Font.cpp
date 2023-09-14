@@ -9,20 +9,19 @@
 
 namespace X2 {
 
-	using namespace msdf_atlas;
 
 	struct FontInput {
 		Buffer fontData;
-		GlyphIdentifierType glyphIdentifierType;
+		msdf_atlas::GlyphIdentifierType glyphIdentifierType;
 		const char* charsetFilename;
 		double fontScale;
 		const char* fontName;
 	};
 
 	struct Configuration {
-		ImageType imageType;
+		msdf_atlas::ImageType imageType;
 		msdf_atlas::ImageFormat imageFormat;
-		YDirection yDirection;
+		msdf_atlas::YDirection yDirection;
 		int width, height;
 		double emSize;
 		double pxRange;
@@ -31,7 +30,7 @@ namespace X2 {
 		void (*edgeColoring)(msdfgen::Shape&, double, unsigned long long);
 		bool expensiveColoring;
 		unsigned long long coloringSeed;
-		GeneratorAttributes generatorAttributes;
+		msdf_atlas::GeneratorAttributes generatorAttributes;
 	};
 
 #define DEFAULT_ANGLE_THRESHOLD 3.0
@@ -96,10 +95,10 @@ namespace X2 {
 		stream.write((char*)pixels, header.Width * header.Height * sizeof(float) * 4);
 	}
 
-	template <typename T, typename S, int N, GeneratorFunction<S, N> GEN_FN>
-	static Ref<VulkanTexture2D> CreateAndCacheAtlas(const std::string& fontName, float fontSize, const std::vector<GlyphGeometry>& glyphs, const FontGeometry& fontGeometry, const Configuration& config)
+	template <typename T, typename S, int N, msdf_atlas::GeneratorFunction<S, N> GEN_FN>
+	static Ref<VulkanTexture2D> CreateAndCacheAtlas(const std::string& fontName, float fontSize, const std::vector<msdf_atlas::GlyphGeometry>& glyphs, const msdf_atlas::FontGeometry& fontGeometry, const Configuration& config)
 	{
-		ImmediateAtlasGenerator<S, N, GEN_FN, BitmapAtlasStorage<T, N>> generator(config.width, config.height);
+		msdf_atlas::ImmediateAtlasGenerator<S, N, GEN_FN, msdf_atlas::BitmapAtlasStorage<T, N>> generator(config.width, config.height);
 		generator.setAttributes(config.generatorAttributes);
 		generator.setThreadCount(THREADS);
 		generator.generate(glyphs.data(), (int)glyphs.size());
@@ -118,7 +117,7 @@ namespace X2 {
 		spec.GenerateMips = false;
 		spec.SamplerWrap = TextureWrap::Clamp;
 		spec.DebugName = "FontAtlas";
-		Ref<VulkanTexture2D> texture = Ref<VulkanTexture2D>::Create(spec, bitmap.pixels);
+		Ref<VulkanTexture2D> texture = CreateRef<VulkanTexture2D>(spec, bitmap.pixels);
 		return texture;
 	}
 
@@ -131,7 +130,7 @@ namespace X2 {
 		spec.GenerateMips = false;
 		spec.SamplerWrap = TextureWrap::Clamp;
 		spec.DebugName = "FontAtlas";
-		Ref<VulkanTexture2D> texture = Ref<VulkanTexture2D>::Create(spec, pixels);
+		Ref<VulkanTexture2D> texture = CreateRef<VulkanTexture2D>(spec, pixels);
 		return texture;
 	}
 
@@ -162,11 +161,11 @@ namespace X2 {
 		FontInput fontInput = { };
 		Configuration config = { };
 		fontInput.fontData = buffer;
-		fontInput.glyphIdentifierType = GlyphIdentifierType::UNICODE_CODEPOINT;
+		fontInput.glyphIdentifierType = msdf_atlas::GlyphIdentifierType::UNICODE_CODEPOINT;
 		fontInput.fontScale = -1;
-		config.imageType = ImageType::MSDF;
+		config.imageType = msdf_atlas::ImageType::MSDF;
 		config.imageFormat = msdf_atlas::ImageFormat::BINARY_FLOAT;
-		config.yDirection = YDirection::BOTTOM_UP;
+		config.yDirection = msdf_atlas::YDirection::BOTTOM_UP;
 		config.edgeColoring = msdfgen::edgeColoringInkTrap;
 		const char* imageFormatName = nullptr;
 		int fixedWidth = -1, fixedHeight = -1;
@@ -174,10 +173,10 @@ namespace X2 {
 		config.generatorAttributes.scanlinePass = true;
 		double minEmSize = 0;
 		double rangeValue = 2.0;
-		TightAtlasPacker::DimensionsConstraint atlasSizeConstraint = TightAtlasPacker::DimensionsConstraint::MULTIPLE_OF_FOUR_SQUARE;
+		msdf_atlas::TightAtlasPacker::DimensionsConstraint atlasSizeConstraint = msdf_atlas::TightAtlasPacker::DimensionsConstraint::MULTIPLE_OF_FOUR_SQUARE;
 		config.angleThreshold = DEFAULT_ANGLE_THRESHOLD;
 		config.miterLimit = DEFAULT_MITER_LIMIT;
-		config.imageType = ImageType::MTSDF;
+		config.imageType = msdf_atlas::ImageType::MTSDF;
 
 		config.emSize = 40;
 
@@ -222,8 +221,8 @@ namespace X2 {
 			fontInput.fontScale = 1;
 
 		// Load character set
-		fontInput.glyphIdentifierType = GlyphIdentifierType::UNICODE_CODEPOINT;
-		Charset charset;
+		fontInput.glyphIdentifierType = msdf_atlas::GlyphIdentifierType::UNICODE_CODEPOINT;
+		msdf_atlas::Charset charset;
 
 		// From ImGui
 		static const uint32_t charsetRanges[] =
@@ -242,14 +241,14 @@ namespace X2 {
 		}
 
 		// Load glyphs
-		m_MSDFData->FontGeometry = FontGeometry(&m_MSDFData->Glyphs);
+		m_MSDFData->FontGeometry = msdf_atlas::FontGeometry(&m_MSDFData->Glyphs);
 		int glyphsLoaded = -1;
 		switch (fontInput.glyphIdentifierType)
 		{
-		case GlyphIdentifierType::GLYPH_INDEX:
+		case msdf_atlas::GlyphIdentifierType::GLYPH_INDEX:
 			glyphsLoaded = m_MSDFData->FontGeometry.loadGlyphset(font, fontInput.fontScale, charset);
 			break;
-		case GlyphIdentifierType::UNICODE_CODEPOINT:
+		case msdf_atlas::GlyphIdentifierType::UNICODE_CODEPOINT:
 			glyphsLoaded = m_MSDFData->FontGeometry.loadCharset(font, fontInput.fontScale, charset);
 			anyCodepointsAvailable |= glyphsLoaded > 0;
 			break;
@@ -260,7 +259,7 @@ namespace X2 {
 		// List missing glyphs
 		if (glyphsLoaded < (int)charset.size())
 		{
-			X2_CORE_WARN_TAG("Renderer", "Missing {0} {1}", (int)charset.size() - glyphsLoaded, fontInput.glyphIdentifierType == GlyphIdentifierType::UNICODE_CODEPOINT ? "codepoints" : "glyphs");
+			X2_CORE_WARN_TAG("Renderer", "Missing {0} {1}", (int)charset.size() - glyphsLoaded, fontInput.glyphIdentifierType == msdf_atlas::GlyphIdentifierType::UNICODE_CODEPOINT ? "codepoints" : "glyphs");
 		}
 
 		if (fontInput.fontName)
@@ -274,12 +273,12 @@ namespace X2 {
 		double pxRange = rangeValue;
 		bool fixedDimensions = fixedWidth >= 0 && fixedHeight >= 0;
 		bool fixedScale = config.emSize > 0;
-		TightAtlasPacker atlasPacker;
+		msdf_atlas::TightAtlasPacker atlasPacker;
 		if (fixedDimensions)
 			atlasPacker.setDimensions(fixedWidth, fixedHeight);
 		else
 			atlasPacker.setDimensionsConstraint(atlasSizeConstraint);
-		atlasPacker.setPadding(config.imageType == ImageType::MSDF || config.imageType == ImageType::MTSDF ? 0 : -1);
+		atlasPacker.setPadding(config.imageType == msdf_atlas::ImageType::MSDF || config.imageType == msdf_atlas::ImageType::MTSDF ? 0 : -1);
 		// TODO: In this case (if padding is -1), the border pixels of each glyph are black, but still computed. For floating-point output, this may play a role.
 		if (fixedScale)
 			atlasPacker.setScale(config.emSize);
@@ -310,11 +309,11 @@ namespace X2 {
 
 
 		// Edge coloring
-		if (config.imageType == ImageType::MSDF || config.imageType == ImageType::MTSDF)
+		if (config.imageType == msdf_atlas::ImageType::MSDF || config.imageType == msdf_atlas::ImageType::MTSDF)
 		{
 			if (config.expensiveColoring)
 			{
-				Workload([&glyphs = m_MSDFData->Glyphs, &config](int i, int threadNo) -> bool
+				msdf_atlas::Workload([&glyphs = m_MSDFData->Glyphs, &config](int i, int threadNo) -> bool
 					{
 						unsigned long long glyphSeed = (LCG_MULTIPLIER * (config.coloringSeed ^ i) + LCG_INCREMENT) * !!config.coloringSeed;
 						glyphs[i].edgeColoring(config.edgeColoring, config.angleThreshold, glyphSeed);
@@ -324,7 +323,7 @@ namespace X2 {
 			else
 			{
 				unsigned long long glyphSeed = config.coloringSeed;
-				for (GlyphGeometry& glyph : m_MSDFData->Glyphs)
+				for (msdf_atlas::GlyphGeometry& glyph : m_MSDFData->Glyphs)
 				{
 					glyphSeed *= LCG_MULTIPLIER;
 					glyph.edgeColoring(config.edgeColoring, config.angleThreshold, glyphSeed);
@@ -347,17 +346,17 @@ namespace X2 {
 			Ref<VulkanTexture2D> texture;
 			switch (config.imageType)
 			{
-			case ImageType::MSDF:
+			case msdf_atlas::ImageType::MSDF:
 				if (floatingPointFormat)
-					texture = CreateAndCacheAtlas<float, float, 3, msdfGenerator>(m_Name, (float)config.emSize, m_MSDFData->Glyphs, m_MSDFData->FontGeometry, config);
+					texture = CreateAndCacheAtlas<float, float, 3, msdf_atlas::msdfGenerator>(m_Name, (float)config.emSize, m_MSDFData->Glyphs, m_MSDFData->FontGeometry, config);
 				else
-					texture = CreateAndCacheAtlas<byte, float, 3, msdfGenerator>(m_Name, (float)config.emSize, m_MSDFData->Glyphs, m_MSDFData->FontGeometry, config);
+					texture = CreateAndCacheAtlas<byte, float, 3, msdf_atlas::msdfGenerator>(m_Name, (float)config.emSize, m_MSDFData->Glyphs, m_MSDFData->FontGeometry, config);
 				break;
-			case ImageType::MTSDF:
+			case msdf_atlas::ImageType::MTSDF:
 				if (floatingPointFormat)
-					texture = CreateAndCacheAtlas<float, float, 4, mtsdfGenerator>(m_Name, (float)config.emSize, m_MSDFData->Glyphs, m_MSDFData->FontGeometry, config);
+					texture = CreateAndCacheAtlas<float, float, 4, msdf_atlas::mtsdfGenerator>(m_Name, (float)config.emSize, m_MSDFData->Glyphs, m_MSDFData->FontGeometry, config);
 				else
-					texture = CreateAndCacheAtlas<byte, float, 4, mtsdfGenerator>(m_Name, (float)config.emSize, m_MSDFData->Glyphs, m_MSDFData->FontGeometry, config);
+					texture = CreateAndCacheAtlas<byte, float, 4, msdf_atlas::mtsdfGenerator>(m_Name, (float)config.emSize, m_MSDFData->Glyphs, m_MSDFData->FontGeometry, config);
 				break;
 			}
 
@@ -369,12 +368,12 @@ namespace X2 {
 
 	void Font::Init()
 	{
-		s_DefaultFont = Ref<Font>::Create("Resources/Fonts/opensans/OpenSans-Regular.ttf");
+		s_DefaultFont = CreateRef<Font>("Resources/Fonts/opensans/OpenSans-Regular.ttf");
 	}
 
 	void Font::Shutdown()
 	{
-		s_DefaultFont.Reset();
+		s_DefaultFont.reset();
 	}
 
 	Ref<Font> Font::GetDefaultFont()

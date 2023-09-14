@@ -147,9 +147,9 @@ namespace X2 {
 
 						for (auto entity : m_Context->GetAllEntitiesWith<IDComponent, RelationshipComponent>())
 						{
-							Entity e(entity, m_Context.Raw());
+							Entity e(entity, m_Context.get());
 							if (e.GetParentUUID() == 0)
-								DrawEntityNode({ entity, m_Context.Raw() }, searchedString);
+								DrawEntityNode({ entity, m_Context.get() }, searchedString);
 						}
 					}
 
@@ -307,7 +307,7 @@ namespace X2 {
 						Ref<Asset> asset = AssetManager::GetAsset<Asset>(assetHandle);
 						if (asset)
 						{
-							Ref<StaticMesh> mesh = Project::GetEditorAssetManager()->CreateNewAsset<StaticMesh>("Cube.xsmesh", targetFilePath, asset.As<MeshSource>());
+							Ref<StaticMesh> mesh = Project::GetEditorAssetManager()->CreateNewAsset<StaticMesh>("Cube.xsmesh", targetFilePath, std::dynamic_pointer_cast<MeshSource>(asset));
 
 							newEntity.AddComponent<StaticMeshComponent>(mesh->Handle);
 							//newEntity.AddComponent<BoxColliderComponent>();
@@ -337,7 +337,7 @@ namespace X2 {
 						Ref<Asset> asset = AssetManager::GetAsset<Asset>(assetHandle);
 						if (asset)
 						{
-							Ref<StaticMesh> mesh = Project::GetEditorAssetManager()->CreateNewAsset<StaticMesh>("Sphere.xsmesh", targetFilePath, asset.As<MeshSource>());
+							Ref<StaticMesh> mesh = Project::GetEditorAssetManager()->CreateNewAsset<StaticMesh>("Sphere.xsmesh", targetFilePath, std::dynamic_pointer_cast<MeshSource>(asset));
 
 							newEntity.AddComponent<StaticMeshComponent>(mesh->Handle);
 							//newEntity.AddComponent<SphereColliderComponent>();
@@ -368,7 +368,7 @@ namespace X2 {
 						Ref<Asset> asset = AssetManager::GetAsset<Asset>(assetHandle);
 						if (asset)
 						{
-							Ref<StaticMesh> mesh = Project::GetEditorAssetManager()->CreateNewAsset<StaticMesh>("Capsule.xsmesh", targetFilePath, asset.As<MeshSource>());
+							Ref<StaticMesh> mesh = Project::GetEditorAssetManager()->CreateNewAsset<StaticMesh>("Capsule.xsmesh", targetFilePath, std::dynamic_pointer_cast<MeshSource>(asset));
 
 							newEntity.AddComponent<StaticMeshComponent>(mesh->Handle);
 							//newEntity.AddComponent<CapsuleColliderComponent>();
@@ -400,7 +400,7 @@ namespace X2 {
 						Ref<Asset> asset = AssetManager::GetAsset<Asset>(assetHandle);
 						if (asset)
 						{
-							Ref<StaticMesh> mesh = Project::GetEditorAssetManager()->CreateNewAsset<StaticMesh>("Cylinder.xsmesh", targetFilePath, asset.As<MeshSource>());
+							Ref<StaticMesh> mesh = Project::GetEditorAssetManager()->CreateNewAsset<StaticMesh>("Cylinder.xsmesh", targetFilePath, std::dynamic_pointer_cast<MeshSource>(asset));
 
 							newEntity.AddComponent<StaticMeshComponent>(mesh->Handle);
 							//newEntity.AddComponent<MeshColliderComponent>();
@@ -433,7 +433,7 @@ namespace X2 {
 						Ref<Asset> asset = AssetManager::GetAsset<Asset>(assetHandle);
 						if (asset)
 						{
-							Ref<StaticMesh> mesh = Project::GetEditorAssetManager()->CreateNewAsset<StaticMesh>("Torus.xsmesh", targetFilePath, asset.As<MeshSource>());
+							Ref<StaticMesh> mesh = Project::GetEditorAssetManager()->CreateNewAsset<StaticMesh>("Torus.xsmesh", targetFilePath, std::dynamic_pointer_cast<MeshSource>(asset));
 
 							newEntity.AddComponent<StaticMeshComponent>(mesh->Handle);
 							//newEntity.AddComponent<MeshColliderComponent>();
@@ -466,7 +466,7 @@ namespace X2 {
 						Ref<Asset> asset = AssetManager::GetAsset<Asset>(assetHandle);
 						if (asset)
 						{
-							Ref<StaticMesh> mesh = Project::GetEditorAssetManager()->CreateNewAsset<StaticMesh>("Plane.xsmesh", targetFilePath, asset.As<MeshSource>());
+							Ref<StaticMesh> mesh = Project::GetEditorAssetManager()->CreateNewAsset<StaticMesh>("Plane.xsmesh", targetFilePath, std::dynamic_pointer_cast<MeshSource>(asset));
 
 							newEntity.AddComponent<StaticMeshComponent>(mesh->Handle);
 							//newEntity.AddComponent<MeshColliderComponent>();
@@ -499,7 +499,7 @@ namespace X2 {
 						Ref<Asset> asset = AssetManager::GetAsset<Asset>(assetHandle);
 						if (asset)
 						{
-							Ref<StaticMesh> mesh = Project::GetEditorAssetManager()->CreateNewAsset<StaticMesh>("Cone.xsmesh", targetFilePath, asset.As<MeshSource>());
+							Ref<StaticMesh> mesh = Project::GetEditorAssetManager()->CreateNewAsset<StaticMesh>("Cone.xsmesh", targetFilePath, std::dynamic_pointer_cast<MeshSource>(asset));
 
 							newEntity.AddComponent<StaticMeshComponent>(mesh->Handle);
 							//newEntity.AddComponent<MeshColliderComponent>();

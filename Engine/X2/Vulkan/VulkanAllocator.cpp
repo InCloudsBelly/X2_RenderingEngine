@@ -168,7 +168,7 @@ namespace X2 {
 #endif
 	}
 
-	void VulkanAllocator::Init(Ref<VulkanDevice> device)
+	void VulkanAllocator::Init(VulkanDevice* device)
 	{
 		s_Data = hnew VulkanAllocatorData();
 
@@ -178,7 +178,7 @@ namespace X2 {
 		allocatorInfo.physicalDevice = device->GetPhysicalDevice()->GetVulkanPhysicalDevice();
 		allocatorInfo.device = device->GetVulkanDevice();
 		allocatorInfo.instance = VulkanContext::GetInstance();
-		allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+		//allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 
 		vmaCreateAllocator(&allocatorInfo, &s_Data->Allocator);
 	}

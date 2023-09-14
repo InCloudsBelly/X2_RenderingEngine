@@ -20,7 +20,7 @@ namespace X2 {
 		{
 			for (auto e : m_Context->m_Registry.view<IDComponent>())
 			{
-				Entity entity = { e, m_Context.Raw() };
+				Entity entity = { e, m_Context.get() };
 				const auto& name = entity.Name();
 
 				std::string label = fmt::format("{0} - {1}", name, entity.GetUUID());

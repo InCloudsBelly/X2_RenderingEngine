@@ -14,7 +14,7 @@ namespace X2 {
 		time_t LastOpened;
 	};
 
-	struct UserPreferences : public RefCounted
+	struct UserPreferences 
 	{
 		bool ShowWelcomeScreen = true;
 		std::string StartupProject;

@@ -111,8 +111,7 @@ namespace X2 {
 				auto vulkanContext = VulkanContext::Get();
 				auto device = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
 
-				VkDescriptorPool descriptorPool;
-
+\
 				// Create Descriptor Pool
 				VkDescriptorPoolSize pool_sizes[] =
 				{
@@ -134,7 +133,7 @@ namespace X2 {
 				pool_info.maxSets = 100 * IM_ARRAYSIZE(pool_sizes);
 				pool_info.poolSizeCount = (uint32_t)IM_ARRAYSIZE(pool_sizes);
 				pool_info.pPoolSizes = pool_sizes;
-				VK_CHECK_RESULT(vkCreateDescriptorPool(device, &pool_info, nullptr, &descriptorPool));
+				VK_CHECK_RESULT(vkCreateDescriptorPool(device, &pool_info, nullptr, &instance->m_imguiDescriptorPool));
 
 				// Setup Platform/Renderer bindings
 				ImGui_ImplGlfw_InitForVulkan(window, true);
@@ -145,7 +144,7 @@ namespace X2 {
 				init_info.QueueFamily = VulkanContext::GetCurrentDevice()->GetPhysicalDevice()->GetQueueFamilyIndices().Graphics;
 				init_info.Queue = VulkanContext::GetCurrentDevice()->GetGraphicsQueue();
 				init_info.PipelineCache = nullptr;
-				init_info.DescriptorPool = descriptorPool;
+				init_info.DescriptorPool = instance->m_imguiDescriptorPool;
 				init_info.Allocator = nullptr;
 				init_info.MinImageCount = 2;
 				VulkanSwapChain& swapChain = Application::Get().GetWindow().GetSwapChain();
@@ -174,6 +173,12 @@ namespace X2 {
 
 	void VulkanImGuiLayer::OnDetach()
 	{
+		Renderer::SubmitResourceFree([pool = m_imguiDescriptorPool]()mutable
+			{
+				auto device = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
+				vkDestroyDescriptorPool(device, pool, nullptr);
+			}
+		);
 		Renderer::Submit([]()
 			{
 				auto device = VulkanContext::GetCurrentDevice()->GetVulkanDevice();

@@ -14,7 +14,7 @@ namespace X2 {
 	// Implementation in RuntimeAssetManager and EditorAssetManager //
 	// Static wrapper in AssetManager ////////////////////////////////
 	//////////////////////////////////////////////////////////////////
-	class AssetManagerBase : public RefCounted
+	class AssetManagerBase 
 	{
 	public:
 		AssetManagerBase() = default;

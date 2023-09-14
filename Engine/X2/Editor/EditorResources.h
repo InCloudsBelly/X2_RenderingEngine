@@ -208,99 +208,99 @@ namespace X2 {
 		static void Shutdown()
 		{
 			// Generic
-			GearIcon.Reset();
-			PlusIcon.Reset();
-			PencilIcon.Reset();
-			ForwardIcon.Reset();
-			BackIcon.Reset();
-			PointerIcon.Reset();
-			SearchIcon.Reset();
-			ClearIcon.Reset();
-			SaveIcon.Reset();
+			GearIcon.reset();
+			PlusIcon.reset();
+			PencilIcon.reset();
+			ForwardIcon.reset();
+			BackIcon.reset();
+			PointerIcon.reset();
+			SearchIcon.reset();
+			ClearIcon.reset();
+			SaveIcon.reset();
 
 			// Icons
-			AnimationIcon.Reset();
-			AssetIcon.Reset();
-			AudioIcon.Reset();
-			AudioListenerIcon.Reset();
-			BoxColliderIcon.Reset();
-			BoxCollider2DIcon.Reset();
-			CameraIcon.Reset();
-			CapsuleColliderIcon.Reset();
-			CharacterControllerIcon.Reset();
-			CircleCollider2DIcon.Reset();
-			DirectionalLightIcon.Reset();
-			FixedJointIcon.Reset();
-			MeshIcon.Reset();
-			MeshColliderIcon.Reset();
-			PointLightIcon.Reset();
-			RigidBodyIcon.Reset();
-			RigidBody2DIcon.Reset();
-			ScriptIcon.Reset();
-			SpriteIcon.Reset();
-			SkyLightIcon.Reset();
-			SphereColliderIcon.Reset();
-			SpotLightIcon.Reset();
-			StaticMeshIcon.Reset();
-			TextIcon.Reset();
-			TransformIcon.Reset();
+			AnimationIcon.reset();
+			AssetIcon.reset();
+			AudioIcon.reset();
+			AudioListenerIcon.reset();
+			BoxColliderIcon.reset();
+			BoxCollider2DIcon.reset();
+			CameraIcon.reset();
+			CapsuleColliderIcon.reset();
+			CharacterControllerIcon.reset();
+			CircleCollider2DIcon.reset();
+			DirectionalLightIcon.reset();
+			FixedJointIcon.reset();
+			MeshIcon.reset();
+			MeshColliderIcon.reset();
+			PointLightIcon.reset();
+			RigidBodyIcon.reset();
+			RigidBody2DIcon.reset();
+			ScriptIcon.reset();
+			SpriteIcon.reset();
+			SkyLightIcon.reset();
+			SphereColliderIcon.reset();
+			SpotLightIcon.reset();
+			StaticMeshIcon.reset();
+			TextIcon.reset();
+			TransformIcon.reset();
 
 			// Viewport
-			PlayIcon.Reset();
-			PauseIcon.Reset();
-			StopIcon.Reset();
-			SimulateIcon.Reset();
-			MoveIcon.Reset();
-			RotateIcon.Reset();
-			ScaleIcon.Reset();
+			PlayIcon.reset();
+			PauseIcon.reset();
+			StopIcon.reset();
+			SimulateIcon.reset();
+			MoveIcon.reset();
+			RotateIcon.reset();
+			ScaleIcon.reset();
 
 			// Window
-			MinimizeIcon.Reset();
-			MaximizeIcon.Reset();
-			RestoreIcon.Reset();
-			CloseIcon.Reset();
+			MinimizeIcon.reset();
+			MaximizeIcon.reset();
+			RestoreIcon.reset();
+			CloseIcon.reset();
 
 			// Content Browser
-			FolderIcon.Reset();
-			FileIcon.Reset();
-			FBXFileIcon.Reset();
-			OBJFileIcon.Reset();
-			GLTFFileIcon.Reset();
-			GLBFileIcon.Reset();
-			WAVFileIcon.Reset();
-			MP3FileIcon.Reset();
-			OGGFileIcon.Reset();
-			CSFileIcon.Reset();
-			PNGFileIcon.Reset();
-			JPGFileIcon.Reset();
-			MaterialFileIcon.Reset();
-			SceneFileIcon.Reset();
-			PrefabFileIcon.Reset();
-			FontFileIcon.Reset();
-			AnimationFileIcon.Reset();
-			AnimationControllerFileIcon.Reset();
-			MeshFileIcon.Reset();
-			StaticMeshFileIcon.Reset();
-			MeshColliderFileIcon.Reset();
-			PhysicsMaterialFileIcon.Reset();
-			SkeletonFileIcon.Reset();
-			SoundConfigFileIcon.Reset();
-			SoundGraphFileIcon.Reset();
+			FolderIcon.reset();
+			FileIcon.reset();
+			FBXFileIcon.reset();
+			OBJFileIcon.reset();
+			GLTFFileIcon.reset();
+			GLBFileIcon.reset();
+			WAVFileIcon.reset();
+			MP3FileIcon.reset();
+			OGGFileIcon.reset();
+			CSFileIcon.reset();
+			PNGFileIcon.reset();
+			JPGFileIcon.reset();
+			MaterialFileIcon.reset();
+			SceneFileIcon.reset();
+			PrefabFileIcon.reset();
+			FontFileIcon.reset();
+			AnimationFileIcon.reset();
+			AnimationControllerFileIcon.reset();
+			MeshFileIcon.reset();
+			StaticMeshFileIcon.reset();
+			MeshColliderFileIcon.reset();
+			PhysicsMaterialFileIcon.reset();
+			SkeletonFileIcon.reset();
+			SoundConfigFileIcon.reset();
+			SoundGraphFileIcon.reset();
 
 			// Node Graph
-			CompileIcon.Reset();
-			PinValueConnectIcon.Reset();
-			PinValueDisconnectIcon.Reset();
-			PinFlowConnectIcon.Reset();
-			PinFlowDisconnectIcon.Reset();
-			PinAudioConnectIcon.Reset();
-			PinAudioDisconnectIcon.Reset();
+			CompileIcon.reset();
+			PinValueConnectIcon.reset();
+			PinValueDisconnectIcon.reset();
+			PinFlowConnectIcon.reset();
+			PinFlowDisconnectIcon.reset();
+			PinAudioConnectIcon.reset();
+			PinAudioDisconnectIcon.reset();
 
 			// Textures
-			X2LogoTexture.Reset();
-			CheckerboardTexture.Reset();
-			ShadowTexture.Reset();
-			TranslucencyTexture.Reset();
+			X2LogoTexture.reset();
+			CheckerboardTexture.reset();
+			ShadowTexture.reset();
+			TranslucencyTexture.reset();
 		}
 
 	private:
@@ -322,7 +322,7 @@ namespace X2 {
 				return nullptr;
 			}
 
-			return Ref<VulkanTexture2D>::Create(specification, path.string());
+			return CreateRef<VulkanTexture2D>(specification, path.string());
 		}
 	};
 

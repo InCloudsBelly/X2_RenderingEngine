@@ -15,7 +15,7 @@ namespace X2 {
 		DisableShadowCasting = BIT(4)
 	};
 
-	class VulkanMaterial : public RefCounted
+	class VulkanMaterial 
 	{
 	public:
 		VulkanMaterial(const Ref<VulkanShader>& shader, const std::string& name = "");
@@ -87,7 +87,7 @@ namespace X2 {
 			X2_CORE_ASSERT(decl, "Could not find uniform with name 'x'");
 			uint32_t slot = decl->GetRegister();
 			X2_CORE_ASSERT(slot < m_Textures.size(), "Texture slot is invalid!");
-			return Ref<T>(m_Textures[slot]);
+			return Ref<T>(std::dynamic_pointer_cast<T>(m_Textures[slot]));
 		}
 
 		template<typename T>
@@ -101,7 +101,7 @@ namespace X2 {
 			if (slot >= m_Textures.size())
 				return nullptr;
 
-			return Ref<T>(m_Textures[slot]);
+			return Ref<T>(std::dynamic_pointer_cast<T>(m_Textures[slot]));
 		}
 
 		virtual uint32_t GetFlags() const  { return m_MaterialFlags; }

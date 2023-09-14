@@ -23,9 +23,9 @@
 
 namespace std {
 	template<>
-	struct hash<X2::WeakRef<X2::VulkanShader>>
+	struct hash<X2::VulkanShader*>
 	{
-		size_t operator()(const X2::WeakRef<X2::VulkanShader>& shader) const noexcept
+		size_t operator()(const X2::VulkanShader* shader) const noexcept
 		{
 			return shader->GetHash();
 		}
@@ -40,32 +40,32 @@ namespace X2 {
 
 	struct ShaderDependencies
 	{
-		std::vector<Ref<VulkanComputePipeline>> ComputePipelines;
-		std::vector<Ref<VulkanPipeline>> Pipelines;
-		std::vector<Ref<VulkanMaterial>> Materials;
+		std::vector<VulkanComputePipeline*> ComputePipelines;
+		std::vector<VulkanPipeline*> Pipelines;
+		std::vector<VulkanMaterial*> Materials;
 	};
 	static std::unordered_map<size_t, ShaderDependencies> s_ShaderDependencies;
 
 	struct GlobalShaderInfo
 	{
 		// Macro name, set of shaders with that macro.
-		std::unordered_map<std::string, std::unordered_map<size_t, WeakRef<VulkanShader>>> ShaderGlobalMacrosMap;
+		std::unordered_map<std::string, std::unordered_map<size_t,VulkanShader*>> ShaderGlobalMacrosMap;
 		// Shaders waiting to be reloaded.
-		std::unordered_set<WeakRef<VulkanShader>> DirtyShaders;
+		std::unordered_set<VulkanShader*> DirtyShaders;
 	};
 	static GlobalShaderInfo s_GlobalShaderInfo;
 
-	void Renderer::RegisterShaderDependency(Ref<VulkanShader> shader, Ref<VulkanComputePipeline> computePipeline)
+	void Renderer::RegisterShaderDependency(VulkanShader* shader, VulkanComputePipeline* computePipeline)
 	{
 		s_ShaderDependencies[shader->GetHash()].ComputePipelines.push_back(computePipeline);
 	}
 
-	void Renderer::RegisterShaderDependency(Ref<VulkanShader> shader, Ref<VulkanPipeline> pipeline)
+	void Renderer::RegisterShaderDependency(VulkanShader* shader, VulkanPipeline* pipeline)
 	{
 		s_ShaderDependencies[shader->GetHash()].Pipelines.push_back(pipeline);
 	}
 
-	void Renderer::RegisterShaderDependency(Ref<VulkanShader> shader, Ref<VulkanMaterial> material)
+	void Renderer::RegisterShaderDependency(VulkanShader* shader, VulkanMaterial* material)
 	{
 		s_ShaderDependencies[shader->GetHash()].Materials.push_back(material);
 	}
@@ -82,7 +82,7 @@ namespace X2 {
 
 			for (auto& computePipeline : dependencies.ComputePipelines)
 			{
-				computePipeline.As<VulkanComputePipeline>()->CreatePipeline();
+				computePipeline->CreatePipeline();
 			}
 
 			for (auto& material : dependencies.Materials)
@@ -103,31 +103,15 @@ namespace X2 {
 		return Application::Get().GetCurrentFrameIndex();
 	}
 
-	struct RendererData
-	{
-		Ref<ShaderLibrary> m_ShaderLibrary;
 
-		Ref<VulkanTexture2D> WhiteTexture;
-		Ref<VulkanTexture2D> BlackTexture;
-		Ref<VulkanTexture2D> BRDFLutTexture;
-		Ref<VulkanTexture2D> HilbertLut;
-		Ref<VulkanTexture2D> SMAASearchLut;
-		Ref<VulkanTexture2D> SMAAAreaLut;
-		Ref<VulkanTextureCube> BlackCubeTexture;
-
-		Ref<Environment> EmptyEnvironment;
-
-		std::unordered_map<std::string, std::string> GlobalShaderMacros;
-	};
 
 	static RendererConfig s_Config;
-	static RendererData* s_Data = nullptr;
 	constexpr static uint32_t s_RenderCommandQueueCount = 2;
 	static RenderCommandQueue* s_CommandQueue[s_RenderCommandQueueCount];
 	static std::atomic<uint32_t> s_RenderCommandQueueSubmissionIndex = 0;
 	static RenderCommandQueue s_ResourceFreeQueue[3];
 
-
+	RendererData* Renderer::s_Data = nullptr;
 
 
 	void Renderer::Init()
@@ -141,7 +125,7 @@ namespace X2 {
 
 		s_RendererAPI = hnew VulkanRenderer();
 
-		s_Data->m_ShaderLibrary = Ref<ShaderLibrary>::Create();
+		s_Data->m_ShaderLibrary = CreateRef<ShaderLibrary>();
 
 		if (!s_Config.ShaderPackPath.empty())
 			Renderer::GetShaderLibrary()->LoadShaderPack(s_Config.ShaderPackPath);
@@ -241,25 +225,25 @@ namespace X2 {
 		spec.Format = ImageFormat::RGBA;
 		spec.Width = 1;
 		spec.Height = 1;
-		s_Data->WhiteTexture = Ref<VulkanTexture2D>::Create(spec, Buffer(&whiteTextureData, sizeof(uint32_t)));
+		s_Data->WhiteTexture = CreateRef<VulkanTexture2D>(spec, Buffer(&whiteTextureData, sizeof(uint32_t)));
 
 		constexpr uint32_t blackTextureData = 0xff000000;
-		s_Data->BlackTexture = Ref<VulkanTexture2D>::Create(spec, Buffer(&blackTextureData, sizeof(uint32_t)));
+		s_Data->BlackTexture = CreateRef<VulkanTexture2D>(spec, Buffer(&blackTextureData, sizeof(uint32_t)));
 
 		{
 			TextureSpecification spec;
 			spec.SamplerWrap = TextureWrap::Clamp;
-			s_Data->BRDFLutTexture = Ref<VulkanTexture2D>::Create(spec, std::filesystem::path(std::string(PROJECT_ROOT)+"Resources/Renderer/BRDF_LUT.tga"));
+			s_Data->BRDFLutTexture = CreateRef<VulkanTexture2D>(spec, std::filesystem::path(std::string(PROJECT_ROOT)+"Resources/Renderer/BRDF_LUT.tga"));
 
-			s_Data->SMAAAreaLut = Ref<VulkanTexture2D>::Create(spec, std::filesystem::path(std::string(PROJECT_ROOT) + "Resources/Renderer/AreaTex.png") ,true);
+			s_Data->SMAAAreaLut = CreateRef<VulkanTexture2D>(spec, std::filesystem::path(std::string(PROJECT_ROOT) + "Resources/Renderer/AreaTex.png") ,true);
 
-			s_Data->SMAASearchLut = Ref<VulkanTexture2D>::Create(spec, std::filesystem::path(std::string(PROJECT_ROOT) + "Resources/Renderer/SearchTex.png"), true);
+			s_Data->SMAASearchLut = CreateRef<VulkanTexture2D>(spec, std::filesystem::path(std::string(PROJECT_ROOT) + "Resources/Renderer/SearchTex.png"), true);
 		}
 
 		constexpr uint32_t blackCubeTextureData[6] = { 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000, 0xff000000 };
-		s_Data->BlackCubeTexture = Ref<VulkanTextureCube>::Create(spec, Buffer(&blackTextureData, sizeof(blackCubeTextureData)));
+		s_Data->BlackCubeTexture = CreateRef<VulkanTextureCube>(spec, Buffer(&blackTextureData, sizeof(blackCubeTextureData)));
 
-		s_Data->EmptyEnvironment = Ref<Environment>::Create(s_Data->BlackCubeTexture,s_Data->BlackCubeTexture, s_Data->BlackCubeTexture);
+		s_Data->EmptyEnvironment = CreateRef<Environment>(s_Data->BlackCubeTexture,s_Data->BlackCubeTexture, s_Data->BlackCubeTexture);
 
 		// Hilbert look-up texture! It's a 64 x 64 uint16 texture
 		{
@@ -302,7 +286,7 @@ namespace X2 {
 					data[x + 64 * y] = r2index;
 				}
 			}
-			s_Data->HilbertLut = Ref<VulkanTexture2D>::Create(spec, Buffer(data, 1));
+			s_Data->HilbertLut = CreateRef<VulkanTexture2D>(spec, Buffer(data, 1));
 			delete[] data;
 
 		}
@@ -312,10 +296,31 @@ namespace X2 {
 
 	void Renderer::Shutdown()
 	{
+		//finish all render cmd & insert release cmd to release Queue 
+		//s_CommandQueue[GetRenderQueueSubmissionIndex()]->Execute();
+		/*RendererData* p1 = s_Data;
+		for (auto [str, shader] : p1->m_ShaderLibrary->GetShaders())
+		{
+			if (shader.use_count() != 1)
+				std::cout << str << " shader use count :" << shader.use_count() << std::endl;
+		}*/
+		s_Data->m_ShaderLibrary.reset();
+		s_Data->BlackCubeTexture.reset();
+		s_Data->BlackTexture.reset();
+		s_Data->BRDFLutTexture.reset();
+		s_Data->EmptyEnvironment.reset();
+		s_Data->HilbertLut.reset();
+		s_Data->SMAAAreaLut.reset();
+		s_Data->SMAASearchLut.reset();
+		s_Data->WhiteTexture.reset();
+
+		s_RendererAPI->ReleaseResoueces();
+
+		s_CommandQueue[GetRenderQueueSubmissionIndex()]->Execute();
 		s_ShaderDependencies.clear();
 		s_RendererAPI->Shutdown();
 
-		delete s_Data;
+
 
 		// Resource release queue
 		for (uint32_t i = 0; i < s_Config.FramesInFlight; i++)
@@ -423,7 +428,7 @@ namespace X2 {
 		s_RendererAPI->EndFrame();
 	}
 
-	void Renderer::SetSceneEnvironment(Ref<SceneRenderer> sceneRenderer, Ref<Environment> environment, Ref<VulkanImage2D> shadow, Ref<VulkanImage2D> spotShadow)
+	void Renderer::SetSceneEnvironment(SceneRenderer* sceneRenderer, Ref<Environment> environment, Ref<VulkanImage2D> shadow, Ref<VulkanImage2D> spotShadow)
 	{
 		s_RendererAPI->SetSceneEnvironment(sceneRenderer, environment, shadow, spotShadow);
 	}
@@ -630,7 +635,7 @@ namespace X2 {
 		s_Config = config;
 	}
 
-	void Renderer::AcknowledgeParsedGlobalMacros(const std::unordered_set<std::string>& macros, Ref<VulkanShader> shader)
+	void Renderer::AcknowledgeParsedGlobalMacros(const std::unordered_set<std::string>& macros, VulkanShader* shader)
 	{
 		for (const std::string& macro : macros)
 		{
@@ -638,10 +643,10 @@ namespace X2 {
 		}
 	}
 
-	void Renderer::SetMacroInShader(Ref<VulkanShader> shader, const std::string& name, const std::string& value)
+	void Renderer::SetMacroInShader(VulkanShader* shader, const std::string& name, const std::string& value)
 	{
 		shader->SetMacro(name, value);
-		s_GlobalShaderInfo.DirtyShaders.emplace(shader.Raw());
+		s_GlobalShaderInfo.DirtyShaders.emplace(shader);
 	}
 
 	void Renderer::SetGlobalMacroInShaders(const std::string& name, const std::string& value)
@@ -663,7 +668,7 @@ namespace X2 {
 		X2_CORE_ASSERT(s_GlobalShaderInfo.ShaderGlobalMacrosMap.find(name) != s_GlobalShaderInfo.ShaderGlobalMacrosMap.end(), "Macro has not been passed from any shader!");
 		for (auto& [hash, shader] : s_GlobalShaderInfo.ShaderGlobalMacrosMap.at(name))
 		{
-			X2_CORE_ASSERT(shader.IsValid(), "VulkanShader is deleted!");
+			X2_CORE_ASSERT(shader, "VulkanShader is deleted!");
 			s_GlobalShaderInfo.DirtyShaders.emplace(shader);
 		}
 	}
@@ -672,9 +677,9 @@ namespace X2 {
 	{
 		// TODO(Yan): how is this going to work for dist?
 		const bool updatedAnyShaders = s_GlobalShaderInfo.DirtyShaders.size();
-		for (WeakRef<VulkanShader> shader : s_GlobalShaderInfo.DirtyShaders)
+		for (VulkanShader* shader : s_GlobalShaderInfo.DirtyShaders)
 		{
-			X2_CORE_ASSERT(shader.IsValid(), "VulkanShader is deleted!");
+			X2_CORE_ASSERT(shader, "VulkanShader is deleted!");
 			shader->RT_Reload(true);
 		}
 		s_GlobalShaderInfo.DirtyShaders.clear();

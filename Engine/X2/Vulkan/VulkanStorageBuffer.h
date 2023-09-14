@@ -5,7 +5,7 @@
 
 namespace X2 {
 
-	class VulkanStorageBuffer : public RefCounted
+	class VulkanStorageBuffer 
 	{
 	public:
 		VulkanStorageBuffer(uint32_t size, uint32_t binding);

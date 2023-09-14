@@ -25,9 +25,9 @@ namespace X2 {
 		Handle = {};
 
 		if (transparent)
-			m_Material = Ref<VulkanMaterial>::Create(Renderer::GetShaderLibrary()->Get("PBR_Transparent"));
+			m_Material = CreateRef<VulkanMaterial>(Renderer::GetShaderLibrary()->Get("PBR_Transparent"));
 		else
-			m_Material = Ref<VulkanMaterial>::Create(Renderer::GetShaderLibrary()->Get("PBR_Static"));
+			m_Material = CreateRef<VulkanMaterial>(Renderer::GetShaderLibrary()->Get("PBR_Static"));
 
 		SetDefaults();
 	}
@@ -35,7 +35,7 @@ namespace X2 {
 	MaterialAsset::MaterialAsset(Ref<VulkanMaterial> material)
 	{
 		Handle = {};
-		m_Material = Ref<VulkanMaterial>::Create(material);
+		m_Material = CreateRef<VulkanMaterial>(material);
 	}
 
 	MaterialAsset::~MaterialAsset()
@@ -203,7 +203,7 @@ namespace X2 {
 	{
 		const auto& meshMaterials = other->GetMaterials();
 		for (auto [index, materialAsset] : meshMaterials)
-			//SetMaterial(index, Ref<MaterialAsset>::Create(materialAsset->GetMaterial()));
+			//SetMaterial(index, CreateRef<MaterialAsset>(materialAsset->GetMaterial()));
 			SetMaterial(index, materialAsset);
 	}
 

@@ -235,16 +235,12 @@ namespace X2
 		return UINT32_MAX;
 	}
 
-	Ref<VulkanPhysicalDevice> VulkanPhysicalDevice::Select()
-	{
-		return Ref<VulkanPhysicalDevice>::Create();
-	}
 
 	////////////////////////////////////////////////////////////////////////////////////
 	// Vulkan Device
 	////////////////////////////////////////////////////////////////////////////////////
 
-	VulkanDevice::VulkanDevice(const Ref<VulkanPhysicalDevice>& physicalDevice, VkPhysicalDeviceFeatures enabledFeatures)
+	VulkanDevice::VulkanDevice(VulkanPhysicalDevice* physicalDevice, VkPhysicalDeviceFeatures enabledFeatures)
 		: m_PhysicalDevice(physicalDevice), m_EnabledFeatures(enabledFeatures)
 	{
 		const bool enableAftermath = true;
@@ -375,7 +371,7 @@ namespace X2
 		if (commandPoolIt != m_CommandPools.end())
 			return commandPoolIt->second;
 
-		Ref<VulkanCommandPool> commandPool = Ref<VulkanCommandPool>::Create();
+		Ref<VulkanCommandPool> commandPool = std::make_shared<VulkanCommandPool>();
 		m_CommandPools[threadID] = commandPool;
 		return commandPool;
 	}

@@ -15,19 +15,40 @@ namespace X2 {
 	VulkanComputePipeline::VulkanComputePipeline(Ref<VulkanShader> computeShader)
 		: m_Shader(computeShader)
 	{
-		Ref<VulkanComputePipeline> instance = this;
+		VulkanComputePipeline* instance = this;
 		Renderer::Submit([instance]() mutable
 			{
 				instance->RT_CreatePipeline();
 			});
-		Renderer::RegisterShaderDependency(computeShader, this);
+		Renderer::RegisterShaderDependency(computeShader.get(), this);
 	}
 
 	void VulkanComputePipeline::CreatePipeline()
 	{
-		Renderer::Submit([instance = Ref(this)]() mutable
+		Renderer::Submit([instance = this]() mutable
 			{
+				//Release old Resources before Reload
+				if (instance->m_ComputePipeline)
+				{
+					auto device = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
+					vkDestroyPipeline(device, instance->m_ComputePipeline, nullptr);
+					vkDestroyPipelineCache(device, instance->m_PipelineCache, nullptr);
+					vkDestroyPipelineLayout(device, instance->m_ComputePipelineLayout, nullptr);
+				}
+			
 				instance->RT_CreatePipeline();
+			});
+	}
+
+	VulkanComputePipeline::~VulkanComputePipeline()
+	{
+		Renderer::SubmitResourceFree([layout = m_ComputePipelineLayout, cache = m_PipelineCache, pipeline = m_ComputePipeline, name = m_Shader->GetName()]()mutable {
+
+			auto device = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
+			vkDestroyPipeline(device, pipeline, nullptr);
+			vkDestroyPipelineCache(device, cache, nullptr);
+			vkDestroyPipelineLayout(device, layout, nullptr);
+
 			});
 	}
 
@@ -76,7 +97,10 @@ namespace X2 {
 		pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
 
 		VK_CHECK_RESULT(vkCreatePipelineCache(device, &pipelineCacheCreateInfo, nullptr, &m_PipelineCache));
+
 		VK_CHECK_RESULT(vkCreateComputePipelines(device, m_PipelineCache, 1, &computePipelineCreateInfo, nullptr, &m_ComputePipeline));
+		
+		//X2_CORE_INFO("Renderer: Create m_ComputePipeline: {0} pipeline = {1}", m_Shader->GetName(), (const void*)m_ComputePipeline);
 
 		VKUtils::SetDebugUtilsObjectName(device, VK_OBJECT_TYPE_PIPELINE, m_Shader->GetName(), m_ComputePipeline);
 	}
@@ -211,6 +235,16 @@ namespace X2 {
 		}
 		m_ActiveComputeCommandBuffer = nullptr;
 	}
+
+	void VulkanComputePipeline::ReleaseComputeFence()
+	{
+		Renderer::SubmitResourceFree([]
+			{
+				vkDestroyFence(VulkanContext::GetCurrentDevice()->GetVulkanDevice(), s_ComputeFence, nullptr);
+			}
+		);
+	}
+	
 
 	void VulkanComputePipeline::SetPushConstants(const void* data, uint32_t size) const
 	{

@@ -7,7 +7,7 @@ namespace X2 {
 
 	using AssetHandle = UUID;
 
-	class Asset : public RefCounted
+	class Asset 
 	{
 	public:
 		AssetHandle Handle = 0;

@@ -24,7 +24,7 @@ namespace X2 {
 	};
 
 	// Interface representing a desktop system based Window
-	class WindowsWindow : public RefCounted
+	class WindowsWindow 
 	{
 	public:
 		using EventCallbackFn = std::function<void(Event&)>;
@@ -56,7 +56,7 @@ namespace X2 {
 
 		inline void* GetNativeWindow() const  { return m_Window; }
 
-		virtual Ref<VulkanContext> GetRenderContext()  { return m_RendererContext; }
+		virtual VulkanContext* GetRenderContext()  { return m_RendererContext.get(); }
 		virtual VulkanSwapChain& GetSwapChain();
 	private:
 		virtual void Shutdown();
@@ -75,7 +75,7 @@ namespace X2 {
 		WindowData m_Data;
 		float m_LastFrameTime = 0.0f;
 
-		Ref<VulkanContext> m_RendererContext;
+		Scope<VulkanContext> m_RendererContext;
 		VulkanSwapChain m_SwapChain;
 	};
 

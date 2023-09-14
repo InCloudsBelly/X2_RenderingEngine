@@ -12,7 +12,7 @@ namespace X2 {
 	{
 		m_LocalStorage = hnew uint8_t[size];
 
-		Ref<VulkanUniformBuffer> instance = this;
+		VulkanUniformBuffer* instance = this;
 		Renderer::Submit([instance]() mutable
 			{
 				instance->RT_Invalidate();
@@ -48,12 +48,6 @@ namespace X2 {
 
 		VkDevice device = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
 
-		VkMemoryAllocateInfo allocInfo = {};
-		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-		allocInfo.pNext = nullptr;
-		allocInfo.allocationSize = 0;
-		allocInfo.memoryTypeIndex = 0;
-
 		VkBufferCreateInfo bufferInfo = {};
 		bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 		bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
@@ -71,7 +65,7 @@ namespace X2 {
 	{
 		// TODO: local storage should be potentially replaced with render thread storage
 		memcpy(m_LocalStorage, data, size);
-		Ref<VulkanUniformBuffer> instance = this;
+		VulkanUniformBuffer* instance = this;
 		Renderer::Submit([instance, size, offset]() mutable
 			{
 				instance->RT_SetData(instance->m_LocalStorage, size, offset);

@@ -142,7 +142,7 @@ namespace X2 {
 
 		glm::mat4 Transform{ 1.0f }; // World transform
 		glm::mat4 LocalTransform{ 1.0f };
-		AABB BoundingBox;
+		Volume::AABB BoundingBox;
 
 		std::string NodeName, MeshName;
 		bool IsRigged = false;
@@ -243,7 +243,7 @@ namespace X2 {
 		static AssetType GetStaticType() { return AssetType::MeshSource; }
 		virtual AssetType GetAssetType() const override { return GetStaticType(); }
 
-		const AABB& GetBoundingBox() const { return m_BoundingBox; }
+		const Volume::AABB& GetBoundingBox() const { return m_BoundingBox; }
 
 		const MeshNode& GetRootNode() const { return m_Nodes[0]; }
 		const std::vector<MeshNode>& GetNodes() const { return m_Nodes; }
@@ -261,7 +261,7 @@ namespace X2 {
 
 		std::unordered_map<uint32_t, std::vector<Triangle>> m_TriangleCache;
 
-		AABB m_BoundingBox;
+		Volume::AABB m_BoundingBox;
 
 		std::string m_FilePath;
 

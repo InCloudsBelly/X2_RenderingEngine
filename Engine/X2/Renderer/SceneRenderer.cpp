@@ -54,7 +54,7 @@ namespace X2 {
 	static std::vector<std::thread> s_ThreadPool;
 
 	SceneRenderer::SceneRenderer(Ref<Scene> scene, SceneRendererSpecification specification)
-		: m_Scene(scene), m_Specification(specification)
+		: m_Scene(scene.get()), m_Specification(specification)
 	{
 		Init();
 	}
@@ -98,10 +98,10 @@ namespace X2 {
 			}
 		}
 
-		m_CommandBuffer =Ref<VulkanRenderCommandBuffer>::Create(0, "SceneRenderer");
+		m_CommandBuffer =CreateRef<VulkanRenderCommandBuffer>(0, "SceneRenderer");
 
 		uint32_t framesInFlight = Renderer::GetConfig().FramesInFlight;
-		m_UniformBufferSet = Ref<VulkanUniformBufferSet>::Create(framesInFlight);
+		m_UniformBufferSet = CreateRef<VulkanUniformBufferSet>(framesInFlight);
 		m_UniformBufferSet->Create(sizeof(UBCamera), 0);
 		m_UniformBufferSet->Create(sizeof(UBShadow), 1);
 		m_UniformBufferSet->Create(sizeof(UBScene), 2);
@@ -119,21 +119,21 @@ namespace X2 {
 
 
 
-		m_Renderer2D = Ref<Renderer2D>::Create();
-		m_DebugRenderer = Ref<DebugRenderer>::Create();
+		m_Renderer2D = CreateRef<Renderer2D>();
+		m_DebugRenderer = CreateRef<DebugRenderer>();
 
 		m_CompositeShader = Renderer::GetShaderLibrary()->Get("SceneComposite");
-		m_CompositeMaterial = Ref<VulkanMaterial>::Create(m_CompositeShader);
+		m_CompositeMaterial = CreateRef<VulkanMaterial>(m_CompositeShader);
 
 		// Light culling compute pipeline
 		{
-			m_StorageBufferSet = Ref<VulkanStorageBufferSet>::Create(framesInFlight);
+			m_StorageBufferSet = CreateRef<VulkanStorageBufferSet>(framesInFlight);
 			m_StorageBufferSet->Create(1, Binding::VisiblePointLightIndicesBuffer); //Can't allocate 0 bytes.. Resized later
 			m_StorageBufferSet->Create(1, Binding::VisibleSpotLightIndicesBuffer); //Can't allocate 0 bytes.. Resized later
 
-			m_LightCullingMaterial = Ref<VulkanMaterial>::Create(Renderer::GetShaderLibrary()->Get("LightCulling"), "LightCulling");
+			m_LightCullingMaterial = CreateRef<VulkanMaterial>(Renderer::GetShaderLibrary()->Get("LightCulling"), "LightCulling");
 			Ref<VulkanShader> lightCullingShader = Renderer::GetShaderLibrary()->Get("LightCulling");
-			m_LightCullingPipeline = Ref<VulkanComputePipeline>::Create(lightCullingShader);
+			m_LightCullingPipeline = CreateRef<VulkanComputePipeline>(lightCullingShader);
 		}
 
 		VertexBufferLayout vertexLayout = {
@@ -182,7 +182,7 @@ namespace X2 {
 			spec.Height = shadowMapResolution;
 			spec.Layers = 4; // 4 cascades
 			spec.DebugName = "ShadowCascades";
-			Ref<VulkanImage2D> cascadedDepthImage = Ref<VulkanImage2D>::Create(spec);
+			Ref<VulkanImage2D> cascadedDepthImage = CreateRef<VulkanImage2D>(spec);
 			cascadedDepthImage->Invalidate();
 			cascadedDepthImage->CreatePerLayerImageViews();
 
@@ -219,16 +219,16 @@ namespace X2 {
 
 				RenderPassSpecification shadowMapRenderPassSpec;
 				shadowMapRenderPassSpec.DebugName = shadowMapFramebufferSpec.DebugName;
-				shadowMapRenderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(shadowMapFramebufferSpec);
-				auto renderpass = Ref<VulkanRenderPass>::Create(shadowMapRenderPassSpec);
+				shadowMapRenderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(shadowMapFramebufferSpec);
+				auto renderpass = CreateRef<VulkanRenderPass>(shadowMapRenderPassSpec);
 
 				pipelineSpec.RenderPass = renderpass;
-				m_ShadowPassPipelines[i] = Ref<VulkanPipeline>::Create(pipelineSpec);
+				m_ShadowPassPipelines[i] = CreateRef<VulkanPipeline>(pipelineSpec);
 
 				pipelineSpecAnim.RenderPass = renderpass;
-				m_ShadowPassPipelinesAnim[i] = Ref<VulkanPipeline>::Create(pipelineSpecAnim);
+				m_ShadowPassPipelinesAnim[i] = CreateRef<VulkanPipeline>(pipelineSpecAnim);
 			}
-			m_ShadowPassMaterial = Ref<VulkanMaterial>::Create(shadowPassShader, "DirShadowPass");
+			m_ShadowPassMaterial = CreateRef<VulkanMaterial>(shadowPassShader, "DirShadowPass");
 		}
 
 		// Non-directional shadow mapping pass
@@ -267,19 +267,19 @@ namespace X2 {
 			};
 
 			RenderPassSpecification shadowMapRenderPassSpec;
-			shadowMapRenderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
+			shadowMapRenderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(framebufferSpec);
 			shadowMapRenderPassSpec.DebugName = "SpotShadowMap";
-			pipelineSpec.RenderPass = Ref<VulkanRenderPass>::Create(shadowMapRenderPassSpec);
+			pipelineSpec.RenderPass = CreateRef<VulkanRenderPass>(shadowMapRenderPassSpec);
 
 			PipelineSpecification pipelineSpecAnim = pipelineSpec;
 			pipelineSpecAnim.DebugName = "SpotShadowPass-Anim";
 			pipelineSpecAnim.Shader = shadowPassShaderAnim;
 			pipelineSpecAnim.BoneInfluenceLayout = boneInfluenceLayout;
 
-			m_SpotShadowPassPipeline = Ref<VulkanPipeline>::Create(pipelineSpec);
-			m_SpotShadowPassAnimPipeline = Ref<VulkanPipeline>::Create(pipelineSpecAnim);
+			m_SpotShadowPassPipeline = CreateRef<VulkanPipeline>(pipelineSpec);
+			m_SpotShadowPassAnimPipeline = CreateRef<VulkanPipeline>(pipelineSpecAnim);
 
-			m_SpotShadowPassMaterial = Ref<VulkanMaterial>::Create(shadowPassShader, "SpotShadowPass");
+			m_SpotShadowPassMaterial = CreateRef<VulkanMaterial>(shadowPassShader, "SpotShadowPass");
 		}
 
 		// PreDepth
@@ -293,7 +293,7 @@ namespace X2 {
 
 			RenderPassSpecification preDepthRenderPassSpec;
 			preDepthRenderPassSpec.DebugName = preDepthFramebufferSpec.DebugName;
-			preDepthRenderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(preDepthFramebufferSpec);
+			preDepthRenderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(preDepthFramebufferSpec);
 
 			PipelineSpecification pipelineSpec;
 			pipelineSpec.DebugName = preDepthFramebufferSpec.DebugName;
@@ -302,28 +302,28 @@ namespace X2 {
 			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("PreDepth");
 			pipelineSpec.Layout = vertexLayout;
 			pipelineSpec.InstanceLayout = instanceLayout;
-			pipelineSpec.RenderPass = Ref<VulkanRenderPass>::Create(preDepthRenderPassSpec);
-			m_PreDepthPipeline = Ref<VulkanPipeline>::Create(pipelineSpec);
-			m_PreDepthMaterial = Ref<VulkanMaterial>::Create(pipelineSpec.Shader, pipelineSpec.DebugName);
+			pipelineSpec.RenderPass = CreateRef<VulkanRenderPass>(preDepthRenderPassSpec);
+			m_PreDepthPipeline = CreateRef<VulkanPipeline>(pipelineSpec);
+			m_PreDepthMaterial = CreateRef<VulkanMaterial>(pipelineSpec.Shader, pipelineSpec.DebugName);
 
 			// TAA PreDepth;
 			pipelineSpec.DebugName = "PreDepth-TAA";
 			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("PreDepth_TAA");
-			m_PreDepthTAAPipeline = Ref<VulkanPipeline>::Create(pipelineSpec);
-			m_PreDepthTAAMaterial = Ref<VulkanMaterial>::Create(pipelineSpec.Shader, pipelineSpec.DebugName);
+			m_PreDepthTAAPipeline = CreateRef<VulkanPipeline>(pipelineSpec);
+			m_PreDepthTAAMaterial = CreateRef<VulkanMaterial>(pipelineSpec.Shader, pipelineSpec.DebugName);
 
 			pipelineSpec.DebugName = "PreDepth-Anim";
 			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("PreDepth_Anim");
 			pipelineSpec.BoneInfluenceLayout = boneInfluenceLayout;
-			m_PreDepthPipelineAnim = Ref<VulkanPipeline>::Create(pipelineSpec);  // same renderpass as Predepth-Opaque
+			m_PreDepthPipelineAnim = CreateRef<VulkanPipeline>(pipelineSpec);  // same renderpass as Predepth-Opaque
 
 			pipelineSpec.DebugName = "PreDepth-Transparent";
 			pipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("PreDepth");
 			preDepthFramebufferSpec.DebugName = pipelineSpec.DebugName;
-			preDepthRenderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(preDepthFramebufferSpec);
+			preDepthRenderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(preDepthFramebufferSpec);
 			preDepthRenderPassSpec.DebugName = pipelineSpec.DebugName;
-			pipelineSpec.RenderPass = Ref<VulkanRenderPass>::Create(preDepthRenderPassSpec);
-			m_PreDepthTransparentPipeline = Ref<VulkanPipeline>::Create(pipelineSpec);
+			pipelineSpec.RenderPass = CreateRef<VulkanRenderPass>(preDepthRenderPassSpec);
+			m_PreDepthTransparentPipeline = CreateRef<VulkanPipeline>(pipelineSpec);
 
 			// TODO(0x): Need PreDepth-Transparent-Animated pipeline
 
@@ -339,11 +339,11 @@ namespace X2 {
 			spec.SamplerFilter = TextureFilter::Nearest;
 			spec.DebugName = "HierarchicalZ";
 
-			m_HierarchicalDepthTexture = Ref<VulkanTexture2D>::Create(spec);
+			m_HierarchicalDepthTexture = CreateRef<VulkanTexture2D>(spec);
 
 			Ref<VulkanShader> shader = Renderer::GetShaderLibrary()->Get("HZB");
-			m_HierarchicalDepthPipeline = Ref<VulkanComputePipeline>::Create(shader);
-			m_HierarchicalDepthMaterial = Ref<VulkanMaterial>::Create(shader, "HZB");
+			m_HierarchicalDepthPipeline = CreateRef<VulkanComputePipeline>(shader);
+			m_HierarchicalDepthMaterial = CreateRef<VulkanMaterial>(shader, "HZB");
 		}
 
 		// Pre-Integration
@@ -354,21 +354,23 @@ namespace X2 {
 			spec.Height = 1;
 			spec.DebugName = "Pre-Integration";
 
-			m_VisibilityTexture = Ref<VulkanTexture2D>::Create(spec);
+			m_VisibilityTexture = CreateRef<VulkanTexture2D>(spec);
 
 			Ref<VulkanShader> shader = Renderer::GetShaderLibrary()->Get("Pre-Integration");
-			m_PreIntegrationPipeline = Ref<VulkanComputePipeline>::Create(shader);
-			m_PreIntegrationMaterial = Ref<VulkanMaterial>::Create(shader, "Pre-Integration");
+			m_PreIntegrationPipeline = CreateRef<VulkanComputePipeline>(shader);
+			m_PreIntegrationMaterial = CreateRef<VulkanMaterial>(shader, "Pre-Integration");
 		}
 
 		//TAA Velocity Texture
 		{
 			ImageSpecification imageSpec;
 			imageSpec.Format = ImageFormat::RG16F;
+			imageSpec.Width = Application::Get().GetWindow().GetWidth();
+			imageSpec.Height = Application::Get().GetWindow().GetHeight();
 			imageSpec.Layers = 1;
 			imageSpec.Usage = ImageUsage::Attachment;
 			imageSpec.DebugName = "TAA-Velocity";
-			m_TAAVelocityImage = Ref<VulkanImage2D>::Create(imageSpec);
+			m_TAAVelocityImage = CreateRef<VulkanImage2D>(imageSpec);
 			m_TAAVelocityImage->Invalidate();
 			//m_TAAVelocityImage->CreatePerLayerImageViews();
 		}
@@ -388,12 +390,12 @@ namespace X2 {
 			geoFramebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 			geoFramebufferSpec.DebugName = "Geometry";
 			geoFramebufferSpec.ClearDepthOnLoad = false;
-			Ref<VulkanFramebuffer> framebuffer = Ref<VulkanFramebuffer>::Create(geoFramebufferSpec);
+			Ref<VulkanFramebuffer> framebuffer = CreateRef<VulkanFramebuffer>(geoFramebufferSpec);
 
 			RenderPassSpecification renderPassSpec;
 			renderPassSpec.DebugName = geoFramebufferSpec.DebugName;
 			renderPassSpec.TargetFramebuffer = framebuffer;
-			Ref<VulkanRenderPass> renderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+			Ref<VulkanRenderPass> renderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
 
 			PipelineSpecification pipelineSpecification;
 			pipelineSpecification.DebugName = "PBR-Static";
@@ -404,7 +406,7 @@ namespace X2 {
 			pipelineSpecification.InstanceLayout = instanceLayout;
 			pipelineSpecification.LineWidth = m_LineWidth;
 			pipelineSpecification.RenderPass = renderPass;
-			m_GeometryPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+			m_GeometryPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
 
 			//
 			// TAA Geometry
@@ -412,7 +414,7 @@ namespace X2 {
 			pipelineSpecification.DebugName = "PBR-STATIC-TAA";
 			pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("PBR_Static_TAA");
 			pipelineSpecification.DepthOperator = DepthCompareOperator::Equal;
-			m_GeometryTAAPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+			m_GeometryTAAPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
 
 
 			//
@@ -421,7 +423,7 @@ namespace X2 {
 			pipelineSpecification.DebugName = "PBR-Transparent";
 			pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("PBR_Transparent");
 			pipelineSpecification.DepthOperator = DepthCompareOperator::GreaterOrEqual;
-			m_TransparentGeometryPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+			m_TransparentGeometryPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
 
 			//
 			// Animated Geometry
@@ -430,7 +432,7 @@ namespace X2 {
 			pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("PBR_Anim");
 			pipelineSpecification.DepthOperator = DepthCompareOperator::Equal;
 			pipelineSpecification.BoneInfluenceLayout = boneInfluenceLayout;
-			m_GeometryPipelineAnim = Ref<VulkanPipeline>::Create(pipelineSpecification);
+			m_GeometryPipelineAnim = CreateRef<VulkanPipeline>(pipelineSpecification);
 
 			// TODO(0x): Need Transparent-Animated geometry pipeline
 
@@ -448,8 +450,8 @@ namespace X2 {
 
 			RenderPassSpecification renderPassSpec;
 			renderPassSpec.DebugName = framebufferSpec.DebugName;
-			renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
-			Ref<VulkanRenderPass> renderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+			renderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(framebufferSpec);
+			Ref<VulkanRenderPass> renderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
 
 			PipelineSpecification pipelineSpecification;
 			pipelineSpecification.DebugName = framebufferSpec.DebugName;
@@ -458,34 +460,34 @@ namespace X2 {
 			pipelineSpecification.InstanceLayout = instanceLayout;
 			pipelineSpecification.RenderPass = renderPass;
 			pipelineSpecification.DepthOperator = DepthCompareOperator::LessOrEqual;
-			m_SelectedGeometryPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
-			m_SelectedGeometryMaterial = Ref<VulkanMaterial>::Create(pipelineSpecification.Shader, pipelineSpecification.DebugName);
+			m_SelectedGeometryPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
+			m_SelectedGeometryMaterial = CreateRef<VulkanMaterial>(pipelineSpecification.Shader, pipelineSpecification.DebugName);
 
 			pipelineSpecification.DebugName = "SelectedGeometry-Anim";
 			pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("SelectedGeometry_Anim");
 			pipelineSpecification.BoneInfluenceLayout = boneInfluenceLayout;
-			m_SelectedGeometryPipelineAnim = Ref<VulkanPipeline>::Create(pipelineSpecification); // Note: same framebuffer and renderpass as m_SelectedGeometryPipeline
+			m_SelectedGeometryPipelineAnim = CreateRef<VulkanPipeline>(pipelineSpecification); // Note: same framebuffer and renderpass as m_SelectedGeometryPipeline
 		}
 
 		// Pre-convolution Compute
 		{
 			auto shader = Renderer::GetShaderLibrary()->Get("Pre-Convolution");
-			m_GaussianBlurPipeline = Ref<VulkanComputePipeline>::Create(shader);
+			m_GaussianBlurPipeline = CreateRef<VulkanComputePipeline>(shader);
 			TextureSpecification spec;
 			spec.Format = ImageFormat::RGBA32F;
 			spec.Width = 1;
 			spec.Height = 1;
 			spec.SamplerWrap = TextureWrap::Clamp;
 			spec.DebugName = "Pre-Convoluted";
-			m_PreConvolutedTexture = Ref<VulkanTexture2D>::Create(spec);
+			m_PreConvolutedTexture = CreateRef<VulkanTexture2D>(spec);
 
-			m_GaussianBlurMaterial = Ref<VulkanMaterial>::Create(shader);
+			m_GaussianBlurMaterial = CreateRef<VulkanMaterial>(shader);
 		}
 
 		// Bloom Compute
 		{
 			auto shader = Renderer::GetShaderLibrary()->Get("Bloom");
-			m_BloomComputePipeline = Ref<VulkanComputePipeline>::Create(shader);
+			m_BloomComputePipeline = CreateRef<VulkanComputePipeline>(shader);
 			TextureSpecification spec;
 			spec.Format = ImageFormat::RGBA32F;
 			spec.Width = 1;
@@ -494,12 +496,12 @@ namespace X2 {
 			spec.Storage = true;
 			spec.GenerateMips = true;
 			spec.DebugName = "BloomCompute-0";
-			m_BloomComputeTextures[0] = Ref<VulkanTexture2D>::Create(spec);
+			m_BloomComputeTextures[0] = CreateRef<VulkanTexture2D>(spec);
 			spec.DebugName = "BloomCompute-1";
-			m_BloomComputeTextures[1] = Ref<VulkanTexture2D>::Create(spec);
+			m_BloomComputeTextures[1] = CreateRef<VulkanTexture2D>(spec);
 			spec.DebugName = "BloomCompute-2";
-			m_BloomComputeTextures[2] = Ref<VulkanTexture2D>::Create(spec);
-			m_BloomComputeMaterial = Ref<VulkanMaterial>::Create(shader);
+			m_BloomComputeTextures[2] = CreateRef<VulkanTexture2D>(spec);
+			m_BloomComputeMaterial = CreateRef<VulkanMaterial>(shader);
 
 			m_BloomDirtTexture = Renderer::GetBlackTexture();
 		}
@@ -511,7 +513,7 @@ namespace X2 {
 			imageSpec.Layers = 16;
 			imageSpec.Usage = ImageUsage::Attachment;
 			imageSpec.DebugName = "Deinterleaved";
-			Ref<VulkanImage2D> image = Ref<VulkanImage2D>::Create(imageSpec);
+			Ref<VulkanImage2D> image = CreateRef<VulkanImage2D>(imageSpec);
 			image->Invalidate();
 			image->CreatePerLayerImageViews();
 
@@ -540,16 +542,16 @@ namespace X2 {
 				for (int layer = 0; layer < 8; layer++)
 					deinterleavingFramebufferSpec.ExistingImageLayers.emplace_back(rp * 8 + layer);
 
-				Ref<VulkanFramebuffer> framebuffer = Ref<VulkanFramebuffer>::Create(deinterleavingFramebufferSpec);
+				Ref<VulkanFramebuffer> framebuffer = CreateRef<VulkanFramebuffer>(deinterleavingFramebufferSpec);
 
 				RenderPassSpecification deinterleavingRenderPassSpec;
 				deinterleavingRenderPassSpec.TargetFramebuffer = framebuffer;
 				deinterleavingRenderPassSpec.DebugName = "Deinterleaving";
-				pipelineSpec.RenderPass = Ref<VulkanRenderPass>::Create(deinterleavingRenderPassSpec);
+				pipelineSpec.RenderPass = CreateRef<VulkanRenderPass>(deinterleavingRenderPassSpec);
 
-				m_DeinterleavingPipelines[rp] = Ref<VulkanPipeline>::Create(pipelineSpec);
+				m_DeinterleavingPipelines[rp] = CreateRef<VulkanPipeline>(pipelineSpec);
 			}
-			m_DeinterleavingMaterial = Ref<VulkanMaterial>::Create(pipelineSpec.Shader, pipelineSpec.DebugName);
+			m_DeinterleavingMaterial = CreateRef<VulkanMaterial>(pipelineSpec.Shader, pipelineSpec.DebugName);
 
 		}
 
@@ -560,7 +562,7 @@ namespace X2 {
 			imageSpec.Usage = ImageUsage::Storage;
 			imageSpec.Layers = 16;
 			imageSpec.DebugName = "HBAO-Output";
-			Ref<VulkanImage2D> image = Ref<VulkanImage2D>::Create(imageSpec);
+			Ref<VulkanImage2D> image = CreateRef<VulkanImage2D>(imageSpec);
 			image->Invalidate();
 			image->CreatePerLayerImageViews();
 
@@ -568,8 +570,8 @@ namespace X2 {
 
 			Ref<VulkanShader> shader = Renderer::GetShaderLibrary()->Get("HBAO");
 
-			m_HBAOPipeline = Ref<VulkanComputePipeline>::Create(shader);
-			m_HBAOMaterial = Ref<VulkanMaterial>::Create(shader, "HBAO");
+			m_HBAOPipeline = CreateRef<VulkanComputePipeline>(shader);
+			m_HBAOMaterial = CreateRef<VulkanMaterial>(shader, "HBAO");
 
 			for (int i = 0; i < 16; i++)
 				HBAODataUB.Float2Offsets[i] = glm::vec4((float)(i % 4) + 0.5f, (float)(i / 4) + 0.5f, 0.0f, 1.f);
@@ -587,7 +589,7 @@ namespace X2 {
 				imageSpec.Usage = ImageUsage::Storage;
 				imageSpec.Layers = 1;
 				imageSpec.DebugName = "GTAO";
-				m_GTAOOutputImage = Ref<VulkanImage2D>::Create(imageSpec);
+				m_GTAOOutputImage = CreateRef<VulkanImage2D>(imageSpec);
 				m_GTAOOutputImage->Invalidate();
 			}
 
@@ -597,7 +599,7 @@ namespace X2 {
 				imageSpec.Format = ImageFormat::RED8UN;
 				imageSpec.Usage = ImageUsage::Storage;
 				imageSpec.DebugName = "GTAO-Edges";
-				m_GTAOEdgesOutputImage = Ref<VulkanImage2D>::Create(imageSpec);
+				m_GTAOEdgesOutputImage = CreateRef<VulkanImage2D>(imageSpec);
 				m_GTAOEdgesOutputImage->Invalidate();
 			}
 
@@ -608,14 +610,14 @@ namespace X2 {
 				imageSpec.Format = ImageFormat::RGBA32F;
 				imageSpec.Usage = ImageUsage::Storage;
 				imageSpec.DebugName = "GTAO-Debug";
-				m_GTAODebugOutputImage = Ref<VulkanImage2D>::Create(imageSpec);
+				m_GTAODebugOutputImage = CreateRef<VulkanImage2D>(imageSpec);
 				m_GTAODebugOutputImage->Invalidate();
 			}
 
 			Ref<VulkanShader> shader = Renderer::GetShaderLibrary()->Get("GTAO");
 
-			m_GTAOPipeline = Ref<VulkanComputePipeline>::Create(shader);
-			m_GTAOMaterial = Ref<VulkanMaterial>::Create(shader, "GTAO");
+			m_GTAOPipeline = CreateRef<VulkanComputePipeline>(shader);
+			m_GTAOMaterial = CreateRef<VulkanMaterial>(shader, "GTAO");
 		}
 
 		// GTAO Denoise
@@ -629,14 +631,14 @@ namespace X2 {
 				imageSpec.Usage = ImageUsage::Storage;
 				imageSpec.Layers = 1;
 				imageSpec.DebugName = "GTAO-Denoise";
-				m_GTAODenoiseImage = Ref<VulkanImage2D>::Create(imageSpec);
+				m_GTAODenoiseImage = CreateRef<VulkanImage2D>(imageSpec);
 				m_GTAODenoiseImage->Invalidate();
 
 				Ref<VulkanShader> shader = Renderer::GetShaderLibrary()->Get("GTAO-Denoise");
-				m_GTAODenoiseMaterial[0] = Ref<VulkanMaterial>::Create(shader, "GTAO-Denoise-Ping");
-				m_GTAODenoiseMaterial[1] = Ref<VulkanMaterial>::Create(shader, "GTAO-Denoise-Pong");
+				m_GTAODenoiseMaterial[0] = CreateRef<VulkanMaterial>(shader, "GTAO-Denoise-Ping");
+				m_GTAODenoiseMaterial[1] = CreateRef<VulkanMaterial>(shader, "GTAO-Denoise-Pong");
 
-				m_GTAODenoisePipeline = Ref<VulkanComputePipeline>::Create(shader);
+				m_GTAODenoisePipeline = CreateRef<VulkanComputePipeline>(shader);
 			}
 
 			// GTAO Composite
@@ -653,8 +655,8 @@ namespace X2 {
 				framebufferSpec.ClearColorOnLoad = false;
 				framebufferSpec.BlendMode = FramebufferBlendMode::Zero_SrcColor;
 
-				renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
-				aoCompositePipelineSpec.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+				renderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(framebufferSpec);
+				aoCompositePipelineSpec.RenderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
 				m_AOCompositeRenderPass = aoCompositePipelineSpec.RenderPass;
 				aoCompositePipelineSpec.DepthTest = false;
 				aoCompositePipelineSpec.Layout = {
@@ -662,8 +664,8 @@ namespace X2 {
 					{ ShaderDataType::Float2, "a_TexCoord" },
 				};
 				aoCompositePipelineSpec.Shader = Renderer::GetShaderLibrary()->Get("AO-Composite");
-				m_AOCompositePipeline = Ref<VulkanPipeline>::Create(aoCompositePipelineSpec);
-				m_AOCompositeMaterial = Ref<VulkanMaterial>::Create(aoCompositePipelineSpec.Shader, "GTAO-Composite");
+				m_AOCompositePipeline = CreateRef<VulkanPipeline>(aoCompositePipelineSpec);
+				m_AOCompositeMaterial = CreateRef<VulkanMaterial>(aoCompositePipelineSpec.Shader, "GTAO-Composite");
 			}
 		}
 
@@ -674,7 +676,7 @@ namespace X2 {
 			reinterleavingFramebufferSpec.ClearColor = { 0.5f, 0.1f, 0.1f, 1.0f };
 			reinterleavingFramebufferSpec.DebugName = "Reinterleaving";
 
-			Ref<VulkanFramebuffer> framebuffer = Ref<VulkanFramebuffer>::Create(reinterleavingFramebufferSpec);
+			Ref<VulkanFramebuffer> framebuffer = CreateRef<VulkanFramebuffer>(reinterleavingFramebufferSpec);
 			Ref<VulkanShader> shader = Renderer::GetShaderLibrary()->Get("Reinterleaving");
 			PipelineSpecification pipelineSpecification;
 			pipelineSpecification.Layout = {
@@ -689,12 +691,12 @@ namespace X2 {
 			RenderPassSpecification renderPassSpec;
 			renderPassSpec.TargetFramebuffer = framebuffer;
 			renderPassSpec.DebugName = "Reinterleaving";
-			pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+			pipelineSpecification.RenderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
 			pipelineSpecification.DebugName = "Reinterleaving";
 			pipelineSpecification.DepthWrite = false;
-			m_ReinterleavingPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+			m_ReinterleavingPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
 
-			m_ReinterleavingMaterial = Ref<VulkanMaterial>::Create(pipelineSpecification.Shader, pipelineSpecification.DebugName);
+			m_ReinterleavingMaterial = CreateRef<VulkanMaterial>(pipelineSpecification.Shader, pipelineSpecification.DebugName);
 		}
 
 		//HBAO Blur
@@ -723,20 +725,20 @@ namespace X2 {
 			{
 				pipelineSpecification.DebugName = "HBAOBlur1";
 				hbaoBlurFramebufferSpec.DebugName = "HBAOBlur1";
-				renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(hbaoBlurFramebufferSpec);
-				pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
-				m_HBAOBlurPipelines[0] = Ref<VulkanPipeline>::Create(pipelineSpecification);
+				renderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(hbaoBlurFramebufferSpec);
+				pipelineSpecification.RenderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
+				m_HBAOBlurPipelines[0] = CreateRef<VulkanPipeline>(pipelineSpecification);
 			}
 			// Second blur pass
 			{
 				pipelineSpecification.DebugName = "HBAOBlur2";
 				hbaoBlurFramebufferSpec.DebugName = "HBAOBlur2";
-				renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(hbaoBlurFramebufferSpec);
-				pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
-				m_HBAOBlurPipelines[1] = Ref<VulkanPipeline>::Create(pipelineSpecification);
+				renderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(hbaoBlurFramebufferSpec);
+				pipelineSpecification.RenderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
+				m_HBAOBlurPipelines[1] = CreateRef<VulkanPipeline>(pipelineSpecification);
 			}
-			m_HBAOBlurMaterials[0] = Ref<VulkanMaterial>::Create(shader, "HBAOBlur");
-			m_HBAOBlurMaterials[1] = Ref<VulkanMaterial>::Create(shader, "HBAOBlur2");
+			m_HBAOBlurMaterials[0] = CreateRef<VulkanMaterial>(shader, "HBAOBlur");
+			m_HBAOBlurMaterials[1] = CreateRef<VulkanMaterial>(shader, "HBAOBlur2");
 
 		}
 
@@ -746,15 +748,15 @@ namespace X2 {
 			imageSpec.Format = ImageFormat::RGBA16F;
 			imageSpec.Usage = ImageUsage::Storage;
 			imageSpec.DebugName = "SSR";
-			Ref<VulkanImage2D> image = Ref<VulkanImage2D>::Create(imageSpec);
+			Ref<VulkanImage2D> image = CreateRef<VulkanImage2D>(imageSpec);
 			image->Invalidate();
 
 			m_SSRImage = image;
 
 			Ref<VulkanShader> shader = Renderer::GetShaderLibrary()->Get("SSR");
 
-			m_SSRPipeline = Ref<VulkanComputePipeline>::Create(shader);
-			m_SSRMaterial = Ref<VulkanMaterial>::Create(shader, "SSR");
+			m_SSRPipeline = CreateRef<VulkanComputePipeline>(shader);
+			m_SSRMaterial = CreateRef<VulkanMaterial>(shader, "SSR");
 		}
 
 		//SSR Composite
@@ -780,12 +782,12 @@ namespace X2 {
 			framebufferSpec.ClearColorOnLoad = false;
 
 			RenderPassSpecification renderPassSpec;
-			renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
+			renderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(framebufferSpec);
 			renderPassSpec.DebugName = framebufferSpec.DebugName;
-			pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+			pipelineSpecification.RenderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
 
-			m_SSRCompositePipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
-			m_SSRCompositeMaterial = Ref<VulkanMaterial>::Create(shader, "SSR-Composite");
+			m_SSRCompositePipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
+			m_SSRCompositeMaterial = CreateRef<VulkanMaterial>(shader, "SSR-Composite");
 		}
 
 		// Composite
@@ -796,7 +798,7 @@ namespace X2 {
 			compFramebufferSpec.Attachments = { ImageFormat::RGBA32F, ImageFormat::Depth };
 			compFramebufferSpec.Transfer = true;
 
-			Ref<VulkanFramebuffer> framebuffer = Ref<VulkanFramebuffer>::Create(compFramebufferSpec);
+			Ref<VulkanFramebuffer> framebuffer = CreateRef<VulkanFramebuffer>(compFramebufferSpec);
 
 			PipelineSpecification pipelineSpecification;
 			pipelineSpecification.Layout = {
@@ -809,11 +811,11 @@ namespace X2 {
 			RenderPassSpecification renderPassSpec;
 			renderPassSpec.TargetFramebuffer = framebuffer;
 			renderPassSpec.DebugName = "SceneComposite";
-			pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+			pipelineSpecification.RenderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
 			pipelineSpecification.DebugName = "SceneComposite";
 			pipelineSpecification.DepthWrite = false;
 			pipelineSpecification.DepthTest = false;
-			m_CompositePipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+			m_CompositePipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
 		}
 
 
@@ -840,12 +842,12 @@ namespace X2 {
 			framebufferSpec.ClearColorOnLoad = true;
 
 			RenderPassSpecification renderPassSpec;
-			renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
+			renderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(framebufferSpec);
 			renderPassSpec.DebugName = framebufferSpec.DebugName;
-			pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+			pipelineSpecification.RenderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
 
-			m_SMAAEdgeDetectionPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
-			m_SMAAEdgeDetectionMaterial = Ref<VulkanMaterial>::Create(shader, "SMAA-EdgeDetection");
+			m_SMAAEdgeDetectionPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
+			m_SMAAEdgeDetectionMaterial = CreateRef<VulkanMaterial>(shader, "SMAA-EdgeDetection");
 		}
 
 		//SMAA Weight
@@ -870,12 +872,12 @@ namespace X2 {
 			framebufferSpec.ClearColorOnLoad = true;
 
 			RenderPassSpecification renderPassSpec;
-			renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
+			renderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(framebufferSpec);
 			renderPassSpec.DebugName = framebufferSpec.DebugName;
-			pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+			pipelineSpecification.RenderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
 
-			m_SMAABlendWeightPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
-			m_SMAABlendWeightMaterial = Ref<VulkanMaterial>::Create(shader, "SMAA-BlendWeight");
+			m_SMAABlendWeightPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
+			m_SMAABlendWeightMaterial = CreateRef<VulkanMaterial>(shader, "SMAA-BlendWeight");
 		}
 
 		//SMAA Blend
@@ -901,12 +903,12 @@ namespace X2 {
 			framebufferSpec.ClearColorOnLoad = true;
 
 			RenderPassSpecification renderPassSpec;
-			renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
+			renderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(framebufferSpec);
 			renderPassSpec.DebugName = framebufferSpec.DebugName;
-			pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+			pipelineSpecification.RenderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
 
-			m_SMAANeighborBlendPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
-			m_SMAANeighborBlendMaterial = Ref<VulkanMaterial>::Create(shader, "SMAA-NeighborBlend");
+			m_SMAANeighborBlendPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
+			m_SMAANeighborBlendMaterial = CreateRef<VulkanMaterial>(shader, "SMAA-NeighborBlend");
 		}
 
 		//TAA
@@ -917,12 +919,12 @@ namespace X2 {
 			imageSpec.Layers = 1;
 			imageSpec.Usage = ImageUsage::Storage;
 			imageSpec.DebugName = "TAA_Color_Image 0";
-			m_TAAToneMappedPreColorImage = Ref<VulkanImage2D>::Create(imageSpec);
+			m_TAAToneMappedPreColorImage = CreateRef<VulkanImage2D>(imageSpec);
 			m_TAAToneMappedPreColorImage->Invalidate();
 
 
 			//imageSpec.DebugName = "TAA_Color_Image1";
-			//Ref<VulkanImage2D> image1 = Ref<VulkanImage2D>::Create(imageSpec);
+			//Ref<VulkanImage2D> image1 = CreateRef<VulkanImage2D>(imageSpec);
 			//image1->Invalidate();
 			////m_TAACurColorImage = image1;
 
@@ -948,12 +950,12 @@ namespace X2 {
 			framebufferSpec.ClearColorOnLoad = false;
 
 			RenderPassSpecification renderPassSpec;
-			renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
+			renderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(framebufferSpec);
 			renderPassSpec.DebugName = framebufferSpec.DebugName;
-			pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+			pipelineSpecification.RenderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
 
-			m_TAAPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
-			m_TAAMaterial = Ref<VulkanMaterial>::Create(shader, "TAA");
+			m_TAAPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
+			m_TAAMaterial = CreateRef<VulkanMaterial>(shader, "TAA");
 		}
 
 		//TAA ToneMapping 
@@ -980,12 +982,12 @@ namespace X2 {
 			framebufferSpec.ClearColorOnLoad = false;
 
 			RenderPassSpecification renderPassSpec;
-			renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
+			renderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(framebufferSpec);
 			renderPassSpec.DebugName = framebufferSpec.DebugName;
-			pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+			pipelineSpecification.RenderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
 
-			m_TAAToneMappingPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
-			m_TAAToneMappingMaterial = Ref<VulkanMaterial>::Create(shader, "TAA-ToneMapping");
+			m_TAAToneMappingPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
+			m_TAAToneMappingMaterial = CreateRef<VulkanMaterial>(shader, "TAA-ToneMapping");
 		}
 
 		//TAA UnMapping 
@@ -1005,19 +1007,19 @@ namespace X2 {
 			FramebufferSpecification framebufferSpec;
 			framebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 			framebufferSpec.Attachments = { ImageFormat::RGBA32F };
-			framebufferSpec.ExistingImages[0] = m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
+			framebufferSpec.ExistingImages[0] = m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage();
 			framebufferSpec.Attachments.Attachments[0].Blend = false;
 
 			framebufferSpec.DebugName = "TAA-ToneUnMapping";
 			framebufferSpec.ClearColorOnLoad = true;
 
 			RenderPassSpecification renderPassSpec;
-			renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
+			renderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(framebufferSpec);
 			renderPassSpec.DebugName = framebufferSpec.DebugName;
-			pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+			pipelineSpecification.RenderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
 
-			m_TAAToneUnMappingPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
-			m_TAAToneUnMappingMaterial = Ref<VulkanMaterial>::Create(shader, "TAA-ToneUnMapping");
+			m_TAAToneUnMappingPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
+			m_TAAToneUnMappingMaterial = CreateRef<VulkanMaterial>(shader, "TAA-ToneUnMapping");
 		}
 
 
@@ -1030,7 +1032,7 @@ namespace X2 {
 		for (uint32_t n = 0; n < m_Options.NUM_BLUE_NOISE_TEXTURES; ++n)
 		{
 			std::string noisePath = std::string(PROJECT_ROOT) + "Resources/Renderer/BlueNoise_256_px/LDR_LLL1_" + std::to_string(n) + ".png";
-			m_BlueNoiseTextures[n] = Ref<VulkanTexture2D>::Create(spec, std::filesystem::path(noisePath));
+			m_BlueNoiseTextures[n] = CreateRef<VulkanTexture2D>(spec, std::filesystem::path(noisePath));
 		}
 
 		// Ray Marching 
@@ -1045,30 +1047,30 @@ namespace X2 {
 			//1.Light Injection
 			{
 				spec.DebugName = "Light Injection Grid 0";
-				m_FroxelFog_lightInjectionImage[0] = Ref<VulkanImage2D>::Create(spec);
+				m_FroxelFog_lightInjectionImage[0] = CreateRef<VulkanImage2D>(spec);
 				m_FroxelFog_lightInjectionImage[0]->Invalidate();
 
 				spec.DebugName = "Light Injection Grid 1";
-				m_FroxelFog_lightInjectionImage[1] = Ref<VulkanImage2D>::Create(spec);
+				m_FroxelFog_lightInjectionImage[1] = CreateRef<VulkanImage2D>(spec);
 				m_FroxelFog_lightInjectionImage[1]->Invalidate();
 
 				Ref<VulkanShader> shader = Renderer::GetShaderLibrary()->Get("FroxelFog_LightInjection");
-				m_FroxelFog_RayInjectionPipeline = Ref<VulkanComputePipeline>::Create(shader);
+				m_FroxelFog_RayInjectionPipeline = CreateRef<VulkanComputePipeline>(shader);
 
-				m_FroxelFog_RayInjectionMaterial[0] = Ref<VulkanMaterial>::Create(shader, "FroxelFogLightInjection 0");
-				m_FroxelFog_RayInjectionMaterial[1] = Ref<VulkanMaterial>::Create(shader, "FroxelFogLightInjection 1");
+				m_FroxelFog_RayInjectionMaterial[0] = CreateRef<VulkanMaterial>(shader, "FroxelFogLightInjection 0");
+				m_FroxelFog_RayInjectionMaterial[1] = CreateRef<VulkanMaterial>(shader, "FroxelFogLightInjection 1");
 			}
 
 			// 2.Scattering
 			{
 				spec.DebugName = "Scattering Grid";
-				m_FroxelFog_ScatteringImage = Ref<VulkanImage2D>::Create(spec);
+				m_FroxelFog_ScatteringImage = CreateRef<VulkanImage2D>(spec);
 				m_FroxelFog_ScatteringImage->Invalidate();
 
 				Ref<VulkanShader> shader = Renderer::GetShaderLibrary()->Get("FroxelFog_Scattering");
-				m_FroxelFog_ScatteringPipeline = Ref<VulkanComputePipeline>::Create(shader);
-				m_FroxelFog_ScatteringMaterial[0] = Ref<VulkanMaterial>::Create(shader, "FroxelFogScattering 0 ");
-				m_FroxelFog_ScatteringMaterial[1] = Ref<VulkanMaterial>::Create(shader, "FroxelFogScattering 1 ");
+				m_FroxelFog_ScatteringPipeline = CreateRef<VulkanComputePipeline>(shader);
+				m_FroxelFog_ScatteringMaterial[0] = CreateRef<VulkanMaterial>(shader, "FroxelFogScattering 0 ");
+				m_FroxelFog_ScatteringMaterial[1] = CreateRef<VulkanMaterial>(shader, "FroxelFogScattering 1 ");
 			}
 
 			//3. Compositing
@@ -1078,7 +1080,7 @@ namespace X2 {
 				imageSpec.Layers = 1;
 				imageSpec.Usage = ImageUsage::Storage;
 				imageSpec.DebugName = "FroxelFog_ColorTemp_Image";
-				m_FroxelFog_ColorTempImage = Ref<VulkanImage2D>::Create(imageSpec);
+				m_FroxelFog_ColorTempImage = CreateRef<VulkanImage2D>(imageSpec);
 				m_FroxelFog_ColorTempImage->Invalidate();
 
 				PipelineSpecification pipelineSpecification;
@@ -1096,19 +1098,19 @@ namespace X2 {
 				FramebufferSpecification framebufferSpec;
 				framebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 				framebufferSpec.Attachments = { ImageFormat::RGBA32F };
-				framebufferSpec.ExistingImages[0] = m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
+				framebufferSpec.ExistingImages[0] = m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage();
 				framebufferSpec.Attachments.Attachments[0].Blend = false;
 
 				framebufferSpec.DebugName = "FroxelFog_Compositing";
 				framebufferSpec.ClearColorOnLoad = false;
 
 				RenderPassSpecification renderPassSpec;
-				renderPassSpec.TargetFramebuffer = Ref<VulkanFramebuffer>::Create(framebufferSpec);
+				renderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(framebufferSpec);
 				renderPassSpec.DebugName = framebufferSpec.DebugName;
-				pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+				pipelineSpecification.RenderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
 
-				m_FroxelFog_CompositePipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
-				m_FroxelFog_CompositeMaterial = Ref<VulkanMaterial>::Create(shader, "FroxelFog_Compositing");
+				m_FroxelFog_CompositePipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
+				m_FroxelFog_CompositeMaterial = CreateRef<VulkanMaterial>(shader, "FroxelFog_Compositing");
 			}
 		}
 
@@ -1121,7 +1123,7 @@ namespace X2 {
 			compFramebufferSpec.Attachments = { ImageFormat::RGBA32F, ImageFormat::Depth };
 			compFramebufferSpec.Transfer = true;
 
-			Ref<VulkanFramebuffer> framebuffer = Ref<VulkanFramebuffer>::Create(compFramebufferSpec);
+			Ref<VulkanFramebuffer> framebuffer = CreateRef<VulkanFramebuffer>(compFramebufferSpec);
 
 			PipelineSpecification pipelineSpecification;
 			pipelineSpecification.Layout = {
@@ -1134,11 +1136,11 @@ namespace X2 {
 			RenderPassSpecification renderPassSpec;
 			renderPassSpec.TargetFramebuffer = framebuffer;
 			renderPassSpec.DebugName = compFramebufferSpec.DebugName;
-			pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+			pipelineSpecification.RenderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
 			pipelineSpecification.DebugName = compFramebufferSpec.DebugName;
 			pipelineSpecification.DepthWrite = false;
-			m_DOFPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
-			m_DOFMaterial = Ref<VulkanMaterial>::Create(pipelineSpecification.Shader, pipelineSpecification.DebugName);
+			m_DOFPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
+			m_DOFMaterial = CreateRef<VulkanMaterial>(pipelineSpecification.Shader, pipelineSpecification.DebugName);
 		}
 
 		// Edge Detection
@@ -1150,7 +1152,7 @@ namespace X2 {
 			compFramebufferSpec.Attachments = { ImageFormat::RGBA32F, ImageFormat::Depth };
 			compFramebufferSpec.Transfer = true;
 
-			Ref<VulkanFramebuffer> framebuffer = Ref<VulkanFramebuffer>::Create(compFramebufferSpec);
+			Ref<VulkanFramebuffer> framebuffer = CreateRef<VulkanFramebuffer>(compFramebufferSpec);
 
 			PipelineSpecification pipelineSpecification;
 			pipelineSpecification.Layout = {
@@ -1163,11 +1165,11 @@ namespace X2 {
 			RenderPassSpecification renderPassSpec;
 			renderPassSpec.TargetFramebuffer = framebuffer;
 			renderPassSpec.DebugName = compFramebufferSpec.DebugName;
-			pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+			pipelineSpecification.RenderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
 			pipelineSpecification.DebugName = compFramebufferSpec.DebugName;
 			pipelineSpecification.DepthWrite = false;
-			m_EdgeDetectionPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
-			m_EdgeDetectionMaterial = Ref<VulkanMaterial>::Create(pipelineSpecification.Shader, pipelineSpecification.DebugName);
+			m_EdgeDetectionPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
+			m_EdgeDetectionMaterial = CreateRef<VulkanMaterial>(pipelineSpecification.Shader, pipelineSpecification.DebugName);
 		}
 
 		// External compositing
@@ -1183,12 +1185,12 @@ namespace X2 {
 			// in the scene
 			extCompFramebufferSpec.ExistingImages[0] = m_CompositePipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage();
 			extCompFramebufferSpec.ExistingImages[1] = m_PreDepthPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage();
-			Ref<VulkanFramebuffer> framebuffer = Ref<VulkanFramebuffer>::Create(extCompFramebufferSpec);
+			Ref<VulkanFramebuffer> framebuffer = CreateRef<VulkanFramebuffer>(extCompFramebufferSpec);
 
 			RenderPassSpecification renderPassSpec;
 			renderPassSpec.DebugName = extCompFramebufferSpec.DebugName;
 			renderPassSpec.TargetFramebuffer = framebuffer;
-			m_ExternalCompositeRenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+			m_ExternalCompositeRenderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
 
 			PipelineSpecification pipelineSpecification;
 			pipelineSpecification.DebugName = "Wireframe";
@@ -1200,21 +1202,21 @@ namespace X2 {
 			pipelineSpecification.Layout = vertexLayout;
 			pipelineSpecification.InstanceLayout = instanceLayout;
 			pipelineSpecification.RenderPass = m_ExternalCompositeRenderPass;
-			m_GeometryWireframePipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+			m_GeometryWireframePipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
 
 			pipelineSpecification.DepthTest = false;
 			pipelineSpecification.DebugName = "Wireframe-OnTop";
-			m_GeometryWireframeOnTopPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
+			m_GeometryWireframeOnTopPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
 
 			pipelineSpecification.DepthTest = true;
 			pipelineSpecification.DebugName = "Wireframe-Anim";
 			pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("Wireframe_Anim");
 			pipelineSpecification.BoneInfluenceLayout = boneInfluenceLayout;
-			m_GeometryWireframePipelineAnim = Ref<VulkanPipeline>::Create(pipelineSpecification); // Note: same framebuffer and renderpass as m_GeometryWireframePipeline
+			m_GeometryWireframePipelineAnim = CreateRef<VulkanPipeline>(pipelineSpecification); // Note: same framebuffer and renderpass as m_GeometryWireframePipeline
 
 			pipelineSpecification.DepthTest = false;
 			pipelineSpecification.DebugName = "Wireframe-Anim-OnTop";
-			m_GeometryWireframeOnTopPipelineAnim = Ref<VulkanPipeline>::Create(pipelineSpecification);
+			m_GeometryWireframeOnTopPipelineAnim = CreateRef<VulkanPipeline>(pipelineSpecification);
 
 		}
 
@@ -1226,7 +1228,7 @@ namespace X2 {
 			spec.Usage = ImageUsage::HostRead;
 			spec.Transfer = true;
 			spec.DebugName = "ReadBack";
-			m_ReadBackImage = Ref<VulkanImage2D>::Create(spec);
+			m_ReadBackImage = CreateRef<VulkanImage2D>(spec);
 		}
 
 		// Temporary framebuffers for re-use
@@ -1239,7 +1241,7 @@ namespace X2 {
 			framebufferSpec.DebugName = "Temporaries";
 
 			for (uint32_t i = 0; i < 2; i++)
-				m_TempFramebuffers.emplace_back(Ref<VulkanFramebuffer>::Create(framebufferSpec));
+				m_TempFramebuffers.emplace_back(CreateRef<VulkanFramebuffer>(framebufferSpec));
 		}
 
 		// Jump Flood (outline)
@@ -1254,10 +1256,10 @@ namespace X2 {
 				{ ShaderDataType::Float3, "a_Position" },
 				{ ShaderDataType::Float2, "a_TexCoord" }
 			};
-			pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+			pipelineSpecification.RenderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
 			pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("JumpFlood_Init");
-			m_JumpFloodInitPipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
-			m_JumpFloodInitMaterial = Ref<VulkanMaterial>::Create(pipelineSpecification.Shader, pipelineSpecification.DebugName);
+			m_JumpFloodInitPipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
+			m_JumpFloodInitMaterial = CreateRef<VulkanMaterial>(pipelineSpecification.Shader, pipelineSpecification.DebugName);
 
 			const char* passName[2] = { "EvenPass", "OddPass" };
 			for (uint32_t i = 0; i < 2; i++)
@@ -1266,10 +1268,10 @@ namespace X2 {
 				renderPassSpec.DebugName = fmt::format("JumpFlood-{0}", passName[i]);
 
 				pipelineSpecification.DebugName = renderPassSpec.DebugName;
-				pipelineSpecification.RenderPass = Ref<VulkanRenderPass>::Create(renderPassSpec);
+				pipelineSpecification.RenderPass = CreateRef<VulkanRenderPass>(renderPassSpec);
 				pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("JumpFlood_Pass");
-				m_JumpFloodPassPipeline[i] = Ref<VulkanPipeline>::Create(pipelineSpecification);
-				m_JumpFloodPassMaterial[i] = Ref<VulkanMaterial>::Create(pipelineSpecification.Shader, pipelineSpecification.DebugName);
+				m_JumpFloodPassPipeline[i] = CreateRef<VulkanPipeline>(pipelineSpecification);
+				m_JumpFloodPassMaterial[i] = CreateRef<VulkanMaterial>(pipelineSpecification.Shader, pipelineSpecification.DebugName);
 			}
 
 			// Outline compositing
@@ -1278,8 +1280,8 @@ namespace X2 {
 				pipelineSpecification.DebugName = "JumpFlood-Composite";
 				pipelineSpecification.Shader = Renderer::GetShaderLibrary()->Get("JumpFlood_Composite");
 				pipelineSpecification.DepthTest = false;
-				m_JumpFloodCompositePipeline = Ref<VulkanPipeline>::Create(pipelineSpecification);
-				m_JumpFloodCompositeMaterial = Ref<VulkanMaterial>::Create(pipelineSpecification.Shader, pipelineSpecification.DebugName);
+				m_JumpFloodCompositePipeline = CreateRef<VulkanPipeline>(pipelineSpecification);
+				m_JumpFloodCompositeMaterial = CreateRef<VulkanMaterial>(pipelineSpecification.Shader, pipelineSpecification.DebugName);
 			}
 		}
 
@@ -1294,22 +1296,22 @@ namespace X2 {
 				{ ShaderDataType::Float2, "a_TexCoord" }
 			};
 			pipelineSpec.RenderPass = m_ExternalCompositeRenderPass;
-			m_GridPipeline = Ref<VulkanPipeline>::Create(pipelineSpec);
+			m_GridPipeline = CreateRef<VulkanPipeline>(pipelineSpec);
 
 			const float gridScale = 16.025f;
 			const float gridSize = 0.025f;
-			m_GridMaterial = Ref<VulkanMaterial>::Create(pipelineSpec.Shader, pipelineSpec.DebugName);
+			m_GridMaterial = CreateRef<VulkanMaterial>(pipelineSpec.Shader, pipelineSpec.DebugName);
 			m_GridMaterial->Set("u_Settings.Scale", gridScale);
 			m_GridMaterial->Set("u_Settings.Size", gridSize);
 		}
 
 		// Collider
-		m_SimpleColliderMaterial = Ref<VulkanMaterial>::Create(Renderer::GetShaderLibrary()->Get("Wireframe"), "SimpleCollider");
+		m_SimpleColliderMaterial = CreateRef<VulkanMaterial>(Renderer::GetShaderLibrary()->Get("Wireframe"), "SimpleCollider");
 		m_SimpleColliderMaterial->Set("u_MaterialUniforms.Color", m_Options.SimplePhysicsCollidersColor);
-		m_ComplexColliderMaterial = Ref<VulkanMaterial>::Create(Renderer::GetShaderLibrary()->Get("Wireframe"), "ComplexCollider");
+		m_ComplexColliderMaterial = CreateRef<VulkanMaterial>(Renderer::GetShaderLibrary()->Get("Wireframe"), "ComplexCollider");
 		m_ComplexColliderMaterial->Set("u_MaterialUniforms.Color", m_Options.ComplexPhysicsCollidersColor);
 
-		m_WireframeMaterial = Ref<VulkanMaterial>::Create(Renderer::GetShaderLibrary()->Get("Wireframe"), "Wireframe");
+		m_WireframeMaterial = CreateRef<VulkanMaterial>(Renderer::GetShaderLibrary()->Get("Wireframe"), "Wireframe");
 		m_WireframeMaterial->Set("u_MaterialUniforms.Color", glm::vec4{ 1.0f, 0.5f, 0.0f, 1.0f });
 
 		// Skybox
@@ -1326,8 +1328,8 @@ namespace X2 {
 				{ ShaderDataType::Float2, "a_TexCoord" }
 			};
 			pipelineSpec.RenderPass = m_GeometryPipeline->GetSpecification().RenderPass;
-			m_SkyboxPipeline = Ref<VulkanPipeline>::Create(pipelineSpec);
-			m_SkyboxMaterial = Ref<VulkanMaterial>::Create(pipelineSpec.Shader, pipelineSpec.DebugName);
+			m_SkyboxPipeline = CreateRef<VulkanPipeline>(pipelineSpec);
+			m_SkyboxMaterial = CreateRef<VulkanMaterial>(pipelineSpec.Shader, pipelineSpec.DebugName);
 			m_SkyboxMaterial->SetFlag(MaterialFlag::DepthTest, false);
 
 		}
@@ -1337,7 +1339,7 @@ namespace X2 {
 		m_SubmeshTransformBuffers.resize(framesInFlight);
 		for (uint32_t i = 0; i < framesInFlight; i++)
 		{
-			m_SubmeshTransformBuffers[i].Buffer = Ref<VulkanVertexBuffer>::Create(sizeof(TransformVertexData) * TransformBufferCount);
+			m_SubmeshTransformBuffers[i].Buffer = CreateRef<VulkanVertexBuffer>(sizeof(TransformVertexData) * TransformBufferCount);
 			m_SubmeshTransformBuffers[i].Data = hnew TransformVertexData[TransformBufferCount];
 		}
 
@@ -1345,11 +1347,11 @@ namespace X2 {
 		//m_BoneTransformStorageBuffers.resize(Renderer::GetConfig().FramesInFlight);
 		//for (auto& buffer : m_BoneTransformStorageBuffers)
 		//{
-		//	buffer = Ref<VulkanStorageBuffer>::Create(static_cast<uint32_t>(sizeof(BoneTransforms) * BoneTransformBufferCount), 0);
+		//	buffer = CreateRef<VulkanStorageBuffer>(static_cast<uint32_t>(sizeof(BoneTransforms) * BoneTransformBufferCount), 0);
 		//}
 		//m_BoneTransformsData = hnew BoneTransforms[BoneTransformBufferCount];
 
-		Renderer::Submit([instance = Ref(this)]() mutable { instance->m_ResourcesCreatedGPU = true; });
+		Renderer::Submit([instance = this]() mutable { instance->m_ResourcesCreatedGPU = true; });
 
 		InitMaterials();
 		InitOptions();
@@ -1357,7 +1359,7 @@ namespace X2 {
 
 	void SceneRenderer::InitMaterials()
 	{
-		Ref<SceneRenderer> instance = this;
+		SceneRenderer* instance = this;
 		Renderer::Submit([instance]() mutable
 			{
 				instance->m_HBAOBlurMaterials[0]->Set("u_InputTex", instance->m_ReinterleavingPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage());
@@ -1436,7 +1438,7 @@ namespace X2 {
 			});
 	}
 
-	void SceneRenderer::SetScene(Ref<Scene> scene)
+	void SceneRenderer::SetScene(Scene* scene)
 	{
 		X2_CORE_ASSERT(!m_Active, "Can't change scenes while rendering");
 		m_Scene = scene;
@@ -1724,7 +1726,7 @@ namespace X2 {
 		UBTAAData& taaData = TAADataUB;
 		UBFroxelFogData& froxelFogData = FroxelFogDataUB;
 		UBFogVolumesData& fogVolumesData = FogVolumes;
-		Ref<SceneRenderer> instance = this;
+		SceneRenderer* instance = this;
 
 		
 		//TAA History
@@ -1913,7 +1915,7 @@ namespace X2 {
 			froxelFogData.frustumRays[i] = WorldCornerPos - glm::vec4(cameraPosition, 1.0);
 		}
 
-		froxelFogData.fogParams = { m_Options.froxelFogDensity , 0.0f, 0.0f, 0.0f };
+		froxelFogData.fogParams = { m_Options.froxelFogDensity , m_Options.heightFogExponent, m_Options.heightFogOffset, m_Options.heightFogAmount };
 		froxelFogData.enableJitter = m_Options.froxelFogEnableJitter;
 		froxelFogData.enableTemperalAccumulating = m_Options.froxelFogEnableTemperalAccumulating;
 
@@ -2414,11 +2416,11 @@ namespace X2 {
 
 		Renderer::BeginRenderPass(m_CommandBuffer, m_PreDepthTransparentPipeline->GetSpecification().RenderPass);
 #if 1
-		for (auto& [mk, dc] : m_TransparentStaticMeshDrawList)
+		/*for (auto& [mk, dc] : m_TransparentStaticMeshDrawList)
 		{
 			const auto& transformData = m_CurTransformMap->at(mk);
 			Renderer::RenderMeshWithMaterial(m_CommandBuffer, m_PreDepthTransparentPipeline, m_UniformBufferSet, nullptr, dc.StaticMesh, dc.SubmeshIndex, m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, {}, 0, dc.InstanceCount, m_PreDepthMaterial);
-		}
+		}*/
 		for (auto& [mk, dc] : m_TransparentDrawList)
 		{
 			const auto& transformData = m_CurTransformMap->at(mk);
@@ -2440,7 +2442,7 @@ namespace X2 {
 		//SceneRenderer::EndGPUPerfMarker(m_CommandBuffer);
 
 #if 0 // Is this necessary?
-		Renderer::Submit([cb = m_CommandBuffer, image = m_PreDepthPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage().As<VulkanImage2D>()]()
+		Renderer::Submit([cb = m_CommandBuffer, image = m_PreDepthPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage()]()
 			{
 				VkImageMemoryBarrier imageMemoryBarrier = {};
 				imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -2452,7 +2454,7 @@ namespace X2 {
 				imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
 				vkCmdPipelineBarrier(
-					cb.As<VulkanRenderCommandBuffer>()->GetCommandBuffer(Renderer::GetCurrentFrameIndex()),
+					cb->GetCommandBuffer(Renderer::GetCurrentFrameIndex()),
 					VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
 					VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
 					0,
@@ -2469,19 +2471,19 @@ namespace X2 {
 	{
 		X2_PROFILE_FUNC();
 
-		Ref<VulkanComputePipeline> pipeline = m_HierarchicalDepthPipeline.As<VulkanComputePipeline>();
+		Ref<VulkanComputePipeline> pipeline = m_HierarchicalDepthPipeline;
 
-		auto srcDepthImage = m_PreDepthPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage().As<VulkanImage2D>();
+		auto srcDepthImage = m_PreDepthPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage();
 
 		m_GPUTimeQueries.HierarchicalDepthQuery = m_CommandBuffer->BeginTimestampQuery();
 
-		Renderer::Submit([srcDepthImage, commandBuffer = m_CommandBuffer, hierarchicalZTex = m_HierarchicalDepthTexture.As<VulkanTexture2D>(), material = m_HierarchicalDepthMaterial.As<VulkanMaterial>(), pipeline]() mutable
+		Renderer::Submit([srcDepthImage, commandBuffer = m_CommandBuffer, hierarchicalZTex = m_HierarchicalDepthTexture, material = m_HierarchicalDepthMaterial, pipeline]() mutable
 			{
 				const VkDevice device = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
 
-				Ref<VulkanImage2D> hierarchicalZImage = hierarchicalZTex->GetImage().As<VulkanImage2D>();
+				Ref<VulkanImage2D> hierarchicalZImage = hierarchicalZTex->GetImage();
 
-				auto shader = material->GetShader().As<VulkanShader>();
+				auto shader = material->GetShader();
 
 				VkDescriptorSetLayout descriptorSetLayout = shader->GetDescriptorSetLayout(0);
 
@@ -2589,16 +2591,16 @@ namespace X2 {
 	{
 		X2_PROFILE_FUNC();
 
-		Ref<VulkanComputePipeline> pipeline = m_PreIntegrationPipeline.As<VulkanComputePipeline>();
+		Ref<VulkanComputePipeline> pipeline = m_PreIntegrationPipeline;
 
 		m_GPUTimeQueries.PreIntegrationQuery = m_CommandBuffer->BeginTimestampQuery();
 		glm::vec2 projectionParams = { m_SceneData.SceneCamera.Far, m_SceneData.SceneCamera.Near }; // Reversed 
-		Renderer::Submit([projectionParams, hzbUVFactor = m_SSROptions.HZBUvFactor, depthImage = m_HierarchicalDepthTexture->GetImage().As<VulkanImage2D>(), commandBuffer = m_CommandBuffer.As<VulkanRenderCommandBuffer>(),
-			visibilityTexture = m_VisibilityTexture, material = m_PreIntegrationMaterial.As<VulkanMaterial>(), pipeline]() mutable
+		Renderer::Submit([projectionParams, hzbUVFactor = m_SSROptions.HZBUvFactor, depthImage = m_HierarchicalDepthTexture->GetImage(), commandBuffer = m_CommandBuffer,
+			visibilityTexture = m_VisibilityTexture, material = m_PreIntegrationMaterial, pipeline]() mutable
 			{
 				const VkDevice device = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
 
-				Ref<VulkanImage2D> visibilityImage = visibilityTexture->GetImage().As<VulkanImage2D>();
+				Ref<VulkanImage2D> visibilityImage = visibilityTexture->GetImage();
 
 				struct PreIntegrationComputePushConstants
 				{
@@ -2618,7 +2620,7 @@ namespace X2 {
 
 				std::array<VkWriteDescriptorSet, 3> writeDescriptors{};
 
-				auto shader = material->GetShader().As<VulkanShader>();
+				auto shader = material->GetShader();
 				VkDescriptorSetLayout descriptorSetLayout = shader->GetDescriptorSetLayout(0);
 
 				VkDescriptorSetAllocateInfo allocInfo = {};
@@ -2718,7 +2720,7 @@ namespace X2 {
 
 		Renderer::Submit([instance]() mutable
 			{
-				auto inputImage = instance->m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
+				auto inputImage = instance->m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage();
 
 				Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
 					VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
@@ -2874,7 +2876,7 @@ namespace X2 {
 		// TODO: Other techniques might need it in the future
 		if (!m_Options.EnableSSR)
 			return;
-		Ref<VulkanComputePipeline> pipeline = m_GaussianBlurPipeline.As<VulkanComputePipeline>();
+		Ref<VulkanComputePipeline> pipeline = m_GaussianBlurPipeline;
 		struct PreConvolutionComputePushConstants
 		{
 			int PrevLod = 0;
@@ -2886,15 +2888,15 @@ namespace X2 {
 
 		m_GPUTimeQueries.PreConvolutionQuery = m_CommandBuffer->BeginTimestampQuery();
 
-		Renderer::Submit([preConvolutionComputePushConstants, inputColorImage = m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>(),
-			preConvolutedTexture = m_PreConvolutedTexture.As<VulkanTexture2D>(), commandBuffer = m_CommandBuffer.As<VulkanRenderCommandBuffer>(),
-			material = m_GaussianBlurMaterial.As<VulkanMaterial>(), pipeline, halfRes]() mutable
+		Renderer::Submit([preConvolutionComputePushConstants, inputColorImage = m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage(),
+			preConvolutedTexture = m_PreConvolutedTexture, commandBuffer = m_CommandBuffer,
+			material = m_GaussianBlurMaterial, pipeline, halfRes]() mutable
 			{
 				const VkDevice device = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
 
-				Ref<VulkanImage2D> preConvolutedImage = preConvolutedTexture->GetImage().As<VulkanImage2D>();
+				Ref<VulkanImage2D> preConvolutedImage = preConvolutedTexture->GetImage();
 
-				auto shader = material->GetShader().As<VulkanShader>();
+				auto shader = material->GetShader();
 
 				VkDescriptorSetLayout descriptorSetLayout = shader->GetDescriptorSetLayout(0);
 				VkDescriptorSetAllocateInfo allocInfo = {};
@@ -3167,7 +3169,7 @@ namespace X2 {
 
 	void SceneRenderer::BloomCompute()
 	{
-		Ref<VulkanComputePipeline> pipeline = m_BloomComputePipeline.As<VulkanComputePipeline>();
+		Ref<VulkanComputePipeline> pipeline = m_BloomComputePipeline;
 
 		//m_BloomComputeMaterial->Set("o_Image", m_BloomComputeTexture);
 
@@ -3180,11 +3182,11 @@ namespace X2 {
 		bloomComputePushConstants.Params = { m_BloomSettings.Threshold, m_BloomSettings.Threshold - m_BloomSettings.Knee, m_BloomSettings.Knee * 2.0f, 0.25f / m_BloomSettings.Knee };
 		bloomComputePushConstants.Mode = 0;
 
-		auto inputImage = m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
+		auto inputImage = m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage();
 
 		m_GPUTimeQueries.BloomComputePassQuery = m_CommandBuffer->BeginTimestampQuery();
 
-		Renderer::Submit([bloomComputePushConstants, inputImage, workGroupSize = m_BloomComputeWorkgroupSize, commandBuffer = m_CommandBuffer, bloomTextures = m_BloomComputeTextures, ubs = m_UniformBufferSet, material = m_BloomComputeMaterial.As<VulkanMaterial>(), pipeline]() mutable
+		Renderer::Submit([bloomComputePushConstants, inputImage, workGroupSize = m_BloomComputeWorkgroupSize, commandBuffer = m_CommandBuffer, bloomTextures = m_BloomComputeTextures, ubs = m_UniformBufferSet, material = m_BloomComputeMaterial, pipeline]() mutable
 			{
 				constexpr bool useComputeQueue = false;
 
@@ -3192,12 +3194,12 @@ namespace X2 {
 
 				Ref<VulkanImage2D> images[3] =
 				{
-					bloomTextures[0]->GetImage().As<VulkanImage2D>(),
-					bloomTextures[1]->GetImage().As<VulkanImage2D>(),
-					bloomTextures[2]->GetImage().As<VulkanImage2D>()
+					bloomTextures[0]->GetImage(),
+					bloomTextures[1]->GetImage(),
+					bloomTextures[2]->GetImage()
 				};
 
-				auto shader = pipeline->GetShader().As<VulkanShader>();
+				auto shader = pipeline->GetShader();
 
 				auto descriptorImageInfo = images[0]->GetDescriptorInfo();
 				descriptorImageInfo.imageView = images[0]->RT_GetMipImageView(0);
@@ -3300,7 +3302,7 @@ namespace X2 {
 						// Input image
 						writeDescriptors[1] = *shader->GetDescriptorSet("u_Texture");
 						writeDescriptors[1].dstSet = descriptorSet; // Should this be set inside the shader?
-						auto descriptor = bloomTextures[0]->GetImage().As<VulkanImage2D>()->GetDescriptorInfo();
+						auto descriptor = bloomTextures[0]->GetImage()->GetDescriptorInfo();
 						//descriptor.sampler = samplerClamp;
 						writeDescriptors[1].pImageInfo = &descriptor;
 
@@ -3346,7 +3348,7 @@ namespace X2 {
 						// Input image
 						writeDescriptors[1] = *shader->GetDescriptorSet("u_Texture");
 						writeDescriptors[1].dstSet = descriptorSet; // Should this be set inside the shader?
-						auto descriptor = bloomTextures[1]->GetImage().As<VulkanImage2D>()->GetDescriptorInfo();
+						auto descriptor = bloomTextures[1]->GetImage()->GetDescriptorInfo();
 						//descriptor.sampler = samplerClamp;
 						writeDescriptors[1].pImageInfo = &descriptor;
 
@@ -3398,7 +3400,7 @@ namespace X2 {
 				// Input image
 				writeDescriptors[1] = *shader->GetDescriptorSet("u_Texture");
 				writeDescriptors[1].dstSet = descriptorSet; // Should this be set inside the shader?
-				writeDescriptors[1].pImageInfo = &bloomTextures[0]->GetImage().As<VulkanImage2D>()->GetDescriptorInfo();
+				writeDescriptors[1].pImageInfo = &bloomTextures[0]->GetImage()->GetDescriptorInfo();
 
 				writeDescriptors[2] = *shader->GetDescriptorSet("u_BloomTexture");
 				writeDescriptors[2].dstSet = descriptorSet; // Should this be set inside the shader?
@@ -3455,7 +3457,7 @@ namespace X2 {
 					// Input image
 					writeDescriptors[1] = *shader->GetDescriptorSet("u_Texture");
 					writeDescriptors[1].dstSet = descriptorSet; // Should this be set inside the shader?
-					writeDescriptors[1].pImageInfo = &bloomTextures[0]->GetImage().As<VulkanImage2D>()->GetDescriptorInfo();
+					writeDescriptors[1].pImageInfo = &bloomTextures[0]->GetImage()->GetDescriptorInfo();
 
 					writeDescriptors[2] = *shader->GetDescriptorSet("u_BloomTexture");
 					writeDescriptors[2].dstSet = descriptorSet; // Should this be set inside the shader?
@@ -3573,7 +3575,7 @@ namespace X2 {
 					m_ReadBackImage);
 
 				{
-					auto alloc = m_ReadBackImage.As<VulkanImage2D>()->GetImageInfo().MemoryAlloc;
+					auto alloc = m_ReadBackImage->GetImageInfo().MemoryAlloc;
 					VulkanAllocator allocator("SceneRenderer");
 					glm::vec4* mappedMem = allocator.MapMemory<glm::vec4>(alloc);
 					delete[] m_ReadBackBuffer;
@@ -3679,11 +3681,11 @@ namespace X2 {
 
 		{
 			//Cpoy Cuurent Color Image
-			Ref<SceneRenderer> instance = this;
+			SceneRenderer* instance = this;
 			
 
 			//Tone Mapping Pass
-			m_TAAToneMappingMaterial->Set("u_color", m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>());
+			m_TAAToneMappingMaterial->Set("u_color", m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage());
 			
 			m_GPUTimeQueries.TAAQuery = m_CommandBuffer->BeginTimestampQuery();
 			Renderer::BeginRenderPass(m_CommandBuffer, m_TAAToneMappingPipeline->GetSpecification().RenderPass);
@@ -3692,14 +3694,14 @@ namespace X2 {
 
 
 			//TAA Pass
-			m_TAAMaterial->Set("u_color", m_TAAToneMappingPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>());
-			m_TAAMaterial->Set("u_velocity", m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage(3).As<VulkanImage2D>());
+			m_TAAMaterial->Set("u_color", m_TAAToneMappingPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage());
+			m_TAAMaterial->Set("u_velocity", m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage(3));
 			m_TAAMaterial->Set("u_depth", m_PreDepthPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
 
 			static bool firstFrame = true;
 			if (firstFrame)
 			{
-				m_TAAMaterial->Set("u_colorHistory", m_TAAToneMappingPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>());
+				m_TAAMaterial->Set("u_colorHistory", m_TAAToneMappingPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage());
 				firstFrame = false;
 			}
 			else
@@ -3713,13 +3715,13 @@ namespace X2 {
 
 
 			//Renderer::CopyImage(m_CommandBuffer,
-			//	m_TAAPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>(),
+			//	m_TAAPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage(),
 			//	m_TAAToneMappedPreColorImage);
 
 			//Copy to Prev Image
 			Renderer::Submit([instance]() mutable
 				{
-					auto inputImage = instance->m_TAAPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>();
+					auto inputImage = instance->m_TAAPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage();
 
 					Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
 						VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT,
@@ -3753,7 +3755,7 @@ namespace X2 {
 
 
 			//Tone Mapping Pass
-			m_TAAToneUnMappingMaterial->Set("u_color", m_TAAPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>());
+			m_TAAToneUnMappingMaterial->Set("u_color", m_TAAPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage());
 
 			Renderer::BeginRenderPass(m_CommandBuffer, m_TAAToneUnMappingPipeline->GetSpecification().RenderPass);
 			Renderer::SubmitFullscreenQuad(m_CommandBuffer, m_TAAToneUnMappingPipeline, m_UniformBufferSet, m_TAAToneUnMappingMaterial);
@@ -3768,10 +3770,10 @@ namespace X2 {
 
 	void SceneRenderer::SMAAPass()
 	{
-		Ref<SceneRenderer> instance = this;
+		SceneRenderer* instance = this;
 
 		{
-			m_SMAAEdgeDetectionMaterial->Set("colorTex", m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage().As<VulkanImage2D>());
+			m_SMAAEdgeDetectionMaterial->Set("colorTex", m_GeometryPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetImage());
 
 			m_GPUTimeQueries.SMAAEdgeDetectPassQuery = m_CommandBuffer->BeginTimestampQuery();
 			Renderer::BeginRenderPass(m_CommandBuffer, m_SMAAEdgeDetectionPipeline->GetSpecification().RenderPass);

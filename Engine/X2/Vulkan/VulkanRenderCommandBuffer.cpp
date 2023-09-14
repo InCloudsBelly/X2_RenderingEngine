@@ -143,10 +143,20 @@ namespace X2 {
 			return;
 
 		VkCommandPool commandPool = m_CommandPool;
-		Renderer::SubmitResourceFree([commandPool]()
+		Renderer::SubmitResourceFree([commandPool, fences = m_WaitFences , staticsQueryPools = m_PipelineStatisticsQueryPools, timeQueryPools = m_TimestampQueryPools]()
 			{
 				auto device = VulkanContext::GetCurrentDevice();
 				vkDestroyCommandPool(device->GetVulkanDevice(), commandPool, nullptr);
+
+				for (auto fence : fences)
+					vkDestroyFence(device->GetVulkanDevice(), fence, nullptr);
+
+				for (auto staticQueryPool : staticsQueryPools)
+					vkDestroyQueryPool(device->GetVulkanDevice(), staticQueryPool, nullptr);
+
+				for(auto timeQueryPool : timeQueryPools)
+					vkDestroyQueryPool(device->GetVulkanDevice(), timeQueryPool, nullptr);
+
 			});
 	}
 
@@ -154,7 +164,7 @@ namespace X2 {
 	{
 		m_TimestampNextAvailableQuery = 2;
 
-		Ref<VulkanRenderCommandBuffer> instance = this;
+		VulkanRenderCommandBuffer* instance = this;
 		Renderer::Submit([instance]() mutable
 			{
 				uint32_t frameIndex = Renderer::RT_GetCurrentFrameIndex();
@@ -189,7 +199,7 @@ namespace X2 {
 
 	void VulkanRenderCommandBuffer::End()
 	{
-		Ref<VulkanRenderCommandBuffer> instance = this;
+		VulkanRenderCommandBuffer* instance = this;
 		Renderer::Submit([instance]() mutable
 			{
 				uint32_t frameIndex = Renderer::RT_GetCurrentFrameIndex();
@@ -207,7 +217,7 @@ namespace X2 {
 		if (m_OwnedBySwapChain)
 			return;
 
-		Ref<VulkanRenderCommandBuffer> instance = this;
+		VulkanRenderCommandBuffer* instance = this;
 		Renderer::Submit([instance]() mutable
 			{
 				auto device = VulkanContext::GetCurrentDevice();
@@ -249,7 +259,7 @@ namespace X2 {
 	{
 		uint32_t queryIndex = m_TimestampNextAvailableQuery;
 		m_TimestampNextAvailableQuery += 2;
-		Ref<VulkanRenderCommandBuffer> instance = this;
+		VulkanRenderCommandBuffer* instance = this;
 		Renderer::Submit([instance, queryIndex]()
 			{
 				uint32_t frameIndex = Renderer::RT_GetCurrentFrameIndex();
@@ -261,7 +271,7 @@ namespace X2 {
 
 	void VulkanRenderCommandBuffer::EndTimestampQuery(uint32_t queryID)
 	{
-		Ref<VulkanRenderCommandBuffer> instance = this;
+		VulkanRenderCommandBuffer* instance = this;
 		Renderer::Submit([instance, queryID]()
 			{
 				uint32_t frameIndex = Renderer::RT_GetCurrentFrameIndex();

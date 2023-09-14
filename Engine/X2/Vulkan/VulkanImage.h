@@ -23,6 +23,7 @@ namespace X2 {
 		RGBA32F,
 
 		B10R11G11UF,
+		A2B10G10R10U,
 
 		SRGB,
 
@@ -65,10 +66,21 @@ namespace X2 {
 		TextureCube
 	};
 
+	enum class ImageType
+	{
+		Image1D = 0,
+		Image1DArray,
+		Image2D,
+		Image2DArray,
+		Image3D,
+		ImageCube
+	};
+
 	struct ImageSpecification
 	{
 		std::string DebugName;
 
+		ImageType Type = ImageType::Image2D;
 		ImageFormat Format = ImageFormat::RGBA;
 		ImageUsage Usage = ImageUsage::Texture;
 		bool Transfer = false; // Will it be used for transfer ops?
@@ -89,7 +101,7 @@ namespace X2 {
 	};
 
 
-	class Image : public RefCounted
+	class Image
 	{
 	public:
 		virtual ~Image() = default;
@@ -175,7 +187,7 @@ namespace X2 {
 		void UpdateDescriptor();
 
 		// Debug
-		static const std::map<VkImage, WeakRef<VulkanImage2D>>& GetImageRefs();
+		static const std::map<VkImage, VulkanImage2D*>& GetImageRefs();
 
 		void CopyToHostBuffer(Buffer& buffer);
 	private:

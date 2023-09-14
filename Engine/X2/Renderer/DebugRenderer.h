@@ -10,7 +10,7 @@ namespace X2 {
 	// Utility class which queues rendering work for once-per-frame
 	// flushing by Scene (intended to be used for debug graphics)
 	//
-	class DebugRenderer : public RefCounted
+	class DebugRenderer 
 	{
 	public:
 		using RenderQueue = std::vector<std::function<void(Ref<Renderer2D>)>>;

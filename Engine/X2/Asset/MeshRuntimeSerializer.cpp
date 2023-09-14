@@ -213,7 +213,7 @@ namespace X2 {
 		if (!validHeader)
 			return nullptr;
 
-		Ref<MeshSource> meshSource = Ref<MeshSource>::Create();
+		Ref<MeshSource> meshSource = CreateRef<MeshSource>();
 		meshSource->m_Runtime = true;
 
 		stream.ReadRaw<MeshSourceFile::Metadata>(file.Data);
@@ -238,7 +238,7 @@ namespace X2 {
 			for (size_t i = 0; i < meshMaterials.size(); i++)
 			{
 				const auto& meshMaterial = meshMaterials[i];
-				Ref<VulkanMaterial> material = Ref<VulkanMaterial>::Create(Renderer::GetShaderLibrary()->Get(meshMaterial.ShaderName), meshMaterial.MaterialName);
+				Ref<VulkanMaterial> material = CreateRef<VulkanMaterial>(Renderer::GetShaderLibrary()->Get(meshMaterial.ShaderName), meshMaterial.MaterialName);
 
 				material->Set("u_MaterialUniforms.AlbedoColor", meshMaterial.AlbedoColor);
 				material->Set("u_MaterialUniforms.Emission", meshMaterial.Emission);
@@ -301,13 +301,13 @@ namespace X2 {
 		}*/
 
 		if (!meshSource->m_Vertices.empty())
-			meshSource->m_VertexBuffer = Ref<VulkanVertexBuffer>::Create(meshSource->m_Vertices.data(), (uint32_t)(meshSource->m_Vertices.size() * sizeof(Vertex)));
+			meshSource->m_VertexBuffer = CreateRef<VulkanVertexBuffer>(meshSource->m_Vertices.data(), (uint32_t)(meshSource->m_Vertices.size() * sizeof(Vertex)));
 
 		/*if (!meshSource->m_BoneInfluences.empty())
 			meshSource->m_BoneInfluenceBuffer = VertexBuffer::Create(meshSource->m_BoneInfluences.data(), (uint32_t)(meshSource->m_BoneInfluences.size() * sizeof(BoneInfluence)));*/
 
 		if (!meshSource->m_Indices.empty())
-			meshSource->m_IndexBuffer = Ref<VulkanIndexBuffer>::Create(meshSource->m_Indices.data(), (uint32_t)(meshSource->m_Indices.size() * sizeof(Index)));
+			meshSource->m_IndexBuffer = CreateRef<VulkanIndexBuffer>(meshSource->m_Indices.data(), (uint32_t)(meshSource->m_Indices.size() * sizeof(Index)));
 
 		return meshSource;
 	}

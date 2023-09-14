@@ -176,8 +176,8 @@ namespace X2 {
 		{
 			if (metadata.Type == AssetType::Scene)
 			{
-				Ref<Scene> scene = Ref<Scene>::Create("AssetPack", true, false);
-				SceneSerializer serializer(scene);
+				Ref<Scene> scene = CreateRef<Scene>("AssetPack", true, false);
+				SceneSerializer serializer(scene.get());
 				X2_CORE_TRACE("Deserializing Scene: {}", metadata.FilePath);
 				if (serializer.Deserialize(Project::GetAssetDirectory() / metadata.FilePath))
 				{
@@ -273,7 +273,7 @@ namespace X2 {
 
 	Ref<AssetPack> AssetPack::Load(const std::filesystem::path& path)
 	{
-		Ref<AssetPack> assetPack = Ref<AssetPack>::Create();
+		Ref<AssetPack> assetPack = CreateRef<AssetPack>();
 		assetPack->m_Path = path;
 		bool success = AssetPackSerializer::DeserializeIndex(assetPack->m_Path, assetPack->m_File);
 		X2_CORE_VERIFY(success);

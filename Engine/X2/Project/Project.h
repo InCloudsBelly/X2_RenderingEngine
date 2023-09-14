@@ -39,7 +39,7 @@ namespace X2 {
 		std::string ProjectDirectory;
 	};
 
-	class Project : public RefCounted
+	class Project 
 	{
 	public:
 		Project();
@@ -52,8 +52,8 @@ namespace X2 {
 		static void SetActiveRuntime(Ref<Project> project, Ref<AssetPack> assetPack);
 
 		inline static Ref<AssetManagerBase> GetAssetManager() { return s_AssetManager; }
-		inline static Ref<EditorAssetManager> GetEditorAssetManager() { return s_AssetManager.As<EditorAssetManager>(); }
-		inline static Ref<RuntimeAssetManager> GetRuntimeAssetManager() { return s_AssetManager.As<RuntimeAssetManager>(); }
+		inline static Ref<EditorAssetManager> GetEditorAssetManager() { return std::dynamic_pointer_cast<EditorAssetManager>(s_AssetManager); }
+		inline static Ref<RuntimeAssetManager> GetRuntimeAssetManager() { return std::dynamic_pointer_cast<RuntimeAssetManager>(s_AssetManager); }
 
 		static const std::string& GetProjectName()
 		{

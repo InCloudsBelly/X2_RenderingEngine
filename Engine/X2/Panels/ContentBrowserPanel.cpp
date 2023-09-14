@@ -65,7 +65,7 @@ namespace X2 {
 		if (directory)
 			return directory->Handle;
 
-		Ref<DirectoryInfo> directoryInfo = Ref<DirectoryInfo>::Create();
+		Ref<DirectoryInfo> directoryInfo = CreateRef<DirectoryInfo>();
 		directoryInfo->Handle = AssetHandle();
 		directoryInfo->Parent = parent;
 
@@ -116,14 +116,14 @@ namespace X2 {
 		if (strlen(m_SearchBuffer) == 0)
 		{
 			for (auto& [subdirHandle, subdir] : directory->SubDirectories)
-				m_CurrentItems.Items.push_back(Ref<ContentBrowserDirectory>::Create(subdir));
+				m_CurrentItems.Items.push_back(CreateRef<ContentBrowserDirectory>(subdir));
 
 			std::vector<AssetHandle> invalidAssets;
 			for (auto assetHandle : directory->Assets)
 			{
 				AssetMetadata metadata = Project::GetEditorAssetManager()->GetMetadata(assetHandle);
 				if (metadata.IsValid())
-					m_CurrentItems.Items.push_back(Ref<ContentBrowserAsset>::Create(metadata, m_AssetIconMap.find(metadata.FilePath.extension().string()) != m_AssetIconMap.end() ? m_AssetIconMap[metadata.FilePath.extension().string()] : EditorResources::FileIcon));
+					m_CurrentItems.Items.push_back(CreateRef<ContentBrowserAsset>(metadata, m_AssetIconMap.find(metadata.FilePath.extension().string()) != m_AssetIconMap.end() ? m_AssetIconMap[metadata.FilePath.extension().string()] : EditorResources::FileIcon));
 			}
 		}
 		else
@@ -588,14 +588,14 @@ namespace X2 {
 
 			if (item->GetType() == ContentBrowserItem::ItemType::Asset)
 			{
-				originalFilePath /= item.As<ContentBrowserAsset>()->GetAssetInfo().FilePath;
+				originalFilePath /= std::dynamic_pointer_cast<ContentBrowserAsset>(item)->GetAssetInfo().FilePath;
 				auto filepath = GetUniquePath(originalFilePath);
 				X2_CORE_VERIFY(!std::filesystem::exists(filepath));
 				std::filesystem::copy_file(originalFilePath, filepath);
 			}
 			else
 			{
-				originalFilePath /= item.As<ContentBrowserDirectory>()->GetDirectoryInfo()->FilePath;
+				originalFilePath /= std::dynamic_pointer_cast<ContentBrowserDirectory>(item)->GetDirectoryInfo()->FilePath;
 				auto filepath = GetUniquePath(originalFilePath);
 				X2_CORE_VERIFY(!std::filesystem::exists(filepath));
 				std::filesystem::copy(originalFilePath, filepath, std::filesystem::copy_options::recursive);
@@ -1041,12 +1041,12 @@ namespace X2 {
 				if (item->GetType() == ContentBrowserItem::ItemType::Directory)
 				{
 					SelectionManager::DeselectAll(SelectionContext::ContentBrowser);
-					ChangeDirectory(item.As<ContentBrowserDirectory>()->GetDirectoryInfo());
+					ChangeDirectory(std::dynamic_pointer_cast<ContentBrowserDirectory>(item)->GetDirectoryInfo());
 					break;
 				}
 				else
 				{
-					auto assetItem = item.As<ContentBrowserAsset>();
+					auto assetItem = std::dynamic_pointer_cast<ContentBrowserAsset>(item);
 					const auto& assetMetadata = assetItem->GetAssetInfo();
 
 					if (m_ItemActivationCallbacks.find(assetMetadata.Type) != m_ItemActivationCallbacks.end())
@@ -1363,7 +1363,7 @@ namespace X2 {
 		{
 			std::string subdirName = subdir->FilePath.filename().string();
 			if (subdirName.find(queryLowerCase) != std::string::npos)
-				results.Items.push_back(Ref<ContentBrowserDirectory>::Create(subdir));
+				results.Items.push_back(CreateRef<ContentBrowserDirectory>(subdir));
 
 			ContentBrowserItemList list = Search(query, subdir);
 			results.Items.insert(results.Items.end(), list.Items.begin(), list.Items.end());
@@ -1375,7 +1375,7 @@ namespace X2 {
 			std::string filename = Utils::ToLower(asset.FilePath.filename().string());
 
 			if (filename.find(queryLowerCase) != std::string::npos)
-				results.Items.push_back(Ref<ContentBrowserAsset>::Create(asset, m_AssetIconMap.find(asset.FilePath.extension().string()) != m_AssetIconMap.end() ? m_AssetIconMap[asset.FilePath.extension().string()] : EditorResources::FileIcon));
+				results.Items.push_back(CreateRef<ContentBrowserAsset>(asset, m_AssetIconMap.find(asset.FilePath.extension().string()) != m_AssetIconMap.end() ? m_AssetIconMap[asset.FilePath.extension().string()] : EditorResources::FileIcon));
 		}
 
 		return results;

@@ -12,7 +12,7 @@
 
 namespace X2 {
 
-	class AssetPack : public RefCounted
+	class AssetPack 
 	{
 	public:
 		AssetPack() = default;

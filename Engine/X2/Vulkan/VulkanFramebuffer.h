@@ -78,14 +78,14 @@ namespace X2 {
 		std::string DebugName;
 	};
 
-	class VulkanFramebuffer :public RefCounted
+	class VulkanFramebuffer 
 	{
 	public:
 		VulkanFramebuffer(const FramebufferSpecification& spec);
 		virtual ~VulkanFramebuffer();
 
 		virtual void Resize(uint32_t width, uint32_t height, bool forceRecreate = false) ;
-		virtual void AddResizeCallback(const std::function<void(Ref<VulkanFramebuffer>)>& func) ;
+		virtual void AddResizeCallback(const std::function<void(VulkanFramebuffer*)>& func) ;
 
 		virtual void Bind() const  {}
 		virtual void Unbind() const  {}
@@ -124,7 +124,7 @@ namespace X2 {
 		VkRenderPass m_RenderPass = nullptr;
 		VkFramebuffer m_Framebuffer = nullptr;
 
-		std::vector<std::function<void(Ref<VulkanFramebuffer>)>> m_ResizeCallbacks;
+		std::vector<std::function<void(VulkanFramebuffer*)>> m_ResizeCallbacks;
 	};
 
 }

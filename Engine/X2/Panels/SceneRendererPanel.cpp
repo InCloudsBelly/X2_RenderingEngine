@@ -363,6 +363,10 @@ namespace X2 {
 				UI::Property("Enable BlueNoise Jitter", options.froxelFogEnableJitter);
 				UI::Property("Enable Fast Jitter", options.froxelFogFastJitter);
 
+				UI::Property("Height Fog Exponent", options.heightFogExponent, 0.01f, 0.0f, 5.0f);
+				UI::Property("Height Fog Offset", options.heightFogOffset, 0.02f, -10.0f, 10.0f);
+				UI::Property("Height Fog Amount", options.heightFogAmount, 0.05f, 0.0f, 5.0f);
+
 				UI::EndPropertyGrid();
 				UI::EndTreeNode();
 			}
@@ -389,7 +393,7 @@ namespace X2 {
 					{
 						std::string filename = FileSystem::OpenFileDialog().string();
 						if (!filename.empty())
-							m_Context->m_BloomDirtTexture = Ref<VulkanTexture2D>::Create(TextureSpecification(), filename);
+							m_Context->m_BloomDirtTexture = CreateRef<VulkanTexture2D>(TextureSpecification(), filename);
 					}
 				}
 

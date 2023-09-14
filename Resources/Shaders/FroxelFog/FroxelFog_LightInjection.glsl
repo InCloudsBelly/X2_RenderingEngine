@@ -57,6 +57,8 @@ float cal_density(vec3 worldPos)
 {
 	float density = u_FroxelFog.fogParams.x;  // constant density
 
+	density += max(exp(u_FroxelFog.fogParams.y*(-worldPos.y + u_FroxelFog.fogParams.z)) * u_FroxelFog.fogParams.w, 0.0);  //height fog density
+
 	for(int i = 0; i <u_FogVoulumes.FogVolumeCount; i++)
 	{
 		vec4 posLocal = u_FogVoulumes.FogVolumes[i].worldToLocal * vec4(worldPos, 1.0f);

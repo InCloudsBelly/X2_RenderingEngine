@@ -436,7 +436,7 @@ namespace X2 {
 
 			if (invalidSkyLight)
 			{
-				m_Environment = Ref<Environment>::Create(Renderer::GetBlackCubeTexture(),Renderer::GetBlackCubeTexture(), Renderer::GetBlackCubeTexture());
+				m_Environment = CreateRef<Environment>(Renderer::GetBlackCubeTexture(),Renderer::GetBlackCubeTexture(), Renderer::GetBlackCubeTexture());
 				m_EnvironmentIntensity = 0.0f;
 				m_SkyboxLod = 1.0f;
 			}
@@ -681,7 +681,7 @@ namespace X2 {
 
 			if (invalidSkyLight)
 			{
-				m_Environment = Ref<Environment>::Create(Renderer::GetBlackCubeTexture(),Renderer::GetBlackCubeTexture(), Renderer::GetBlackCubeTexture());
+				m_Environment = CreateRef<Environment>(Renderer::GetBlackCubeTexture(),Renderer::GetBlackCubeTexture(), Renderer::GetBlackCubeTexture());
 				m_EnvironmentIntensity = 0.0f;
 				m_SkyboxLod = 1.0f;
 			}
@@ -893,7 +893,7 @@ namespace X2 {
 	//	{
 	//		auto lights = m_Registry.group<SkyLightComponent>(entt::get<TransformComponent>);
 	//		if (lights.empty())
-	//			m_Environment = Ref<Environment>::Create(Renderer::GetBlackCubeTexture(), Renderer::GetBlackCubeTexture());
+	//			m_Environment = CreateRef<Environment>(Renderer::GetBlackCubeTexture(), Renderer::GetBlackCubeTexture());
 
 	//		for (auto entity : lights)
 	//		{
@@ -910,7 +910,7 @@ namespace X2 {
 
 	//		if (!m_Environment)
 	//		{
-	//			m_Environment = Ref<Environment>::Create(Renderer::GetBlackCubeTexture(), Renderer::GetBlackCubeTexture());
+	//			m_Environment = CreateRef<Environment>(Renderer::GetBlackCubeTexture(), Renderer::GetBlackCubeTexture());
 	//			m_EnvironmentIntensity = 0.0f;
 	//			m_SkyboxLod = 1.0f;
 	//		}
@@ -1223,7 +1223,7 @@ namespace X2 {
 
 		//MiniAudioEngine::SetSceneContext(this);
 
-		Ref<Scene> _this = this;
+		Scene* _this = this;
 		Application::Get().DispatchEvent<ScenePreStartEvent, true>(_this);
 
 		// Box2D physics
@@ -1415,7 +1415,7 @@ namespace X2 {
 
 	void Scene::OnRuntimeStop()
 	{
-		Ref<Scene> _this = this;
+		Scene* _this = this;
 		Application::Get().DispatchEvent<ScenePreStopEvent, true>(_this);
 
 		//ScriptEngine::ShutdownRuntime();
@@ -1430,7 +1430,7 @@ namespace X2 {
 
 	void Scene::OnSimulationStart()
 	{
-		Ref<Scene> _this = this;
+		Scene* _this = this;
 		Application::Get().DispatchEvent<ScenePreStartEvent, true>(_this);
 
 		// Box2D physics
@@ -1526,7 +1526,7 @@ namespace X2 {
 
 	void Scene::OnSimulationStop()
 	{
-		Ref<Scene> _this = this;
+		Scene* _this = this;
 		Application::Get().DispatchEvent<ScenePreStopEvent, true>(_this);
 
 		//{
@@ -2175,7 +2175,7 @@ namespace X2 {
 		auto entities = prefab->m_Scene->GetAllEntitiesWith<RelationshipComponent>();
 		for (auto e : entities)
 		{
-			Entity entity = { e, prefab->m_Scene.Raw() };
+			Entity entity = { e, prefab->m_Scene.get() };
 			if (!entity.GetParent())
 			{
 				result = CreatePrefabEntity(entity, {}, translation, rotation, scale);
@@ -2203,7 +2203,7 @@ namespace X2 {
 		auto entities = prefab->m_Scene->GetAllEntitiesWith<RelationshipComponent>();
 		for (auto e : entities)
 		{
-			Entity entity = { e, prefab->m_Scene.Raw() };
+			Entity entity = { e, prefab->m_Scene.get() };
 			Entity currentParent = {};
 
 			if (entity.GetParentUUID() == 0)
@@ -2637,7 +2637,7 @@ namespace X2 {
 		target->m_IsEditorScene = false;
 	}
 
-	Ref<Scene> Scene::GetScene(UUID uuid)
+	Scene* Scene::GetScene(UUID uuid)
 	{
 		if (s_ActiveScenes.find(uuid) != s_ActiveScenes.end())
 			return s_ActiveScenes.at(uuid);
@@ -2676,7 +2676,7 @@ namespace X2 {
 
 	Ref<Scene> Scene::CreateEmpty()
 	{
-		return Ref<Scene>::Create("Empty", false, false);
+		return CreateRef<Scene>("Empty", false, false);
 	}
 
 	static void InsertMeshMaterials(Ref<MeshSource> meshSource, std::unordered_set<AssetHandle>& assetList)

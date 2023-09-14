@@ -41,7 +41,7 @@ namespace X2 {
 		static void DumpStats();
 		static GPUMemoryStats GetStats();
 
-		static void Init(Ref<VulkanDevice> device);
+		static void Init(VulkanDevice* dsevice);
 		static void Shutdown();
 
 		static VmaAllocator& GetVMAAllocator();

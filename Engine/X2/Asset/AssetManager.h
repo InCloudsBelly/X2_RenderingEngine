@@ -37,7 +37,7 @@ namespace X2 {
 			//std::scoped_lock<std::mutex> lock(mutex);
 
 			Ref<Asset> asset = Project::GetAssetManager()->GetAsset(assetHandle);
-			return asset.As<T>();
+			return std::dynamic_pointer_cast<T>(asset);
 		}
 
 		template<typename T>
@@ -54,7 +54,7 @@ namespace X2 {
 		{
 			static_assert(std::is_base_of<Asset, TAsset>::value, "CreateMemoryOnlyAsset only works for types derived from Asset");
 
-			Ref<TAsset> asset = Ref<TAsset>::Create(std::forward<TArgs>(args)...);
+			Ref<TAsset> asset = CreateRef<TAsset>(std::forward<TArgs>(args)...);
 			asset->Handle = AssetHandle(); // NOTE(Yan): should handle generation happen here?
 
 			Project::GetAssetManager()->AddMemoryOnlyAsset(asset);
@@ -66,7 +66,7 @@ namespace X2 {
 		{
 			static_assert(std::is_base_of<Asset, TAsset>::value, "CreateMemoryOnlyAsset only works for types derived from Asset");
 
-			Ref<TAsset> asset = Ref<TAsset>::Create(std::forward<TArgs>(args)...);
+			Ref<TAsset> asset = CreateRef<TAsset>(std::forward<TArgs>(args)...);
 			asset->Handle = AssetHandle();
 
 			Project::GetAssetManager()->AddMemoryOnlyAsset(asset);
@@ -78,7 +78,7 @@ namespace X2 {
 		{
 			static_assert(std::is_base_of<Asset, TAsset>::value, "CreateMemoryOnlyAsset only works for types derived from Asset");
 
-			Ref<TAsset> asset = Ref<TAsset>::Create(std::forward<TArgs>(args)...);
+			Ref<TAsset> asset = CreateRef<TAsset>(std::forward<TArgs>(args)...);
 			asset->Handle = AssetHandle();
 
 			Project::GetAssetManager()->AddMemoryOnlyAsset(asset);
@@ -90,7 +90,7 @@ namespace X2 {
 		{
 			static_assert(std::is_base_of<Asset, TAsset>::value, "CreateMemoryOnlyAsset only works for types derived from Asset");
 
-			Ref<TAsset> asset = Ref<TAsset>::Create(std::forward<TArgs>(args)...);
+			Ref<TAsset> asset = CreateRef<TAsset>(std::forward<TArgs>(args)...);
 			asset->Handle = handle;
 
 			Project::GetAssetManager()->AddMemoryOnlyAsset(asset);

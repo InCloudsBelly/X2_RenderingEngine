@@ -68,7 +68,7 @@ namespace X2 {
 		// TODO(Yan): tesselation shader stats when we have them
 	};
 
-	class VulkanPipeline : public RefCounted
+	class VulkanPipeline 
 	{
 	public:
 		VulkanPipeline(const PipelineSpecification& spec);

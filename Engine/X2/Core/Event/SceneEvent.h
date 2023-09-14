@@ -13,21 +13,21 @@ namespace X2 {
 	class SceneEvent : public Event
 	{
 	public:
-		const Ref<Scene>& GetScene() const { return m_Scene; }
-		Ref<Scene> GetScene() { return m_Scene; }
+		const Scene* GetScene() const { return m_Scene; }
+		Scene* GetScene() { return m_Scene; }
 
 		EVENT_CLASS_CATEGORY(EventCategoryApplication | EventCategoryScene)
 	protected:
-		SceneEvent(const Ref<Scene>& scene)
+		SceneEvent(Scene* scene)
 			: m_Scene(scene) {}
 
-		Ref<Scene> m_Scene;
+		Scene* m_Scene;
 	};
 
 	class ScenePreStartEvent : public SceneEvent
 	{
 	public:
-		ScenePreStartEvent(const Ref<Scene>& scene)
+		ScenePreStartEvent(Scene* scene)
 			: SceneEvent(scene) {}
 
 		std::string ToString() const override
@@ -43,7 +43,7 @@ namespace X2 {
 	class ScenePostStartEvent : public SceneEvent
 	{
 	public:
-		ScenePostStartEvent(const Ref<Scene>& scene)
+		ScenePostStartEvent(Scene* scene)
 			: SceneEvent(scene) {}
 
 		std::string ToString() const override
@@ -59,7 +59,7 @@ namespace X2 {
 	class ScenePreStopEvent : public SceneEvent
 	{
 	public:
-		ScenePreStopEvent(const Ref<Scene>& scene)
+		ScenePreStopEvent(Scene* scene)
 			: SceneEvent(scene) {}
 
 		std::string ToString() const override
@@ -75,7 +75,7 @@ namespace X2 {
 	class ScenePostStopEvent : public SceneEvent
 	{
 	public:
-		ScenePostStopEvent(const Ref<Scene>& scene)
+		ScenePostStopEvent(Scene* scene)
 			: SceneEvent(scene) {}
 
 		std::string ToString() const override

@@ -35,19 +35,28 @@ namespace X2 {
 	void VulkanShader::Release()
 	{
 		auto& pipelineCIs = m_PipelineShaderStageCreateInfos;
-		Renderer::SubmitResourceFree([pipelineCIs]()
+		Renderer::SubmitResourceFree([pipelineCIs, materialSets = m_ShaderMtDescSets, layouts = m_DescriptorSetLayouts]()
 			{
 				const auto vulkanDevice = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
 
 				for (const auto& ci : pipelineCIs)
 					if (ci.module)
 						vkDestroyShaderModule(vulkanDevice, ci.module, nullptr);
+
+				for (auto& materialSet : materialSets)
+					if (materialSet.second.Pool)
+						vkDestroyDescriptorPool(vulkanDevice, materialSet.second.Pool, nullptr);
+				
+				for (auto& layout : layouts)
+					vkDestroyDescriptorSetLayout(vulkanDevice, layout, nullptr);
+
 			});
 
 		for (auto& ci : pipelineCIs)
 			ci.module = nullptr;
 
 		m_PipelineShaderStageCreateInfos.clear();
+		m_ShaderMtDescSets.clear();
 		m_DescriptorSetLayouts.clear();
 		m_TypeCounts.clear();
 	}
@@ -55,11 +64,19 @@ namespace X2 {
 	VulkanShader::~VulkanShader()
 	{
 		VkDevice device = VulkanContext::Get()->GetDevice()->GetVulkanDevice();
-		Renderer::SubmitResourceFree([device, instance = Ref(this)]()
+		Renderer::SubmitResourceFree([device,shaderstageInfos = m_PipelineShaderStageCreateInfos, materialSets = m_ShaderMtDescSets, layouts = m_DescriptorSetLayouts]()
 			{
-				for (const auto& ci : instance->m_PipelineShaderStageCreateInfos)
+				for (const auto& ci : shaderstageInfos)
 					if (ci.module)
 						vkDestroyShaderModule(device, ci.module, nullptr);
+
+				for (auto& materialSet : materialSets)
+					if (materialSet.second.Pool)
+						vkDestroyDescriptorPool(device, materialSet.second.Pool, nullptr);
+
+				for (auto& layout : layouts)
+					vkDestroyDescriptorSetLayout(device, layout, nullptr);
+
 			});
 	}
 
@@ -73,7 +90,7 @@ namespace X2 {
 
 	void VulkanShader::Reload(bool forceCompile)
 	{
-		Renderer::Submit([instance = Ref(this), forceCompile]() mutable
+		Renderer::Submit([instance = this, forceCompile]() mutable
 			{
 				instance->RT_Reload(forceCompile);
 			});
@@ -346,124 +363,127 @@ namespace X2 {
 		return result;
 	}
 
-	VulkanShader::ShaderMaterialDescriptorSet VulkanShader::CreateDescriptorSets(uint32_t set)
+	VulkanShader::ShaderMaterialDescriptorSet VulkanShader::CreateOrGetDescriptorSets(uint32_t set)
 	{
-		ShaderMaterialDescriptorSet result;
-
-		VkDevice device = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
-
-		X2_CORE_ASSERT(m_TypeCounts.find(set) != m_TypeCounts.end());
-
-		// TODO: Move this to the centralized renderer
-		VkDescriptorPoolCreateInfo descriptorPoolInfo = {};
-		descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		descriptorPoolInfo.pNext = nullptr;
-		descriptorPoolInfo.poolSizeCount = (uint32_t)m_TypeCounts.at(set).size();
-		descriptorPoolInfo.pPoolSizes = m_TypeCounts.at(set).data();
-		descriptorPoolInfo.maxSets = 1;
-
-		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &result.Pool));
-
-		VkDescriptorSetAllocateInfo allocInfo = {};
-		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocInfo.descriptorPool = result.Pool;
-		allocInfo.descriptorSetCount = 1;
-		allocInfo.pSetLayouts = &m_DescriptorSetLayouts[set];
-
-		result.DescriptorSets.emplace_back();
-		VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, result.DescriptorSets.data()));
-		return result;
-	}
-
-	VulkanShader::ShaderMaterialDescriptorSet VulkanShader::CreateDescriptorSets(uint32_t set, uint32_t numberOfSets)
-	{
-		ShaderMaterialDescriptorSet result;
-
-		VkDevice device = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
-
-		std::unordered_map<uint32_t, std::vector<VkDescriptorPoolSize>> poolSizes;
-		for (uint32_t set = 0; set < m_ReflectionData.ShaderDescriptorSets.size(); set++)
+		if (m_ShaderMtDescSets.find(set) == m_ShaderMtDescSets.end())
 		{
-			auto& shaderDescriptorSet = m_ReflectionData.ShaderDescriptorSets[set];
-			if (!shaderDescriptorSet) // Empty descriptor set
-				continue;
+			VkDevice device = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
 
-			if (shaderDescriptorSet.UniformBuffers.size())
-			{
-				VkDescriptorPoolSize& typeCount = poolSizes[set].emplace_back();
-				typeCount.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-				typeCount.descriptorCount = (uint32_t)shaderDescriptorSet.UniformBuffers.size() * numberOfSets;
-			}
-			if (shaderDescriptorSet.StorageBuffers.size())
-			{
-				VkDescriptorPoolSize& typeCount = poolSizes[set].emplace_back();
-				typeCount.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-				typeCount.descriptorCount = (uint32_t)shaderDescriptorSet.StorageBuffers.size() * numberOfSets;
-			}
-			if (shaderDescriptorSet.ImageSamplers.size())
-			{
-				VkDescriptorPoolSize& typeCount = poolSizes[set].emplace_back();
-				typeCount.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-				uint32_t descriptorSetCount = 0;
-				for (auto&& [binding, imageSampler] : shaderDescriptorSet.ImageSamplers)
-					descriptorSetCount += imageSampler.ArraySize;
+			X2_CORE_ASSERT(m_TypeCounts.find(set) != m_TypeCounts.end());
 
-				typeCount.descriptorCount = descriptorSetCount * numberOfSets;
-			}
-			if (shaderDescriptorSet.SeparateTextures.size())
-			{
-				VkDescriptorPoolSize& typeCount = poolSizes[set].emplace_back();
-				typeCount.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-				uint32_t descriptorSetCount = 0;
-				for (auto&& [binding, imageSampler] : shaderDescriptorSet.SeparateTextures)
-					descriptorSetCount += imageSampler.ArraySize;
+			// TODO: Move this to the centralized renderer
+			VkDescriptorPoolCreateInfo descriptorPoolInfo = {};
+			descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+			descriptorPoolInfo.pNext = nullptr;
+			descriptorPoolInfo.poolSizeCount = (uint32_t)m_TypeCounts.at(set).size();
+			descriptorPoolInfo.pPoolSizes = m_TypeCounts.at(set).data();
+			descriptorPoolInfo.maxSets = 1;
 
-				typeCount.descriptorCount = descriptorSetCount * numberOfSets;
-			}
-			if (shaderDescriptorSet.SeparateTextures.size())
-			{
-				VkDescriptorPoolSize& typeCount = poolSizes[set].emplace_back();
-				typeCount.type = VK_DESCRIPTOR_TYPE_SAMPLER;
-				uint32_t descriptorSetCount = 0;
-				for (auto&& [binding, imageSampler] : shaderDescriptorSet.SeparateSamplers)
-					descriptorSetCount += imageSampler.ArraySize;
+			VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &m_ShaderMtDescSets[set].Pool));
 
-				typeCount.descriptorCount = descriptorSetCount * numberOfSets;
-			}
-			if (shaderDescriptorSet.StorageImages.size())
-			{
-				VkDescriptorPoolSize& typeCount = poolSizes[set].emplace_back();
-				typeCount.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-				typeCount.descriptorCount = (uint32_t)shaderDescriptorSet.StorageImages.size() * numberOfSets;
-			}
-
-		}
-
-		X2_CORE_ASSERT(poolSizes.find(set) != poolSizes.end());
-
-		// TODO: Move this to the centralized renderer
-		VkDescriptorPoolCreateInfo descriptorPoolInfo = {};
-		descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		descriptorPoolInfo.pNext = nullptr;
-		descriptorPoolInfo.poolSizeCount = (uint32_t)poolSizes.at(set).size();
-		descriptorPoolInfo.pPoolSizes = poolSizes.at(set).data();
-		descriptorPoolInfo.maxSets = numberOfSets;
-
-		VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &result.Pool));
-
-		result.DescriptorSets.resize(numberOfSets);
-
-		for (uint32_t i = 0; i < numberOfSets; i++)
-		{
 			VkDescriptorSetAllocateInfo allocInfo = {};
 			allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-			allocInfo.descriptorPool = result.Pool;
+			allocInfo.descriptorPool = m_ShaderMtDescSets[set].Pool;
 			allocInfo.descriptorSetCount = 1;
 			allocInfo.pSetLayouts = &m_DescriptorSetLayouts[set];
 
-			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &result.DescriptorSets[i]));
+			m_ShaderMtDescSets[set].DescriptorSets.emplace_back();
+			VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, m_ShaderMtDescSets[set].DescriptorSets.data()));
 		}
-		return result;
+		return m_ShaderMtDescSets[set];
+	}
+
+	VulkanShader::ShaderMaterialDescriptorSet VulkanShader::CreateOrGetDescriptorSets(uint32_t set, uint32_t numberOfSets)
+	{
+		if (m_ShaderMtDescSets.find(set) == m_ShaderMtDescSets.end())
+		{
+
+			VkDevice device = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
+
+			std::unordered_map<uint32_t, std::vector<VkDescriptorPoolSize>> poolSizes;
+			for (uint32_t set = 0; set < m_ReflectionData.ShaderDescriptorSets.size(); set++)
+			{
+				auto& shaderDescriptorSet = m_ReflectionData.ShaderDescriptorSets[set];
+				if (!shaderDescriptorSet) // Empty descriptor set
+					continue;
+
+				if (shaderDescriptorSet.UniformBuffers.size())
+				{
+					VkDescriptorPoolSize& typeCount = poolSizes[set].emplace_back();
+					typeCount.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+					typeCount.descriptorCount = (uint32_t)shaderDescriptorSet.UniformBuffers.size() * numberOfSets;
+				}
+				if (shaderDescriptorSet.StorageBuffers.size())
+				{
+					VkDescriptorPoolSize& typeCount = poolSizes[set].emplace_back();
+					typeCount.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+					typeCount.descriptorCount = (uint32_t)shaderDescriptorSet.StorageBuffers.size() * numberOfSets;
+				}
+				if (shaderDescriptorSet.ImageSamplers.size())
+				{
+					VkDescriptorPoolSize& typeCount = poolSizes[set].emplace_back();
+					typeCount.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+					uint32_t descriptorSetCount = 0;
+					for (auto&& [binding, imageSampler] : shaderDescriptorSet.ImageSamplers)
+						descriptorSetCount += imageSampler.ArraySize;
+
+					typeCount.descriptorCount = descriptorSetCount * numberOfSets;
+				}
+				if (shaderDescriptorSet.SeparateTextures.size())
+				{
+					VkDescriptorPoolSize& typeCount = poolSizes[set].emplace_back();
+					typeCount.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+					uint32_t descriptorSetCount = 0;
+					for (auto&& [binding, imageSampler] : shaderDescriptorSet.SeparateTextures)
+						descriptorSetCount += imageSampler.ArraySize;
+
+					typeCount.descriptorCount = descriptorSetCount * numberOfSets;
+				}
+				if (shaderDescriptorSet.SeparateTextures.size())
+				{
+					VkDescriptorPoolSize& typeCount = poolSizes[set].emplace_back();
+					typeCount.type = VK_DESCRIPTOR_TYPE_SAMPLER;
+					uint32_t descriptorSetCount = 0;
+					for (auto&& [binding, imageSampler] : shaderDescriptorSet.SeparateSamplers)
+						descriptorSetCount += imageSampler.ArraySize;
+
+					typeCount.descriptorCount = descriptorSetCount * numberOfSets;
+				}
+				if (shaderDescriptorSet.StorageImages.size())
+				{
+					VkDescriptorPoolSize& typeCount = poolSizes[set].emplace_back();
+					typeCount.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+					typeCount.descriptorCount = (uint32_t)shaderDescriptorSet.StorageImages.size() * numberOfSets;
+				}
+
+			}
+
+			X2_CORE_ASSERT(poolSizes.find(set) != poolSizes.end());
+
+			// TODO: Move this to the centralized renderer
+			VkDescriptorPoolCreateInfo descriptorPoolInfo = {};
+			descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+			descriptorPoolInfo.pNext = nullptr;
+			descriptorPoolInfo.poolSizeCount = (uint32_t)poolSizes.at(set).size();
+			descriptorPoolInfo.pPoolSizes = poolSizes.at(set).data();
+			descriptorPoolInfo.maxSets = numberOfSets;
+
+			VK_CHECK_RESULT(vkCreateDescriptorPool(device, &descriptorPoolInfo, nullptr, &m_ShaderMtDescSets[set].Pool));
+
+			m_ShaderMtDescSets[set].DescriptorSets.resize(numberOfSets);
+
+			for (uint32_t i = 0; i < numberOfSets; i++)
+			{
+				VkDescriptorSetAllocateInfo allocInfo = {};
+				allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+				allocInfo.descriptorPool = m_ShaderMtDescSets[set].Pool;
+				allocInfo.descriptorSetCount = 1;
+				allocInfo.pSetLayouts = &m_DescriptorSetLayouts[set];
+
+				VK_CHECK_RESULT(vkAllocateDescriptorSets(device, &allocInfo, &m_ShaderMtDescSets[set].DescriptorSets[i]));
+			}
+		}
+		return  m_ShaderMtDescSets[set];
 	}
 
 	const VkWriteDescriptorSet* VulkanShader::GetDescriptorSet(const std::string& name, uint32_t set) const
@@ -584,12 +604,12 @@ namespace X2 {
 	void ShaderLibrary::Load(std::string_view name, const std::string& path)
 	{
 		X2_CORE_ASSERT(m_Shaders.find(std::string(name)) == m_Shaders.end());
-		m_Shaders[std::string(name)] = Ref<VulkanShader>::Create(path);
+		m_Shaders[std::string(name)] = CreateRef<VulkanShader>(path);
 	}
 
 	void ShaderLibrary::LoadShaderPack(const std::filesystem::path& path)
 	{
-		m_ShaderPack = Ref<ShaderPack>::Create(std::string(PROJECT_ROOT) + path.string());
+		m_ShaderPack = CreateRef<ShaderPack>(std::string(PROJECT_ROOT) + path.string());
 		if (!m_ShaderPack->IsLoaded())
 		{
 			m_ShaderPack = nullptr;

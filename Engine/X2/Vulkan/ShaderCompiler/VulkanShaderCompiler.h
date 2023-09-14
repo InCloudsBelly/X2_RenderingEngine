@@ -33,7 +33,7 @@ namespace X2 {
 
 	class VulkanShader;
 
-	class VulkanShaderCompiler : public RefCounted
+	class VulkanShaderCompiler 
 	{
 	public:
 		VulkanShaderCompiler(const std::filesystem::path& shaderSourcePath, bool disableOptimization = false);
@@ -46,7 +46,7 @@ namespace X2 {
 		static void ClearUniformBuffers();
 
 		static Ref<VulkanShader> Compile(const std::filesystem::path& shaderSourcePath, bool forceCompile = false, bool disableOptimization = false);
-		static bool TryRecompile(Ref<VulkanShader> shader);
+		static bool TryRecompile(VulkanShader* shader);
 	private:
 		std::map<VkShaderStageFlagBits, std::string> PreProcess(const std::string& source);
 		std::map<VkShaderStageFlagBits, std::string> PreProcessGLSL(const std::string& source);

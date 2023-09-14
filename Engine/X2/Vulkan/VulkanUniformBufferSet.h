@@ -7,7 +7,7 @@
 
 namespace X2 {
 
-	class VulkanUniformBufferSet : public RefCounted
+	class VulkanUniformBufferSet 
 	{
 	public:
 		VulkanUniformBufferSet(uint32_t frames)
@@ -18,7 +18,7 @@ namespace X2 {
 		{
 			for (uint32_t frame = 0; frame < m_Frames; frame++)
 			{
-				Ref<VulkanUniformBuffer> uniformBuffer = Ref<VulkanUniformBuffer>::Create(size, binding);
+				Ref<VulkanUniformBuffer> uniformBuffer = std::make_shared<VulkanUniformBuffer>(size, binding);
 				Set(uniformBuffer, 0, frame);
 			}
 		}

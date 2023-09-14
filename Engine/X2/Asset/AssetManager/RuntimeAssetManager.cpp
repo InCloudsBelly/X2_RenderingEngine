@@ -64,7 +64,7 @@ namespace X2 {
 		if (asset)
 			m_LoadedAssets[assetHandle] = asset;
 
-		return asset;
+		return asset.get();
 	}
 
 	bool RuntimeAssetManager::IsAssetHandleValid(AssetHandle assetHandle)

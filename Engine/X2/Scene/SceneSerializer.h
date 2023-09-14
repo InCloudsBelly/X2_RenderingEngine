@@ -15,7 +15,7 @@ namespace X2 {
 	class SceneSerializer
 	{
 	public:
-		SceneSerializer(const Ref<Scene>& scene);
+		SceneSerializer(Scene* scene);
 
 		void Serialize(const std::filesystem::path& filepath);
 		void SerializeToYAML(YAML::Emitter& out);
@@ -31,13 +31,13 @@ namespace X2 {
 		bool DeserializeReferencedPrefabs(const std::filesystem::path& filepath, std::unordered_set<AssetHandle>& outPrefabs);
 	public:
 		static void SerializeEntity(YAML::Emitter& out, Entity entity);
-		static void DeserializeEntities(YAML::Node& entitiesNode, Ref<Scene> scene);
+		static void DeserializeEntities(YAML::Node& entitiesNode, Scene* scene);
 	public:
 		inline static std::string_view FileFilter = "X2 Scene (*.hscene)\0*.hscene\0";
 		inline static std::string_view DefaultExtension = ".hscene";
 
 	private:
-		Ref<Scene> m_Scene;
+		Scene* m_Scene;
 	};
 
 }
