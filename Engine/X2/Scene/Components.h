@@ -430,6 +430,7 @@ namespace X2 {
 	struct SpotLightComponent
 	{
 		glm::vec3 Radiance{ 1.0f };
+		glm::vec3 Direction{ 1.0f, 0.0f,0.0f };
 		float Intensity = 1.0f;
 		float Range = 10.0f;
 		float Angle = 60.0f;

@@ -5,7 +5,6 @@
 #include <glm/glm.hpp>
 
 namespace X2 {
-
     namespace Volume {
 
         /**
@@ -97,7 +96,6 @@ namespace X2 {
         };
 
     }
-
 }
 
 #endif

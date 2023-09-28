@@ -3,6 +3,7 @@
 
 #include "vulkan/vulkan.h"
 #include "vk_mem_alloc.h"
+#include <unordered_map>
 
 namespace X2 {
 
@@ -73,7 +74,8 @@ namespace X2 {
 		Image2D,
 		Image2DArray,
 		Image3D,
-		ImageCube
+		ImageCube,
+		ImageCubeArray
 	};
 
 	struct ImageSpecification
@@ -162,6 +164,7 @@ namespace X2 {
 		void RT_Invalidate();
 
 		virtual void CreatePerLayerImageViews() override;
+
 		void RT_CreatePerLayerImageViews();
 		void RT_CreatePerSpecificLayerImageViews(const std::vector<uint32_t>& layerIndices);
 
@@ -212,6 +215,8 @@ namespace X2 {
 		uint32_t GetImageMemorySize(ImageFormat format, uint32_t width, uint32_t height);
 		bool IsDepthFormat(ImageFormat format);
 		VkFormat VulkanImageFormat(ImageFormat format);
+
+
 	}
 
 }

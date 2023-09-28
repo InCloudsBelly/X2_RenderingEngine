@@ -110,7 +110,7 @@ namespace X2 {
 		m_UniformBufferSet->Create(sizeof(UBScreenData), 17);
 		m_UniformBufferSet->Create(sizeof(UBSpotLights), 19);
 		m_UniformBufferSet->Create(sizeof(UBHBAOData), 18);
-		m_UniformBufferSet->Create(sizeof(UBSpotShadowData), 20);
+
 		m_UniformBufferSet->Create(sizeof(UBSMAAData), 24);
 		m_UniformBufferSet->Create(sizeof(UBTAAData), 25);
 		m_UniformBufferSet->Create(sizeof(UBFroxelFogData), 26);
@@ -174,113 +174,119 @@ namespace X2 {
 		}
 
 		// Directional Shadow pass
-		{
-			ImageSpecification spec;
-			spec.Format = ImageFormat::DEPTH32F;
-			spec.Usage = ImageUsage::Attachment;
-			spec.Width = shadowMapResolution;
-			spec.Height = shadowMapResolution;
-			spec.Layers = 4; // 4 cascades
-			spec.DebugName = "ShadowCascades";
-			Ref<VulkanImage2D> cascadedDepthImage = CreateRef<VulkanImage2D>(spec);
-			cascadedDepthImage->Invalidate();
-			cascadedDepthImage->CreatePerLayerImageViews();
+		//{
+		//	ImageSpecification spec;
+		//	spec.Format = ImageFormat::DEPTH32F;
+		//	spec.Usage = ImageUsage::Attachment;
+		//	spec.Width = shadowMapResolution;
+		//	spec.Height = shadowMapResolution;
+		//	spec.Layers = 4; // 4 cascades
+		//	spec.DebugName = "ShadowCascades";
+		//	Ref<VulkanImage2D> cascadedDepthImage = CreateRef<VulkanImage2D>(spec);
+		//	cascadedDepthImage->Invalidate();
+		//	cascadedDepthImage->CreatePerLayerImageViews();
 
-			FramebufferSpecification shadowMapFramebufferSpec;
-			shadowMapFramebufferSpec.DebugName = "Dir Shadow Map";
-			shadowMapFramebufferSpec.Width = shadowMapResolution;
-			shadowMapFramebufferSpec.Height = shadowMapResolution;
-			shadowMapFramebufferSpec.Attachments = { ImageFormat::DEPTH32F };
-			shadowMapFramebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
-			shadowMapFramebufferSpec.DepthClearValue = 1.0f;
-			shadowMapFramebufferSpec.NoResize = true;
-			shadowMapFramebufferSpec.ExistingImage = cascadedDepthImage;
+		//	FramebufferSpecification shadowMapFramebufferSpec;
+		//	shadowMapFramebufferSpec.DebugName = "Dir Shadow Map";
+		//	shadowMapFramebufferSpec.Width = shadowMapResolution;
+		//	shadowMapFramebufferSpec.Height = shadowMapResolution;
+		//	shadowMapFramebufferSpec.Attachments = { ImageFormat::DEPTH32F };
+		//	shadowMapFramebufferSpec.ClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
+		//	shadowMapFramebufferSpec.DepthClearValue = 1.0f;
+		//	shadowMapFramebufferSpec.NoResize = true;
+		//	shadowMapFramebufferSpec.ExistingImage = cascadedDepthImage;
 
-			auto shadowPassShader = Renderer::GetShaderLibrary()->Get("DirShadowMap");
-			auto shadowPassShaderAnim = Renderer::GetShaderLibrary()->Get("DirShadowMap_Anim");
+		//	auto shadowPassShader = Renderer::GetShaderLibrary()->Get("DirShadowMap");
+		//	auto shadowPassShaderAnim = Renderer::GetShaderLibrary()->Get("DirShadowMap_Anim");
 
-			PipelineSpecification pipelineSpec;
-			pipelineSpec.DebugName = "DirShadowPass";
-			pipelineSpec.Shader = shadowPassShader;
-			pipelineSpec.DepthOperator = DepthCompareOperator::LessOrEqual;
-			pipelineSpec.Layout = vertexLayout;
-			pipelineSpec.InstanceLayout = instanceLayout;
+		//	PipelineSpecification pipelineSpec;
+		//	pipelineSpec.DebugName = "DirShadowPass";
+		//	pipelineSpec.Shader = shadowPassShader;
+		//	pipelineSpec.DepthOperator = DepthCompareOperator::LessOrEqual;
+		//	pipelineSpec.Layout = vertexLayout;
+		//	pipelineSpec.InstanceLayout = instanceLayout;
 
-			PipelineSpecification pipelineSpecAnim = pipelineSpec;
-			pipelineSpecAnim.DebugName = "DirShadowPass-Anim";
-			pipelineSpecAnim.Shader = shadowPassShaderAnim;
-			pipelineSpecAnim.BoneInfluenceLayout = boneInfluenceLayout;
+		//	PipelineSpecification pipelineSpecAnim = pipelineSpec;
+		//	pipelineSpecAnim.DebugName = "DirShadowPass-Anim";
+		//	pipelineSpecAnim.Shader = shadowPassShaderAnim;
+		//	pipelineSpecAnim.BoneInfluenceLayout = boneInfluenceLayout;
 
-			// 4 cascades
-			for (int i = 0; i < 4; i++)
-			{
-				shadowMapFramebufferSpec.ExistingImageLayers.clear();
-				shadowMapFramebufferSpec.ExistingImageLayers.emplace_back(i);
+		//	// 4 cascades
+		//	for (int i = 0; i < 4; i++)
+		//	{
+		//		shadowMapFramebufferSpec.ExistingImageLayers.clear();
+		//		shadowMapFramebufferSpec.ExistingImageLayers.emplace_back(i);
 
-				RenderPassSpecification shadowMapRenderPassSpec;
-				shadowMapRenderPassSpec.DebugName = shadowMapFramebufferSpec.DebugName;
-				shadowMapRenderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(shadowMapFramebufferSpec);
-				auto renderpass = CreateRef<VulkanRenderPass>(shadowMapRenderPassSpec);
+		//		RenderPassSpecification shadowMapRenderPassSpec;
+		//		shadowMapRenderPassSpec.DebugName = shadowMapFramebufferSpec.DebugName;
+		//		shadowMapRenderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(shadowMapFramebufferSpec);
+		//		auto renderpass = CreateRef<VulkanRenderPass>(shadowMapRenderPassSpec);
 
-				pipelineSpec.RenderPass = renderpass;
-				m_ShadowPassPipelines[i] = CreateRef<VulkanPipeline>(pipelineSpec);
+		//		pipelineSpec.RenderPass = renderpass;
+		//		m_ShadowPassPipelines[i] = CreateRef<VulkanPipeline>(pipelineSpec);
 
-				pipelineSpecAnim.RenderPass = renderpass;
-				m_ShadowPassPipelinesAnim[i] = CreateRef<VulkanPipeline>(pipelineSpecAnim);
-			}
-			m_ShadowPassMaterial = CreateRef<VulkanMaterial>(shadowPassShader, "DirShadowPass");
-		}
+		//		pipelineSpecAnim.RenderPass = renderpass;
+		//		m_ShadowPassPipelinesAnim[i] = CreateRef<VulkanPipeline>(pipelineSpecAnim);
+		//	}
+		//	m_ShadowPassMaterial = CreateRef<VulkanMaterial>(shadowPassShader, "DirShadowPass");
+		//}
 
-		// Non-directional shadow mapping pass
-		{
-			FramebufferSpecification framebufferSpec;
-			framebufferSpec.Width = shadowMapResolution; // TODO(Yan): could probably halve these
-			framebufferSpec.Height = shadowMapResolution;
-			framebufferSpec.Attachments = { ImageFormat::DEPTH32F };
-			framebufferSpec.DepthClearValue = 1.0f;
-			framebufferSpec.NoResize = true;
-			framebufferSpec.DebugName = "Spot Shadow Map";
+		m_directionalLightShadow = CreateRef<DirectionalLightShadow>(shadowMapResolution);
 
-			auto shadowPassShader = Renderer::GetShaderLibrary()->Get("SpotShadowMap");
-			auto shadowPassShaderAnim = Renderer::GetShaderLibrary()->Get("SpotShadowMap_Anim");
+		m_spotLightsShadow = CreateRef<SpotLightShadow>(shadowMapResolution * 0.25);
 
-			PipelineSpecification pipelineSpec;
-			pipelineSpec.DebugName = "SpotShadowPass";
-			pipelineSpec.Shader = shadowPassShader;
-			pipelineSpec.DepthOperator = DepthCompareOperator::LessOrEqual;
+		m_pointLightShadow = CreateRef<PointLightShadow>( 512 );
 
-			pipelineSpec.Layout = {
-				{ ShaderDataType::Float3, "a_Position" },
-				{ ShaderDataType::Float3, "a_Normal" },
-				{ ShaderDataType::Float3, "a_Tangent" },
-				{ ShaderDataType::Float3, "a_Binormal" },
-				{ ShaderDataType::Float2, "a_TexCoord" }
-			};
-			pipelineSpec.InstanceLayout = {
-				{ ShaderDataType::Float4, "a_MRow0" },
-				{ ShaderDataType::Float4, "a_MRow1" },
-				{ ShaderDataType::Float4, "a_MRow2" },
+		//// Non-directional shadow mapping pass
+		//{
+		//	FramebufferSpecification framebufferSpec;
+		//	framebufferSpec.Width = shadowMapResolution; // TODO(Yan): could probably halve these
+		//	framebufferSpec.Height = shadowMapResolution;
+		//	framebufferSpec.Attachments = { ImageFormat::DEPTH32F };
+		//	framebufferSpec.DepthClearValue = 1.0f;
+		//	framebufferSpec.NoResize = true;
+		//	framebufferSpec.DebugName = "Spot Shadow Map";
 
-				{ ShaderDataType::Float4, "a_MRowPrev0" },
-				{ ShaderDataType::Float4, "a_MRowPrev1" },
-				{ ShaderDataType::Float4, "a_MRowPrev2" },
-			};
+		//	auto shadowPassShader = Renderer::GetShaderLibrary()->Get("SpotShadowMap");
+		//	auto shadowPassShaderAnim = Renderer::GetShaderLibrary()->Get("SpotShadowMap_Anim");
 
-			RenderPassSpecification shadowMapRenderPassSpec;
-			shadowMapRenderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(framebufferSpec);
-			shadowMapRenderPassSpec.DebugName = "SpotShadowMap";
-			pipelineSpec.RenderPass = CreateRef<VulkanRenderPass>(shadowMapRenderPassSpec);
+		//	PipelineSpecification pipelineSpec;
+		//	pipelineSpec.DebugName = "SpotShadowPass";
+		//	pipelineSpec.Shader = shadowPassShader;
+		//	pipelineSpec.DepthOperator = DepthCompareOperator::LessOrEqual;
 
-			PipelineSpecification pipelineSpecAnim = pipelineSpec;
-			pipelineSpecAnim.DebugName = "SpotShadowPass-Anim";
-			pipelineSpecAnim.Shader = shadowPassShaderAnim;
-			pipelineSpecAnim.BoneInfluenceLayout = boneInfluenceLayout;
+		//	pipelineSpec.Layout = {
+		//		{ ShaderDataType::Float3, "a_Position" },
+		//		{ ShaderDataType::Float3, "a_Normal" },
+		//		{ ShaderDataType::Float3, "a_Tangent" },
+		//		{ ShaderDataType::Float3, "a_Binormal" },
+		//		{ ShaderDataType::Float2, "a_TexCoord" }
+		//	};
+		//	pipelineSpec.InstanceLayout = {
+		//		{ ShaderDataType::Float4, "a_MRow0" },
+		//		{ ShaderDataType::Float4, "a_MRow1" },
+		//		{ ShaderDataType::Float4, "a_MRow2" },
 
-			m_SpotShadowPassPipeline = CreateRef<VulkanPipeline>(pipelineSpec);
-			m_SpotShadowPassAnimPipeline = CreateRef<VulkanPipeline>(pipelineSpecAnim);
+		//		{ ShaderDataType::Float4, "a_MRowPrev0" },
+		//		{ ShaderDataType::Float4, "a_MRowPrev1" },
+		//		{ ShaderDataType::Float4, "a_MRowPrev2" },
+		//	};
 
-			m_SpotShadowPassMaterial = CreateRef<VulkanMaterial>(shadowPassShader, "SpotShadowPass");
-		}
+		//	RenderPassSpecification shadowMapRenderPassSpec;
+		//	shadowMapRenderPassSpec.TargetFramebuffer = CreateRef<VulkanFramebuffer>(framebufferSpec);
+		//	shadowMapRenderPassSpec.DebugName = "SpotShadowMap";
+		//	pipelineSpec.RenderPass = CreateRef<VulkanRenderPass>(shadowMapRenderPassSpec);
+
+		//	PipelineSpecification pipelineSpecAnim = pipelineSpec;
+		//	pipelineSpecAnim.DebugName = "SpotShadowPass-Anim";
+		//	pipelineSpecAnim.Shader = shadowPassShaderAnim;
+		//	pipelineSpecAnim.BoneInfluenceLayout = boneInfluenceLayout;
+
+		//	m_SpotShadowPassPipeline = CreateRef<VulkanPipeline>(pipelineSpec);
+		//	m_SpotShadowPassAnimPipeline = CreateRef<VulkanPipeline>(pipelineSpecAnim);
+
+		//	m_SpotShadowPassMaterial = CreateRef<VulkanMaterial>(shadowPassShader, "SpotShadowPass");
+		//}
 
 		// PreDepth
 		{
@@ -379,9 +385,9 @@ namespace X2 {
 		{
 			FramebufferSpecification geoFramebufferSpec;
 
-			geoFramebufferSpec.Attachments = { ImageFormat::RGBA32F, ImageFormat::RGBA16F, ImageFormat::RGBA,ImageFormat::RG16F, ImageFormat::DEPTH32FSTENCIL8UINT };
+			geoFramebufferSpec.Attachments = { ImageFormat::RGBA32F, ImageFormat::RGBA16F, ImageFormat::RGBA,ImageFormat::RG16F,ImageFormat::RGBA16F, ImageFormat::DEPTH32FSTENCIL8UINT };
 			geoFramebufferSpec.ExistingImages[3] = m_TAAVelocityImage;
-			geoFramebufferSpec.ExistingImages[4] = m_PreDepthPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage();
+			geoFramebufferSpec.ExistingImages[5] = m_PreDepthPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage();
 
 			// Don't blend with luminance in the alpha channel.
 			geoFramebufferSpec.Attachments.Attachments[1].Blend = false;
@@ -510,6 +516,7 @@ namespace X2 {
 		{
 			ImageSpecification imageSpec;
 			imageSpec.Format = ImageFormat::RED32F;
+			imageSpec.Type = ImageType::Image2DArray;
 			imageSpec.Layers = 16;
 			imageSpec.Usage = ImageUsage::Attachment;
 			imageSpec.DebugName = "Deinterleaved";
@@ -559,6 +566,7 @@ namespace X2 {
 		{
 			ImageSpecification imageSpec;
 			imageSpec.Format = ImageFormat::RG16F;
+			imageSpec.Type = ImageType::Image2DArray;
 			imageSpec.Usage = ImageUsage::Storage;
 			imageSpec.Layers = 16;
 			imageSpec.DebugName = "HBAO-Output";
@@ -1039,6 +1047,7 @@ namespace X2 {
 		{
 			ImageSpecification spec;
 			spec.Format = ImageFormat::RGBA16F;
+			spec.Type = ImageType::Image3D;
 			spec.Usage = ImageUsage::Storage;
 			spec.Width = m_Options.VOXEL_GRID_SIZE_X;
 			spec.Height = m_Options.VOXEL_GRID_SIZE_Y;
@@ -1377,12 +1386,14 @@ namespace X2 {
 				//Froxel Volume Fog
 				instance->m_FroxelFog_RayInjectionMaterial[0]->Set("o_VoxelGrid", instance->m_FroxelFog_lightInjectionImage[0]);
 				instance->m_FroxelFog_RayInjectionMaterial[0]->Set("u_History", instance->m_FroxelFog_lightInjectionImage[1]);
-				instance->m_FroxelFog_RayInjectionMaterial[0]->Set("u_ShadowMapTexture", instance->m_ShadowPassPipelines[0]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
+				instance->m_FroxelFog_RayInjectionMaterial[0]->Set("u_ShadowMapTexture", instance->m_directionalLightShadow->GetPipeline(0)->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
+				instance->m_FroxelFog_RayInjectionMaterial[0]->Set("u_SpotShadowMapTexture", instance->m_spotLightsShadow->GetPipeline(0)->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
 
 
 				instance->m_FroxelFog_RayInjectionMaterial[1]->Set("o_VoxelGrid", instance->m_FroxelFog_lightInjectionImage[1]);
 				instance->m_FroxelFog_RayInjectionMaterial[1]->Set("u_History", instance->m_FroxelFog_lightInjectionImage[0]);
-				instance->m_FroxelFog_RayInjectionMaterial[1]->Set("u_ShadowMapTexture", instance->m_ShadowPassPipelines[0]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
+				instance->m_FroxelFog_RayInjectionMaterial[1]->Set("u_ShadowMapTexture", instance->m_directionalLightShadow->GetPipeline(0)->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
+				instance->m_FroxelFog_RayInjectionMaterial[1]->Set("u_SpotShadowMapTexture", instance->m_spotLightsShadow->GetPipeline(0)->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
 
 
 				instance->m_FroxelFog_ScatteringMaterial[0]->Set("i_VoxelGrid", instance->m_FroxelFog_lightInjectionImage[0]);
@@ -1722,7 +1733,6 @@ namespace X2 {
 		UBHBAOData& hbaoData = HBAODataUB;
 		UBScreenData& screenData = ScreenDataUB;
 		UBSpotLights& spotLightData = SpotLightUB;
-		UBSpotShadowData& spotShadowData = SpotShadowDataUB;
 		UBTAAData& taaData = TAADataUB;
 		UBFroxelFogData& froxelFogData = FroxelFogDataUB;
 		UBFogVolumesData& fogVolumesData = FogVolumes;
@@ -1778,44 +1788,40 @@ namespace X2 {
 				instance->m_UniformBufferSet->Get(Binding::CameraData, 0, bufferIndex)->RT_SetData(&cameraData, sizeof(cameraData));
 			});
 
-		const auto lightEnvironment = m_SceneData.SceneLightEnvironment;
-		const std::vector<PointLight>& pointLightsVec = lightEnvironment.PointLights;
-		pointLightData.Count = int(pointLightsVec.size());
-		std::memcpy(pointLightData.PointLights, pointLightsVec.data(), lightEnvironment.GetPointLightsSize()); //(Karim) Do we really have to copy that?
-		Renderer::Submit([instance, &pointLightData]() mutable
+
+		m_pointLightShadow->Update(m_SceneData.SceneLightEnvironment.PointLights);
+		glm::mat4* pointLightShadowData = m_pointLightShadow->getData().ViewProjection;
+
+		Renderer::Submit([instance, pointLightsVec = m_SceneData.SceneLightEnvironment.PointLights , pointLightShadowData]() mutable
 			{
+				int pointLightCount = pointLightsVec.size();
+
 				const uint32_t bufferIndex = Renderer::RT_GetCurrentFrameIndex();
 				Ref<VulkanUniformBuffer> bufferSet = instance->m_UniformBufferSet->Get(Binding::PointLightData, 0, bufferIndex);
-				bufferSet->RT_SetData(&pointLightData, 16ull + sizeof PointLight * pointLightData.Count);
+				bufferSet->RT_SetData_DeviceOffset(&pointLightCount, 16ull);
+				bufferSet->RT_SetData_DeviceOffset(pointLightsVec.data(), sizeof PointLightInfo* pointLightCount, 16ull);
+				bufferSet->RT_SetData_DeviceOffset(pointLightShadowData, sizeof glm::mat4* pointLightCount * 6, 16ull + sizeof PointLightInfo * MAX_POINT_LIGHT_SHADOW_COUNT);
 			});
 
-		const std::vector<SpotLight>& spotLightsVec = lightEnvironment.SpotLights;
-		spotLightData.Count = int(spotLightsVec.size());
-		std::memcpy(spotLightData.SpotLights, spotLightsVec.data(), lightEnvironment.GetSpotLightsSize()); //(Karim) Do we really have to copy that?
-		Renderer::Submit([instance, &spotLightData]() mutable
+	
+
+		m_spotLightsShadow->Update(m_SceneData.SceneLightEnvironment.SpotLights);
+		glm::mat4* spotLightShadowData = m_spotLightsShadow->getData().ViewProjection;
+
+		//std::memcpy(spotLightData.SpotLights, spotLightsVec.data(), lightEnvironment.GetSpotLightsSize()); //(Karim) Do we really have to copy that?
+		Renderer::Submit([instance, spotLightsVec = m_SceneData.SceneLightEnvironment.SpotLights, spotLightShadowData]() mutable
 			{
+				int spotLightCount = spotLightsVec.size();
+
 				const uint32_t bufferIndex = Renderer::RT_GetCurrentFrameIndex();
 				Ref<VulkanUniformBuffer> bufferSet = instance->m_UniformBufferSet->Get(19, 0, bufferIndex);
-				bufferSet->RT_SetData(&spotLightData, 16ull + sizeof SpotLight * spotLightData.Count);
+				bufferSet->RT_SetData_DeviceOffset(&spotLightCount, 16ull);
+				bufferSet->RT_SetData_DeviceOffset(spotLightsVec.data(), sizeof SpotLightInfo * spotLightCount, 16ull);
+				bufferSet->RT_SetData_DeviceOffset(spotLightShadowData, sizeof glm::mat4 * spotLightCount , 16ull + sizeof SpotLightInfo * MAX_SPOT_LIGHT_SHADOW_COUNT);
 			});
 
-		for (size_t i = 0; i < spotLightsVec.size(); ++i)
-		{
-			auto& light = spotLightsVec[i];
-			if (!light.CastsShadows)
-				continue;
 
-			glm::mat4 projection = glm::perspective(glm::radians(light.Angle), 1.f, 0.1f, light.Range);
-			// NOTE(Yan): ShadowMatrices[0] because we only support ONE shadow casting spot light at the moment and it MUST be index 0
-			spotShadowData.ShadowMatrices[0] = projection * glm::lookAt(light.Position, light.Position - light.Direction, glm::vec3(0.0f, 1.0f, 0.0f));
-		}
 
-		Renderer::Submit([instance, spotShadowData, spotLightsVec]() mutable
-			{
-				const uint32_t bufferIndex = Renderer::RT_GetCurrentFrameIndex();
-				Ref<VulkanUniformBuffer> bufferSet = instance->m_UniformBufferSet->Get(20, 0, bufferIndex);
-				bufferSet->RT_SetData(&spotShadowData, (uint32_t)(sizeof(glm::mat4) * spotLightsVec.size()));
-			});
 
 		const auto& directionalLight = m_SceneData.SceneLightEnvironment.DirectionalLights[0];
 		sceneData.Lights.Direction = directionalLight.Direction;
@@ -1848,19 +1854,23 @@ namespace X2 {
 				instance->m_UniformBufferSet->Get(Binding::ScreenData, 0, bufferIndex)->RT_SetData(&screenData, sizeof(screenData));
 			});
 
-		CascadeData cascades[4];
+	/*	CascadeData cascades[4];
 		if (m_UseManualCascadeSplits)
 			CalculateCascadesManualSplit(cascades, sceneCamera, directionalLight.Direction);
 		else
-			CalculateCascades(cascades, sceneCamera, directionalLight.Direction);
+			CalculateCascades(cascades, sceneCamera, directionalLight.Direction);*/
+
+		m_directionalLightShadow->Update(directionalLight.Direction, sceneCamera, CascadeSplitLambda, CascadeNearPlaneOffset, CascadeFarPlaneOffset);
 
 
 		// TODO: four cascades for now
 		for (int i = 0; i < 4; i++)
 		{
-			CascadeSplits[i] = cascades[i].SplitDepth;
-			shadowData.ViewProjection[i] = cascades[i].ViewProj;
+			CascadeSplits[i] = m_directionalLightShadow->getData().CascadeSplits[i];
+			shadowData.ViewProjection[i] = m_directionalLightShadow->getData().ViewProjection[i];
 		}
+
+
 		Renderer::Submit([instance, shadowData]() mutable
 			{
 				const uint32_t bufferIndex = Renderer::RT_GetCurrentFrameIndex();
@@ -1875,8 +1885,9 @@ namespace X2 {
 			});
 
 		Renderer::SetSceneEnvironment(this, m_SceneData.SceneEnvironment,
-			m_ShadowPassPipelines[0]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage(),
-			m_SpotShadowPassPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage()
+			m_directionalLightShadow->GetPipeline(0)->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage(),
+			m_spotLightsShadow->GetPipeline(0)->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage(),
+			m_pointLightShadow->GetShadowCubemapAtlas()
 		);
 
 
@@ -2294,48 +2305,7 @@ namespace X2 {
 		uint32_t frameIndex = Renderer::GetCurrentFrameIndex();
 		m_GPUTimeQueries.DirShadowMapPassQuery = m_CommandBuffer->BeginTimestampQuery();
 
-		auto& directionalLights = m_SceneData.SceneLightEnvironment.DirectionalLights;
-		if (directionalLights[0].Intensity == 0.0f || !directionalLights[0].CastShadows)
-		{
-			// Clear shadow maps
-			for (int i = 0; i < 4; i++)
-				ClearPass(m_ShadowPassPipelines[i]->GetSpecification().RenderPass);
-
-			return;
-		}
-
-		// TODO: change to four cascades (or set number)
-		for (int i = 0; i < 4; i++)
-		{
-			Renderer::BeginRenderPass(m_CommandBuffer, m_ShadowPassPipelines[i]->GetSpecification().RenderPass);
-
-			// static glm::mat4 scaleBiasMatrix = glm::scale(glm::mat4(1.0f), { 0.5f, 0.5f, 0.5f }) * glm::translate(glm::mat4(1.0f), { 1, 1, 1 });
-
-			// Render entities
-			const Buffer cascade(&i, sizeof(uint32_t));
-			for (auto& [mk, dc] : m_StaticMeshShadowPassDrawList)
-			{
-				X2_CORE_VERIFY(m_CurTransformMap->find(mk) != m_CurTransformMap->end());
-				const auto& transformData = m_CurTransformMap->at(mk);
-				Renderer::RenderStaticMeshWithMaterial(m_CommandBuffer, m_ShadowPassPipelines[i], m_UniformBufferSet, nullptr, dc.StaticMesh, dc.SubmeshIndex, m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, dc.InstanceCount, m_ShadowPassMaterial, cascade);
-			}
-			for (auto& [mk, dc] : m_ShadowPassDrawList)
-			{
-				X2_CORE_VERIFY(m_CurTransformMap->find(mk) != m_CurTransformMap->end());
-				const auto& transformData = m_CurTransformMap->at(mk);
-				/*if (dc.IsRigged)
-				{
-					const auto& boneTransformsData = m_MeshBoneTransformsMap.at(mk);
-					Renderer::RenderMeshWithMaterial(m_CommandBuffer, m_ShadowPassPipelinesAnim[i], m_UniformBufferSet, nullptr, dc.Mesh, dc.SubmeshIndex, m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, m_BoneTransformStorageBuffers, boneTransformsData.BoneTransformsBaseIndex, dc.InstanceCount, m_ShadowPassMaterial, cascade);
-				}
-				else
-				{*/
-					Renderer::RenderMeshWithMaterial(m_CommandBuffer, m_ShadowPassPipelines[i], m_UniformBufferSet, nullptr, dc.Mesh, dc.SubmeshIndex, m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, {}, 0, dc.InstanceCount, m_ShadowPassMaterial, cascade);
-				//}
-			}
-
-			Renderer::EndRenderPass(m_CommandBuffer);
-		}
+		m_directionalLightShadow->RenderStaticShadow(m_CommandBuffer, m_UniformBufferSet, m_StaticMeshShadowPassDrawList, m_CurTransformMap, m_SubmeshTransformBuffers[frameIndex].Buffer);
 
 		m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.DirShadowMapPassQuery);
 	}
@@ -2347,38 +2317,26 @@ namespace X2 {
 		uint32_t frameIndex = Renderer::GetCurrentFrameIndex();
 		m_GPUTimeQueries.SpotShadowMapPassQuery = m_CommandBuffer->BeginTimestampQuery();
 
-		// Spot shadow maps
-		Renderer::BeginRenderPass(m_CommandBuffer, m_SpotShadowPassPipeline->GetSpecification().RenderPass);
-		for (uint32_t i = 0; i < 1; i++)
-		{
 
-			const Buffer lightIndex(&i, sizeof(uint32_t));
-			for (auto& [mk, dc] : m_StaticMeshShadowPassDrawList)
-			{
-				X2_CORE_VERIFY(m_CurTransformMap->find(mk) != m_CurTransformMap->end());
-				const auto& transformData = m_CurTransformMap->at(mk);
-				Renderer::RenderStaticMeshWithMaterial(m_CommandBuffer, m_SpotShadowPassPipeline, m_UniformBufferSet, nullptr, dc.StaticMesh, dc.SubmeshIndex, m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, dc.InstanceCount, m_SpotShadowPassMaterial, lightIndex);
-			}
-			for (auto& [mk, dc] : m_ShadowPassDrawList)
-			{
-				X2_CORE_VERIFY(m_CurTransformMap->find(mk) != m_CurTransformMap->end());
-				const auto& transformData = m_CurTransformMap->at(mk);
-				/*if (dc.IsRigged)
-				{
-					const auto& boneTransformsData = m_MeshBoneTransformsMap.at(mk);
-					Renderer::RenderMeshWithMaterial(m_CommandBuffer, m_SpotShadowPassAnimPipeline, m_UniformBufferSet, nullptr, dc.Mesh, dc.SubmeshIndex, m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, m_BoneTransformStorageBuffers, boneTransformsData.BoneTransformsBaseIndex, dc.InstanceCount, m_SpotShadowPassMaterial, lightIndex);
-				}
-				else
-				{*/
-					Renderer::RenderMeshWithMaterial(m_CommandBuffer, m_SpotShadowPassPipeline, m_UniformBufferSet, nullptr, dc.Mesh, dc.SubmeshIndex, m_SubmeshTransformBuffers[frameIndex].Buffer, transformData.TransformOffset, {}, 0, dc.InstanceCount, m_SpotShadowPassMaterial, lightIndex);
-				//}
-			}
+		m_spotLightsShadow->RenderStaticShadow(m_CommandBuffer, m_UniformBufferSet, m_StaticMeshShadowPassDrawList, m_CurTransformMap, m_SubmeshTransformBuffers[frameIndex].Buffer);
 
-		}
-		Renderer::EndRenderPass(m_CommandBuffer);
 		m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.SpotShadowMapPassQuery);
 
 	}
+
+	void SceneRenderer::PointShadowMapPass()
+	{
+		X2_PROFILE_FUNC();
+
+		uint32_t frameIndex = Renderer::GetCurrentFrameIndex();
+		m_GPUTimeQueries.PointShadowMapPassQuery = m_CommandBuffer->BeginTimestampQuery();
+
+		m_pointLightShadow->RenderStaticShadow(m_CommandBuffer, m_UniformBufferSet, m_StaticMeshShadowPassDrawList, m_CurTransformMap, m_SubmeshTransformBuffers[frameIndex].Buffer);
+
+		m_CommandBuffer->EndTimestampQuery(m_GPUTimeQueries.PointShadowMapPassQuery);
+
+	}
+
 
 	void SceneRenderer::PreDepthPass()
 	{
@@ -2682,7 +2640,7 @@ namespace X2 {
 	void SceneRenderer::LightCullingPass()
 	{
 		m_LightCullingMaterial->Set("u_DepthMap", m_PreDepthPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage());
-		m_LightCullingMaterial->Set("o_Debug", m_GTAODebugOutputImage);
+		//m_LightCullingMaterial->Set("o_Debug", m_GTAODebugOutputImage);
 
 		m_GPUTimeQueries.LightCullingPassQuery = m_CommandBuffer->BeginTimestampQuery();
 		SceneRenderer::BeginGPUPerfMarker(m_CommandBuffer, "LightCulling", { 1.0f, 1.0f, 1.0f, 1.0f });
@@ -2777,6 +2735,17 @@ namespace X2 {
 		uint32_t frameIndex = Renderer::GetCurrentFrameIndex();
 
 		m_GPUTimeQueries.GeometryPassQuery = m_CommandBuffer->BeginTimestampQuery();
+		auto instance = this;
+		Renderer::Submit([instance]() mutable
+			{
+				auto inputImage = instance->m_spotLightsShadow->GetPipeline(0)->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetDepthImage();
+
+				Utils::InsertImageMemoryBarrier(instance->m_CommandBuffer->GetActiveCommandBuffer(), inputImage->GetImageInfo().Image,
+					VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
+					VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL,
+					VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT, VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+					{ VK_IMAGE_ASPECT_DEPTH_BIT, 0, inputImage->GetSpecification().Mips, 0, inputImage->GetSpecification().Layers});
+			});
 
 		Renderer::BeginRenderPass(m_CommandBuffer, m_SelectedGeometryPipeline->GetSpecification().RenderPass);
 		for (auto& [mk, dc] : m_SelectedStaticMeshDrawList)
@@ -3828,6 +3797,7 @@ namespace X2 {
 			// Main render passes
 			ShadowMapPass();
 			SpotShadowMapPass();
+			PointShadowMapPass();
 			PreDepthPass();
 			HZBCompute();
 			PreIntegration();
@@ -4021,232 +3991,232 @@ namespace X2 {
 		return m_Options;
 	}
 
-	void SceneRenderer::CalculateCascades(CascadeData* cascades, const SceneRendererCamera& sceneCamera, const glm::vec3& lightDirection) const
-	{
-		//TODO: Reversed Z projection?
+	//void SceneRenderer::CalculateCascades(CascadeData* cascades, const SceneRendererCamera& sceneCamera, const glm::vec3& lightDirection) const
+	//{
+	//	//TODO: Reversed Z projection?
 
-		float scaleToOrigin = m_ScaleShadowCascadesToOrigin;
+	//	float scaleToOrigin = m_ScaleShadowCascadesToOrigin;
 
-		glm::mat4 viewMatrix = sceneCamera.ViewMatrix;
-		constexpr glm::vec4 origin = glm::vec4(glm::vec3(0.0f), 1.0f);
-		viewMatrix[3] = glm::lerp(viewMatrix[3], origin, scaleToOrigin);
+	//	glm::mat4 viewMatrix = sceneCamera.ViewMatrix;
+	//	constexpr glm::vec4 origin = glm::vec4(glm::vec3(0.0f), 1.0f);
+	//	viewMatrix[3] = glm::lerp(viewMatrix[3], origin, scaleToOrigin);
 
-		auto viewProjection = sceneCamera.Camera.GetUnReversedProjectionMatrix() * viewMatrix;
+	//	auto viewProjection = sceneCamera.Camera.GetUnReversedProjectionMatrix() * viewMatrix;
 
-		const int SHADOW_MAP_CASCADE_COUNT = 4;
-		float cascadeSplits[SHADOW_MAP_CASCADE_COUNT];
+	//	const int SHADOW_MAP_CASCADE_COUNT = 4;
+	//	float cascadeSplits[SHADOW_MAP_CASCADE_COUNT];
 
-		float nearClip = sceneCamera.Near;
-		float farClip = sceneCamera.Far;
-		float clipRange = farClip - nearClip;
+	//	float nearClip = sceneCamera.Near;
+	//	float farClip = sceneCamera.Far;
+	//	float clipRange = farClip - nearClip;
 
-		float minZ = nearClip;
-		float maxZ = nearClip + clipRange;
+	//	float minZ = nearClip;
+	//	float maxZ = nearClip + clipRange;
 
-		float range = maxZ - minZ;
-		float ratio = maxZ / minZ;
+	//	float range = maxZ - minZ;
+	//	float ratio = maxZ / minZ;
 
-		// Calculate split depths based on view camera frustum
-		// Based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
-		for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++)
-		{
-			float p = (i + 1) / static_cast<float>(SHADOW_MAP_CASCADE_COUNT);
-			float log = minZ * std::pow(ratio, p);
-			float uniform = minZ + range * p;
-			float d = CascadeSplitLambda * (log - uniform) + uniform;
-			cascadeSplits[i] = (d - nearClip) / clipRange;
-		}
+	//	// Calculate split depths based on view camera frustum
+	//	// Based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
+	//	for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++)
+	//	{
+	//		float p = (i + 1) / static_cast<float>(SHADOW_MAP_CASCADE_COUNT);
+	//		float log = minZ * std::pow(ratio, p);
+	//		float uniform = minZ + range * p;
+	//		float d = CascadeSplitLambda * (log - uniform) + uniform;
+	//		cascadeSplits[i] = (d - nearClip) / clipRange;
+	//	}
 
-		cascadeSplits[3] = 0.3f;
+	//	cascadeSplits[3] = 0.3f;
 
-		// Manually set cascades here
-		// cascadeSplits[0] = 0.05f;
-		// cascadeSplits[1] = 0.15f;
-		// cascadeSplits[2] = 0.3f;
-		// cascadeSplits[3] = 1.0f;
+	//	// Manually set cascades here
+	//	// cascadeSplits[0] = 0.05f;
+	//	// cascadeSplits[1] = 0.15f;
+	//	// cascadeSplits[2] = 0.3f;
+	//	// cascadeSplits[3] = 1.0f;
 
-		// Calculate orthographic projection matrix for each cascade
-		float lastSplitDist = 0.0;
-		for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++)
-		{
-			float splitDist = cascadeSplits[i];
+	//	// Calculate orthographic projection matrix for each cascade
+	//	float lastSplitDist = 0.0;
+	//	for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++)
+	//	{
+	//		float splitDist = cascadeSplits[i];
 
-			glm::vec3 frustumCorners[8] =
-			{
-				glm::vec3(-1.0f,  1.0f, -1.0f),
-				glm::vec3(1.0f,  1.0f, -1.0f),
-				glm::vec3(1.0f, -1.0f, -1.0f),
-				glm::vec3(-1.0f, -1.0f, -1.0f),
-				glm::vec3(-1.0f,  1.0f,  1.0f),
-				glm::vec3(1.0f,  1.0f,  1.0f),
-				glm::vec3(1.0f, -1.0f,  1.0f),
-				glm::vec3(-1.0f, -1.0f,  1.0f),
-			};
+	//		glm::vec3 frustumCorners[8] =
+	//		{
+	//			glm::vec3(-1.0f,  1.0f, -1.0f),
+	//			glm::vec3(1.0f,  1.0f, -1.0f),
+	//			glm::vec3(1.0f, -1.0f, -1.0f),
+	//			glm::vec3(-1.0f, -1.0f, -1.0f),
+	//			glm::vec3(-1.0f,  1.0f,  1.0f),
+	//			glm::vec3(1.0f,  1.0f,  1.0f),
+	//			glm::vec3(1.0f, -1.0f,  1.0f),
+	//			glm::vec3(-1.0f, -1.0f,  1.0f),
+	//		};
 
-			// Project frustum corners into world space
-			glm::mat4 invCam = glm::inverse(viewProjection);
-			for (uint32_t i = 0; i < 8; i++)
-			{
-				glm::vec4 invCorner = invCam * glm::vec4(frustumCorners[i], 1.0f);
-				frustumCorners[i] = invCorner / invCorner.w;
-			}
+	//		// Project frustum corners into world space
+	//		glm::mat4 invCam = glm::inverse(viewProjection);
+	//		for (uint32_t i = 0; i < 8; i++)
+	//		{
+	//			glm::vec4 invCorner = invCam * glm::vec4(frustumCorners[i], 1.0f);
+	//			frustumCorners[i] = invCorner / invCorner.w;
+	//		}
 
-			for (uint32_t i = 0; i < 4; i++)
-			{
-				glm::vec3 dist = frustumCorners[i + 4] - frustumCorners[i];
-				frustumCorners[i + 4] = frustumCorners[i] + (dist * splitDist);
-				frustumCorners[i] = frustumCorners[i] + (dist * lastSplitDist);
-			}
+	//		for (uint32_t i = 0; i < 4; i++)
+	//		{
+	//			glm::vec3 dist = frustumCorners[i + 4] - frustumCorners[i];
+	//			frustumCorners[i + 4] = frustumCorners[i] + (dist * splitDist);
+	//			frustumCorners[i] = frustumCorners[i] + (dist * lastSplitDist);
+	//		}
 
-			// Get frustum center
-			glm::vec3 frustumCenter = glm::vec3(0.0f);
-			for (uint32_t i = 0; i < 8; i++)
-				frustumCenter += frustumCorners[i];
+	//		// Get frustum center
+	//		glm::vec3 frustumCenter = glm::vec3(0.0f);
+	//		for (uint32_t i = 0; i < 8; i++)
+	//			frustumCenter += frustumCorners[i];
 
-			frustumCenter /= 8.0f;
+	//		frustumCenter /= 8.0f;
 
-			//frustumCenter *= 0.01f;
+	//		//frustumCenter *= 0.01f;
 
-			float radius = 0.0f;
-			for (uint32_t i = 0; i < 8; i++)
-			{
-				float distance = glm::length(frustumCorners[i] - frustumCenter);
-				radius = glm::max(radius, distance);
-			}
-			radius = std::ceil(radius * 16.0f) / 16.0f;
+	//		float radius = 0.0f;
+	//		for (uint32_t i = 0; i < 8; i++)
+	//		{
+	//			float distance = glm::length(frustumCorners[i] - frustumCenter);
+	//			radius = glm::max(radius, distance);
+	//		}
+	//		radius = std::ceil(radius * 16.0f) / 16.0f;
 
-			glm::vec3 maxExtents = glm::vec3(radius);
-			glm::vec3 minExtents = -maxExtents;
+	//		glm::vec3 maxExtents = glm::vec3(radius);
+	//		glm::vec3 minExtents = -maxExtents;
 
-			glm::vec3 up = std::abs(glm::dot(lightDirection, glm::vec3(0.f, 1.0f, 0.0f))) > 0.9 ? glm::normalize(glm::vec3(0.01f, 1.0f, 0.01f)) : glm::vec3(0.f, 1.0f, 0.0f);
-			
-			glm::mat4 lightViewMatrix = glm::lookAt(frustumCenter - lightDirection * radius, frustumCenter, up);
-			glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, - radius + CascadeNearPlaneOffset - CascadeFarPlaneOffset, 2 * radius);
+	//		glm::vec3 up = std::abs(glm::dot(lightDirection, glm::vec3(0.f, 1.0f, 0.0f))) > 0.9 ? glm::normalize(glm::vec3(0.01f, 1.0f, 0.01f)) : glm::vec3(0.f, 1.0f, 0.0f);
+	//		
+	//		glm::mat4 lightViewMatrix = glm::lookAt(frustumCenter - lightDirection * radius, frustumCenter, up);
+	//		glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, - radius + CascadeNearPlaneOffset - CascadeFarPlaneOffset, 2 * radius);
 
-			// Offset to texel space to avoid shimmering (from https://stackoverflow.com/questions/33499053/cascaded-shadow-map-shimmering)
-			glm::mat4 shadowMatrix = lightOrthoMatrix * lightViewMatrix;
-			float ShadowMapResolution = (float)m_ShadowPassPipelines[0]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetWidth();
-			glm::vec4 shadowOrigin = (shadowMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)) * ShadowMapResolution / 2.0f;
-			glm::vec4 roundedOrigin = glm::round(shadowOrigin);
-			glm::vec4 roundOffset = roundedOrigin - shadowOrigin;
-			roundOffset = roundOffset * 2.0f / ShadowMapResolution;
-			roundOffset.z = 0.0f;
-			roundOffset.w = 0.0f;
+	//		// Offset to texel space to avoid shimmering (from https://stackoverflow.com/questions/33499053/cascaded-shadow-map-shimmering)
+	//		glm::mat4 shadowMatrix = lightOrthoMatrix * lightViewMatrix;
+	//		float ShadowMapResolution = (float)m_ShadowPassPipelines[0]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetWidth();
+	//		glm::vec4 shadowOrigin = (shadowMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)) * ShadowMapResolution / 2.0f;
+	//		glm::vec4 roundedOrigin = glm::round(shadowOrigin);
+	//		glm::vec4 roundOffset = roundedOrigin - shadowOrigin;
+	//		roundOffset = roundOffset * 2.0f / ShadowMapResolution;
+	//		roundOffset.z = 0.0f;
+	//		roundOffset.w = 0.0f;
 
-			lightOrthoMatrix[3] += roundOffset;
+	//		lightOrthoMatrix[3] += roundOffset;
 
-			// Store split distance and matrix in cascade
-			cascades[i].SplitDepth = (nearClip + splitDist * clipRange) * -1.0f;
-			cascades[i].ViewProj = lightOrthoMatrix * lightViewMatrix;
-			cascades[i].View = lightViewMatrix;
+	//		// Store split distance and matrix in cascade
+	//		cascades[i].SplitDepth = (nearClip + splitDist * clipRange) * -1.0f;
+	//		cascades[i].ViewProj = lightOrthoMatrix * lightViewMatrix;
+	//		cascades[i].View = lightViewMatrix;
 
-			lastSplitDist = cascadeSplits[i];
-		}
-	}
+	//		lastSplitDist = cascadeSplits[i];
+	//	}
+	//}
 
-	void SceneRenderer::CalculateCascadesManualSplit(CascadeData* cascades, const SceneRendererCamera& sceneCamera, const glm::vec3& lightDirection) const
-	{
-		//TODO: Reversed Z projection?
+	//void SceneRenderer::CalculateCascadesManualSplit(CascadeData* cascades, const SceneRendererCamera& sceneCamera, const glm::vec3& lightDirection) const
+	//{
+	//	//TODO: Reversed Z projection?
 
-		float scaleToOrigin = m_ScaleShadowCascadesToOrigin;
+	//	float scaleToOrigin = m_ScaleShadowCascadesToOrigin;
 
-		glm::mat4 viewMatrix = sceneCamera.ViewMatrix;
-		constexpr glm::vec4 origin = glm::vec4(glm::vec3(0.0f), 1.0f);
-		viewMatrix[3] = glm::lerp(viewMatrix[3], origin, scaleToOrigin);
+	//	glm::mat4 viewMatrix = sceneCamera.ViewMatrix;
+	//	constexpr glm::vec4 origin = glm::vec4(glm::vec3(0.0f), 1.0f);
+	//	viewMatrix[3] = glm::lerp(viewMatrix[3], origin, scaleToOrigin);
 
-		auto viewProjection = sceneCamera.Camera.GetUnReversedProjectionMatrix() * viewMatrix;
+	//	auto viewProjection = sceneCamera.Camera.GetUnReversedProjectionMatrix() * viewMatrix;
 
-		const int SHADOW_MAP_CASCADE_COUNT = 4;
+	//	const int SHADOW_MAP_CASCADE_COUNT = 4;
 
-		float nearClip = sceneCamera.Near;
-		float farClip = sceneCamera.Far;
-		float clipRange = farClip - nearClip;
+	//	float nearClip = sceneCamera.Near;
+	//	float farClip = sceneCamera.Far;
+	//	float clipRange = farClip - nearClip;
 
-		float minZ = nearClip;
-		float maxZ = nearClip + clipRange;
+	//	float minZ = nearClip;
+	//	float maxZ = nearClip + clipRange;
 
-		float range = maxZ - minZ;
-		float ratio = maxZ / minZ;
+	//	float range = maxZ - minZ;
+	//	float ratio = maxZ / minZ;
 
-		// Calculate orthographic projection matrix for each cascade
-		float lastSplitDist = 0.0;
-		for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++)
-		{
-			float splitDist = m_ShadowCascadeSplits[0];
-			lastSplitDist = 0.0;
+	//	// Calculate orthographic projection matrix for each cascade
+	//	float lastSplitDist = 0.0;
+	//	for (uint32_t i = 0; i < SHADOW_MAP_CASCADE_COUNT; i++)
+	//	{
+	//		float splitDist = m_ShadowCascadeSplits[0];
+	//		lastSplitDist = 0.0;
 
-			glm::vec3 frustumCorners[8] =
-			{
-				glm::vec3(-1.0f,  1.0f, -1.0f),
-				glm::vec3(1.0f,  1.0f, -1.0f),
-				glm::vec3(1.0f, -1.0f, -1.0f),
-				glm::vec3(-1.0f, -1.0f, -1.0f),
-				glm::vec3(-1.0f,  1.0f,  1.0f),
-				glm::vec3(1.0f,  1.0f,  1.0f),
-				glm::vec3(1.0f, -1.0f,  1.0f),
-				glm::vec3(-1.0f, -1.0f,  1.0f),
-			};
+	//		glm::vec3 frustumCorners[8] =
+	//		{
+	//			glm::vec3(-1.0f,  1.0f, -1.0f),
+	//			glm::vec3(1.0f,  1.0f, -1.0f),
+	//			glm::vec3(1.0f, -1.0f, -1.0f),
+	//			glm::vec3(-1.0f, -1.0f, -1.0f),
+	//			glm::vec3(-1.0f,  1.0f,  1.0f),
+	//			glm::vec3(1.0f,  1.0f,  1.0f),
+	//			glm::vec3(1.0f, -1.0f,  1.0f),
+	//			glm::vec3(-1.0f, -1.0f,  1.0f),
+	//		};
 
-			// Project frustum corners into world space
-			glm::mat4 invCam = glm::inverse(viewProjection);
-			for (uint32_t i = 0; i < 8; i++)
-			{
-				glm::vec4 invCorner = invCam * glm::vec4(frustumCorners[i], 1.0f);
-				frustumCorners[i] = invCorner / invCorner.w;
-			}
+	//		// Project frustum corners into world space
+	//		glm::mat4 invCam = glm::inverse(viewProjection);
+	//		for (uint32_t i = 0; i < 8; i++)
+	//		{
+	//			glm::vec4 invCorner = invCam * glm::vec4(frustumCorners[i], 1.0f);
+	//			frustumCorners[i] = invCorner / invCorner.w;
+	//		}
 
-			for (uint32_t i = 0; i < 4; i++)
-			{
-				glm::vec3 dist = frustumCorners[i + 4] - frustumCorners[i];
-				frustumCorners[i + 4] = frustumCorners[i] + (dist * splitDist);
-				frustumCorners[i] = frustumCorners[i] + (dist * lastSplitDist);
-			}
+	//		for (uint32_t i = 0; i < 4; i++)
+	//		{
+	//			glm::vec3 dist = frustumCorners[i + 4] - frustumCorners[i];
+	//			frustumCorners[i + 4] = frustumCorners[i] + (dist * splitDist);
+	//			frustumCorners[i] = frustumCorners[i] + (dist * lastSplitDist);
+	//		}
 
-			// Get frustum center
-			glm::vec3 frustumCenter = glm::vec3(0.0f);
-			for (uint32_t i = 0; i < 8; i++)
-				frustumCenter += frustumCorners[i];
+	//		// Get frustum center
+	//		glm::vec3 frustumCenter = glm::vec3(0.0f);
+	//		for (uint32_t i = 0; i < 8; i++)
+	//			frustumCenter += frustumCorners[i];
 
-			frustumCenter /= 8.0f;
+	//		frustumCenter /= 8.0f;
 
-			//frustumCenter *= 0.01f;
+	//		//frustumCenter *= 0.01f;
 
-			float radius = 0.0f;
-			for (uint32_t i = 0; i < 8; i++)
-			{
-				float distance = glm::length(frustumCorners[i] - frustumCenter);
-				radius = glm::max(radius, distance);
-			}
-			radius = std::ceil(radius * 16.0f) / 16.0f;
-			radius *= m_ShadowCascadeSplits[1];
+	//		float radius = 0.0f;
+	//		for (uint32_t i = 0; i < 8; i++)
+	//		{
+	//			float distance = glm::length(frustumCorners[i] - frustumCenter);
+	//			radius = glm::max(radius, distance);
+	//		}
+	//		radius = std::ceil(radius * 16.0f) / 16.0f;
+	//		radius *= m_ShadowCascadeSplits[1];
 
-			glm::vec3 maxExtents = glm::vec3(radius);
-			glm::vec3 minExtents = -maxExtents;
+	//		glm::vec3 maxExtents = glm::vec3(radius);
+	//		glm::vec3 minExtents = -maxExtents;
 
-			glm::vec3 up = std::abs(glm::dot(lightDirection, glm::vec3(0.f, 1.0f, 0.0f))) > 0.9 ? glm::normalize(glm::vec3(0.01f, 1.0f, 0.01f)) : glm::vec3(0.f, 1.0f, 0.0f);
-			glm::mat4 lightViewMatrix = glm::lookAt(frustumCenter - lightDirection * radius, frustumCenter, up);
-			glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, -radius + CascadeNearPlaneOffset - CascadeFarPlaneOffset, 2 * radius);
+	//		glm::vec3 up = std::abs(glm::dot(lightDirection, glm::vec3(0.f, 1.0f, 0.0f))) > 0.9 ? glm::normalize(glm::vec3(0.01f, 1.0f, 0.01f)) : glm::vec3(0.f, 1.0f, 0.0f);
+	//		glm::mat4 lightViewMatrix = glm::lookAt(frustumCenter - lightDirection * radius, frustumCenter, up);
+	//		glm::mat4 lightOrthoMatrix = glm::ortho(minExtents.x, maxExtents.x, minExtents.y, maxExtents.y, -radius + CascadeNearPlaneOffset - CascadeFarPlaneOffset, 2 * radius);
 
-			// Offset to texel space to avoid shimmering (from https://stackoverflow.com/questions/33499053/cascaded-shadow-map-shimmering)
-			glm::mat4 shadowMatrix = lightOrthoMatrix * lightViewMatrix;
-			float ShadowMapResolution = (float)m_ShadowPassPipelines[0]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetWidth();
-			glm::vec4 shadowOrigin = (shadowMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)) * ShadowMapResolution / 2.0f;
-			glm::vec4 roundedOrigin = glm::round(shadowOrigin);
-			glm::vec4 roundOffset = roundedOrigin - shadowOrigin;
-			roundOffset = roundOffset * 2.0f / ShadowMapResolution;
-			roundOffset.z = 0.0f;
-			roundOffset.w = 0.0f;
+	//		// Offset to texel space to avoid shimmering (from https://stackoverflow.com/questions/33499053/cascaded-shadow-map-shimmering)
+	//		glm::mat4 shadowMatrix = lightOrthoMatrix * lightViewMatrix;
+	//		float ShadowMapResolution = (float)m_ShadowPassPipelines[0]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer->GetWidth();
+	//		glm::vec4 shadowOrigin = (shadowMatrix * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f)) * ShadowMapResolution / 2.0f;
+	//		glm::vec4 roundedOrigin = glm::round(shadowOrigin);
+	//		glm::vec4 roundOffset = roundedOrigin - shadowOrigin;
+	//		roundOffset = roundOffset * 2.0f / ShadowMapResolution;
+	//		roundOffset.z = 0.0f;
+	//		roundOffset.w = 0.0f;
 
-			lightOrthoMatrix[3] += roundOffset;
+	//		lightOrthoMatrix[3] += roundOffset;
 
-			// Store split distance and matrix in cascade
-			cascades[i].SplitDepth = (nearClip + splitDist * clipRange) * -1.0f;
-			cascades[i].ViewProj = lightOrthoMatrix * lightViewMatrix;
-			cascades[i].View = lightViewMatrix;
+	//		// Store split distance and matrix in cascade
+	//		cascades[i].SplitDepth = (nearClip + splitDist * clipRange) * -1.0f;
+	//		cascades[i].ViewProj = lightOrthoMatrix * lightViewMatrix;
+	//		cascades[i].View = lightViewMatrix;
 
-			lastSplitDist = m_ShadowCascadeSplits[0];
-		}
-	}
+	//		lastSplitDist = m_ShadowCascadeSplits[0];
+	//	}
+	//}
 
 	void SceneRenderer::UpdateStatistics()
 	{

@@ -487,6 +487,7 @@ namespace X2 {
 			out << YAML::BeginMap; // SpotLightComponent
 
 			const auto& lightComponent = entity.GetComponent<SpotLightComponent>();
+			out << YAML::Key << "Direction" << YAML::Value << lightComponent.Direction;
 			out << YAML::Key << "Radiance" << YAML::Value << lightComponent.Radiance;
 			out << YAML::Key << "Angle" << YAML::Value << lightComponent.Angle;
 			out << YAML::Key << "AngleAttenuation" << YAML::Value << lightComponent.AngleAttenuation;
@@ -1318,6 +1319,8 @@ namespace X2 {
 			if (spotLightComponent)
 			{
 				auto& component = deserializedEntity.AddComponent<SpotLightComponent>();
+				if(spotLightComponent["Direction"])
+					component.Direction = spotLightComponent["Direction"].as<glm::vec3>();
 				component.Radiance = spotLightComponent["Radiance"].as<glm::vec3>();
 				component.Intensity = spotLightComponent["Intensity"].as<float>();
 				component.CastsShadows = spotLightComponent["CastsShadows"].as<bool>();

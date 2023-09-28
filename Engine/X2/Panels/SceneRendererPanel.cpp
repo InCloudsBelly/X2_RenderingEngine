@@ -452,7 +452,7 @@ namespace X2 {
 				if (UI::BeginTreeNode("Shadow Map", false))
 				{
 					static int cascadeIndex = 0;
-					auto fb = m_Context->m_ShadowPassPipelines[cascadeIndex]->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer;
+					auto fb = m_Context->m_directionalLightShadow->GetPipeline(cascadeIndex)->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer;
 					auto image = fb->GetDepthImage();
 
 					float size = ImGui::GetContentRegionAvail().x; // (float)fb->GetWidth() * 0.5f, (float)fb->GetHeight() * 0.5f
@@ -466,18 +466,18 @@ namespace X2 {
 					UI::EndTreeNode();
 				}
 
-				if (UI::BeginTreeNode("Spotlight Shadow Map", false))
-				{
-					auto fb = m_Context->m_SpotShadowPassPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer;
-					auto image = fb->GetDepthImage();
+				//if (UI::BeginTreeNode("Spotlight Shadow Map", false))
+				//{
+				//	auto fb = m_Context->m_SpotShadowPassPipeline->GetSpecification().RenderPass->GetSpecification().TargetFramebuffer;
+				//	auto image = fb->GetDepthImage();
 
-					float size = ImGui::GetContentRegionAvail().x; // (float)fb->GetWidth() * 0.5f, (float)fb->GetHeight() * 0.5f
-					if (m_Context->m_ResourcesCreated)
-					{
-						UI::Image(image, { size, size }, { 0, 1 }, { 1, 0 });
-					}
-					UI::EndTreeNode();
-				}
+				//	float size = ImGui::GetContentRegionAvail().x; // (float)fb->GetWidth() * 0.5f, (float)fb->GetHeight() * 0.5f
+				//	if (m_Context->m_ResourcesCreated)
+				//	{
+				//		UI::Image(image, { size, size }, { 0, 1 }, { 1, 0 });
+				//	}
+				//	UI::EndTreeNode();
+				//}
 
 				UI::EndTreeNode();
 			}

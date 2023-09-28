@@ -12,7 +12,6 @@
 #include <intersect_lib.glslh>
 
 
-layout(binding = 6, rgba32f) restrict writeonly uniform image2D o_Debug;
 layout(set = 0, binding = 15) uniform sampler2D u_DepthMap;
 
 #define TILE_SIZE 16
@@ -122,8 +121,8 @@ void main()
 		tileFrustum = isect_data_setup(shape_frustum(cornersV));
 		
 		
-		frustumPlanes[4] = vec4(0.0, 0.0, 1.0, -minDepth); // Near
-		frustumPlanes[5] = vec4(0.0, 0.0, -1.0, maxDepth ); // Far
+		frustumPlanes[4] = vec4(0.0, 0.0, -1.0, -minDepth); // Near
+		frustumPlanes[5] = vec4(0.0, 0.0, 1.0, maxDepth ); // Far
 
 		// Transform the first four planes
 		for (uint i = 0; i < 4; i++)
@@ -176,29 +175,28 @@ void main()
 			break;
 
 		SpotLight light = u_SpotLights.Lights[lightIndex];
-		float radius = light.Range;
-		// Check if light radius is in frustum
-		float distance = 0.0;
-		for (uint j = 0; j < 6; j++)
-		{
-			distance = dot(vec4(light.Position - light.Direction * (light.Range * 0.7), 1.0), frustumPlanes[j]) + radius * 1.3;
-			if (distance < 0.0) // No intersection
-				break;
-		}
 
-		// If greater than zero, then it is a visible light
-		if (distance > 0.0)
+
+		Pyramid pyramid;
+		pyramid.corners[0] = (u_Camera.ViewMatrix * vec4(light.Position,1.0f)).xyz;
+		pyramid.corners[1] = (u_Camera.ViewMatrix * light.CornerPositions[0]).xyz;
+		pyramid.corners[2] = (u_Camera.ViewMatrix * light.CornerPositions[1]).xyz;
+		pyramid.corners[3] = (u_Camera.ViewMatrix * light.CornerPositions[2]).xyz;
+		pyramid.corners[4] = (u_Camera.ViewMatrix * light.CornerPositions[3]).xyz;
+		
+
+		if(intersect( tileFrustum , pyramid))
 		{
-			// Add index to the shared array of visible indices
 			uint offset = atomicAdd(visibleSpotLightCount, 1);
 			visibleSpotLightIndices[offset] = int(lightIndex);
-		} 
-		
+		}
+
+		IsectPyramid i_pyramid = isect_data_setup(pyramid);
 	}
 
     barrier();
 
-	imageStore(o_Debug, location, vec4(vec3(float(visiblePointLightCount) / 8), 1.0f));
+	// imageStore(o_Debug, location, vec4(vec3(float(visiblePointLightCount) / 8), 1.0f));
 
     // One thread should fill the global light buffer
     if (gl_LocalInvocationIndex == 0)

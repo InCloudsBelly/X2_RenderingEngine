@@ -2103,6 +2103,18 @@ namespace X2 {
 			{
 				UI::BeginPropertyGrid();
 
+				ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isMultiEdit&& IsInconsistentPrimitive<glm::vec3, SpotLightComponent>([](const SpotLightComponent& other) { return other.Direction; }));
+				bool directionManuallyEdited = false;
+				if (UI::Property("Direction", firstComponent.Direction, 0.1f, -50.0f, 50.0f))
+				{
+					for (auto& entityID : entities)
+					{
+						Entity entity = m_Context->GetEntityWithUUID(entityID);
+						entity.GetComponent<SpotLightComponent>().Direction = firstComponent.Direction;
+					}
+				}
+				ImGui::PopItemFlag();
+
 				ImGui::PushItemFlag(ImGuiItemFlags_MixedValue, isMultiEdit && IsInconsistentPrimitive<glm::vec3, SpotLightComponent>([](const SpotLightComponent& other) { return other.Radiance; }));
 				if (UI::PropertyColor("Radiance", firstComponent.Radiance))
 				{

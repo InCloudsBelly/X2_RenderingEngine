@@ -265,6 +265,8 @@ namespace X2 {
 		enabledFeatures.shaderUniformBufferArrayDynamicIndexing = true;
 		enabledFeatures.shaderStorageImageArrayDynamicIndexing = true;
 		enabledFeatures.shaderSampledImageArrayDynamicIndexing = true;
+		
+		enabledFeatures.imageCubeArray = true;
 
 		m_Device = std::make_unique<VulkanDevice>(m_PhysicalDevice.get(), enabledFeatures);
 

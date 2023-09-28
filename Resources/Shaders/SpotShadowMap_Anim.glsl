@@ -52,7 +52,7 @@ void main()
 	boneTransform     += r_BoneTransforms.BoneTransforms[(u_Constants.BoneTransformBaseIndex + gl_InstanceIndex) * MAX_BONES + a_BoneIndices[2]] * a_BoneWeights[2];
 	boneTransform     += r_BoneTransforms.BoneTransforms[(u_Constants.BoneTransformBaseIndex + gl_InstanceIndex) * MAX_BONES + a_BoneIndices[3]] * a_BoneWeights[3];
 
-	gl_Position =  u_SpotLightMatrices.Mats[u_Constants.LightIndex] * transform * boneTransform * vec4(a_Position, 1.0);
+	gl_Position =  u_SpotLights.Mats[u_Constants.LightIndex] * transform * boneTransform * vec4(a_Position, 1.0);
 }
 
 #version 450 core

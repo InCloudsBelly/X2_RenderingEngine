@@ -1276,12 +1276,12 @@ namespace X2 {
 
 
 
-	void VulkanRenderer::SetSceneEnvironment(SceneRenderer* sceneRenderer, Ref<Environment> environment, Ref<VulkanImage2D> shadow, Ref<VulkanImage2D> spotShadow)
+	void VulkanRenderer::SetSceneEnvironment(SceneRenderer* sceneRenderer, Ref<Environment> environment, Ref<VulkanImage2D> shadow, Ref<VulkanImage2D> spotShadow, Ref<VulkanImage2D> pointShadow)
 	{
 		if (!environment)
 			environment = Renderer::GetEmptyEnvironment();
 
-		Renderer::Submit([sceneRenderer, environment, shadow, spotShadow]() mutable
+		Renderer::Submit([sceneRenderer, environment, shadow, spotShadow, pointShadow]() mutable
 			{
 				X2_PROFILE_FUNC("VulkanRenderer::SetSceneEnvironment");
 
@@ -1297,7 +1297,7 @@ namespace X2 {
 				VkDescriptorSet descriptorSet = s_Data->RendererDescriptorSet.at(sceneRenderer)[bufferIndex].DescriptorSets[0];
 				s_Data->ActiveRendererDescriptorSet = descriptorSet;
 
-				std::array<VkWriteDescriptorSet, 5> writeDescriptors;
+				std::array<VkWriteDescriptorSet, 6> writeDescriptors;
 
 				Ref<VulkanTextureCube> radianceMap = environment->RadianceMap;
 				Ref<VulkanTextureCube> irradianceMap = environment->IrradianceMap;
@@ -1322,10 +1322,15 @@ namespace X2 {
 				const auto& shadowImageInfo = shadow->GetDescriptorInfo();
 				writeDescriptors[3].pImageInfo = &shadowImageInfo;
 
-				writeDescriptors[4] = *pbrShader->GetDescriptorSet("u_SpotShadowTexture", 1);
+				writeDescriptors[4] = *pbrShader->GetDescriptorSet("u_PointShadowTexture", 1);
 				writeDescriptors[4].dstSet = descriptorSet;
+				const auto& pointShadowImageInfo = pointShadow->GetDescriptorInfo();
+				writeDescriptors[4].pImageInfo = &pointShadowImageInfo;
+
+				writeDescriptors[5] = *pbrShader->GetDescriptorSet("u_SpotShadowTexture", 1);
+				writeDescriptors[5].dstSet = descriptorSet;
 				const auto& spotShadowImageInfo = spotShadow->GetDescriptorInfo();
-				writeDescriptors[4].pImageInfo = &spotShadowImageInfo;
+				writeDescriptors[5].pImageInfo = &spotShadowImageInfo;
 
 				const auto vulkanDevice = VulkanContext::GetCurrentDevice()->GetVulkanDevice();
 				vkUpdateDescriptorSets(vulkanDevice, (uint32_t)writeDescriptors.size(), writeDescriptors.data(), 0, nullptr);

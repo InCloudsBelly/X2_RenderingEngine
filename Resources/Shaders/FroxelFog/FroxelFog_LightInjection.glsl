@@ -18,12 +18,13 @@
 #define EPSILON 0.0001f
 
 layout(set = 0, binding = 5) uniform sampler2DArray u_ShadowMapTexture;
-layout(set = 0, binding = 6) uniform sampler2D u_BlueNoise;
+layout(set = 0, binding = 6) uniform sampler2DArray u_SpotShadowMapTexture;
+layout(set = 0, binding = 7) uniform sampler2D u_BlueNoise;
 
 
-layout(set = 0, binding = 7) uniform sampler3D u_History;
+layout(set = 0, binding = 8) uniform sampler3D u_History;
 // OutPut 
-layout(binding = 8, rgba16f) uniform writeonly image3D o_VoxelGrid;
+layout(binding = 9, rgba16f) uniform writeonly image3D o_VoxelGrid;
 
 
 vec3 id_to_uv_with_jitter(ivec3 id, float n, float f, float jitter)

@@ -162,7 +162,7 @@ layout(set = 1, binding = 11) uniform sampler2D u_BRDFLUTTexture;
 
 // Shadow maps
 layout(set = 1, binding = 12) uniform sampler2DArray u_ShadowMapTexture;
-layout(set = 1, binding = 21) uniform sampler2D u_SpotShadowTexture;
+layout(set = 1, binding = 21) uniform sampler2DArray u_SpotShadowTexture;
 
 layout(push_constant) uniform Material
 {
@@ -328,7 +328,17 @@ void main()
 	// Direct lighting
 	vec3 lightContribution = CalculateDirLights(F0) * shadowScale;
 	lightContribution += CalculatePointLights(F0, Input.WorldPosition);
-	lightContribution += CalculateSpotLights(F0, Input.WorldPosition) * SpotShadowCalculation(u_SpotShadowTexture, Input.WorldPosition);
+
+	//SpotLights
+	for (int i = 0; i < u_PointLights.LightCount; i++)
+	{
+		int lightIndex = GetSpotLightBufferIndex(i);
+		if (lightIndex == -1)
+			break;
+
+		lightContribution += CalculateSpotLightByIndex(F0, Input.WorldPosition, lightIndex) * SpotShadowCalculationByIndex(u_SpotShadowTexture, Input.WorldPosition,lightIndex);
+	}
+	// lightContribution += CalculateSpotLightsWithShadow(F0, Input.WorldPosition) ;//* SpotShadowCalculation(u_SpotShadowTexture, Input.WorldPosition);
 	lightContribution += m_Emission;
 
 	// Indirect lighting

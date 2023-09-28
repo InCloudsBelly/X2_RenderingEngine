@@ -394,11 +394,39 @@ namespace X2 {
 						Entity entity(e, this);
 						auto [transformComponent, lightComponent] = spotLights.get<TransformComponent, SpotLightComponent>(e);
 						auto transform = GetWorldSpaceTransform(entity);
-						glm::vec3 direction = glm::normalize(glm::rotate(transform.GetRotation(), glm::vec3(1.0f, 0.0f, 0.0f)));
+						glm::vec3 direction = glm::normalize(lightComponent.Direction);
+
+						glm::mat4 projection = glm::perspective(glm::radians(lightComponent.Angle), 1.f, 0.1f, lightComponent.Range);
+						glm::mat4 viewprojection = projection * glm::lookAt(transformComponent.Translation, transformComponent.Translation - direction, glm::vec3(0.0f, 1.0f, 0.0f));
+
+						glm::vec4 MinCorner = { -1,-1, -1, 1.0f };
+						glm::vec4 MaxCorner = { 1, 1,  1, 1.0f };
+
+
+						glm::mat4 invmat = glm::inverse(viewprojection);
+
+						glm::vec4 corners[4] =
+						{
+							invmat* glm::vec4 { MinCorner.x, MinCorner.y, MaxCorner.z, 1.0f },
+							invmat* glm::vec4 { MaxCorner.x, MinCorner.y, MaxCorner.z, 1.0f },
+							invmat* glm::vec4 { MaxCorner.x, MaxCorner.y, MaxCorner.z, 1.0f },
+							invmat* glm::vec4 { MinCorner.x, MaxCorner.y, MaxCorner.z, 1.0f },
+						};
+
+						for (int i = 0; i < 4; ++i)
+						{
+							corners[i] /= corners[i].w;
+						}
 
 						m_LightEnvironment.SpotLights[spotLightIndex++] = {
 							transform.Translation,
 							lightComponent.Intensity,
+							{
+							glm::vec4(corners[0].x, corners[0].y, corners[0].z, 1.0f),
+							glm::vec4(corners[1].x, corners[1].y, corners[1].z, 1.0f),
+							glm::vec4(corners[2].x, corners[2].y, corners[2].z, 1.0f),
+							glm::vec4(corners[3].x, corners[3].y, corners[3].z, 1.0f)
+							},
 							direction,
 							lightComponent.AngleAttenuation,
 							lightComponent.Radiance,
@@ -407,8 +435,11 @@ namespace X2 {
 							lightComponent.Falloff,
 							lightComponent.SoftShadows,
 							{},
-							lightComponent.CastsShadows
+							lightComponent.CastsShadows,
+							
 						};
+
+						
 					}
 				}
 			}
@@ -638,13 +669,39 @@ namespace X2 {
 				{
 					Entity entity(e, this);
 					auto [transformComponent, lightComponent] = spotLights.get<TransformComponent, SpotLightComponent>(e);
-					//auto transform = entity.HasComponent<RigidBodyComponent>() ? entity.Transform() : GetWorldSpaceTransform(entity);
 					auto transform = GetWorldSpaceTransform(entity);
-					glm::vec3 direction = glm::normalize(glm::rotate(transform.GetRotation(), glm::vec3(1.0f, 0.0f, 0.0f)));
+					glm::vec3 direction = glm::normalize(lightComponent.Direction);
+
+					glm::mat4 projection = glm::perspective(glm::radians(lightComponent.Angle), 1.f, 0.1f, lightComponent.Range);
+					glm::mat4 viewprojection = projection * glm::lookAt(transformComponent.Translation, transformComponent.Translation - direction, glm::vec3(0.0f, 1.0f, 0.0f));
+
+					glm::vec4 MinCorner = { -1,-1, -1, 1.0f };
+					glm::vec4 MaxCorner = { 1, 1,  1, 1.0f };
+
+
+					glm::mat4 invmat = glm::inverse(viewprojection);
+
+					glm::vec4 corners[4] =
+					{
+						invmat * glm::vec4 { MinCorner.x, MinCorner.y, MaxCorner.z, 1.0f },
+						invmat * glm::vec4 { MaxCorner.x, MinCorner.y, MaxCorner.z, 1.0f },
+						invmat * glm::vec4 { MaxCorner.x, MaxCorner.y, MaxCorner.z, 1.0f },
+						invmat * glm::vec4 { MinCorner.x, MaxCorner.y, MaxCorner.z, 1.0f },
+					};
+					for (int i = 0; i < 4; ++i)
+					{
+						corners[i] /= corners[i].w;
+					}
 
 					m_LightEnvironment.SpotLights[spotLightIndex++] = {
 						transform.Translation,
 						lightComponent.Intensity,
+						{					
+							glm::vec4(corners[0].x, corners[0].y, corners[0].z, 1.0f),
+							glm::vec4(corners[1].x, corners[1].y, corners[1].z, 1.0f),
+							glm::vec4(corners[2].x, corners[2].y, corners[2].z, 1.0f),
+							glm::vec4(corners[3].x, corners[3].y, corners[3].z, 1.0f)
+						},
 						direction,
 						lightComponent.AngleAttenuation,
 						lightComponent.Radiance,
@@ -653,8 +710,10 @@ namespace X2 {
 						lightComponent.Falloff,
 						lightComponent.SoftShadows,
 						{},
-						lightComponent.CastsShadows
+						lightComponent.CastsShadows,
 					};
+
+
 				}
 			}
 		}

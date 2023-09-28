@@ -125,6 +125,8 @@ layout(location = 0) out vec4 color;
 layout(location = 1) out vec4 o_ViewNormalsLuminance;
 layout(location = 2) out vec4 o_MetalnessRoughness;
 layout(location = 3) out vec2 o_Velocity;
+layout(location = 4) out vec4 o_Debug;
+
 
 
 
@@ -133,6 +135,8 @@ layout(set = 0, binding = 5) uniform sampler2D u_AlbedoTexture;
 layout(set = 0, binding = 6) uniform sampler2D u_NormalTexture;
 layout(set = 0, binding = 7) uniform sampler2D u_MetallicRoughnessTexture;
 layout(set = 0, binding = 8) uniform sampler2D u_EmissionTexture;
+
+// layout(binding = 9, rgba32f) restrict writeonly uniform image2D o_Debug;
 
 
 
@@ -146,7 +150,8 @@ layout(set = 1, binding = 11) uniform sampler2D u_BRDFLUTTexture;
 
 // Shadow maps
 layout(set = 1, binding = 12) uniform sampler2DArray u_ShadowMapTexture;
-layout(set = 1, binding = 21) uniform sampler2D u_SpotShadowTexture;
+layout(set = 1, binding = 13) uniform samplerCubeArray u_PointShadowTexture;
+layout(set = 1, binding = 21) uniform sampler2DArray u_SpotShadowTexture;
 
 layout(push_constant) uniform Material
 {
@@ -311,8 +316,25 @@ void main()
 
 	// Direct lighting
 	vec3 lightContribution = CalculateDirLights(F0) * shadowScale;
-	lightContribution += CalculatePointLights(F0, Input.WorldPosition);
-	lightContribution += CalculateSpotLights(F0, Input.WorldPosition) * SpotShadowCalculation(u_SpotShadowTexture, Input.WorldPosition);
+	for (int i = 0; i < u_PointLights.LightCount; i++)
+	{
+		int lightIndex = GetPointLightBufferIndex(i);
+		if (lightIndex == -1)
+			break;
+
+		lightContribution += CalculatePointLightByIndex(F0, Input.WorldPosition,lightIndex) * PointShadowCalculationByIndex(u_PointShadowTexture, Input.WorldPosition,lightIndex);
+	}
+
+	for (int i = 0; i < u_SpotLights.LightCount; i++)
+	{
+		int lightIndex = GetSpotLightBufferIndex(i);
+		if (lightIndex == -1)
+			break;
+
+		lightContribution += CalculateSpotLightByIndex(F0, Input.WorldPosition, lightIndex) * SpotShadowCalculationByIndex(u_SpotShadowTexture, Input.WorldPosition,lightIndex);
+	}
+
+	// lightContribution += CalculateSpotLights(F0, Input.WorldPosition) * SpotShadowCalculation(u_SpotShadowTexture, Input.WorldPosition);
 	lightContribution += m_Emission;
 
 	// Indirect lighting

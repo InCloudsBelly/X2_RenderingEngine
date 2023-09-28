@@ -112,6 +112,8 @@ namespace X2 {
 		if (m_Specification.Transfer || m_Specification.Usage == ImageUsage::Texture)
 		{
 			usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+			if (Utils::IsDepthFormat(m_Specification.Format))
+				usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 		}
 		if (m_Specification.Usage == ImageUsage::Storage)
 		{
@@ -128,9 +130,19 @@ namespace X2 {
 
 		VmaMemoryUsage memoryUsage = m_Specification.Usage == ImageUsage::HostRead ? VMA_MEMORY_USAGE_GPU_TO_CPU : VMA_MEMORY_USAGE_GPU_ONLY;
 
+
 		VkImageCreateInfo imageCreateInfo = {};
 		imageCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-		imageCreateInfo.imageType = m_Specification.Depth == 1? VK_IMAGE_TYPE_2D : VK_IMAGE_TYPE_3D;
+		switch (m_Specification.Type)
+		{
+			case ImageType::Image3D:
+				X2_CORE_ASSERT(m_Specification.Depth > 1, " image 3D 's depth must > 1");
+				imageCreateInfo.imageType = VK_IMAGE_TYPE_3D;
+				break;
+
+			default:
+				imageCreateInfo.imageType = VK_IMAGE_TYPE_2D;
+		}
 		imageCreateInfo.format = vulkanFormat;
 		imageCreateInfo.extent.width = m_Specification.Width;
 		imageCreateInfo.extent.height = m_Specification.Height;
@@ -140,6 +152,8 @@ namespace X2 {
 		imageCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 		imageCreateInfo.tiling = m_Specification.Usage == ImageUsage::HostRead ? VK_IMAGE_TILING_LINEAR : VK_IMAGE_TILING_OPTIMAL;
 		imageCreateInfo.usage = usage;
+		if (m_Specification.Type == ImageType::ImageCube || m_Specification.Type == ImageType::ImageCubeArray)
+			imageCreateInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 		m_Info.MemoryAlloc = allocator.AllocateImage(imageCreateInfo, memoryUsage, m_Info.Image, &m_GPUAllocationSize);
 		s_ImageReferences[m_Info.Image] = this;
 		VKUtils::SetDebugUtilsObjectName(device, VK_OBJECT_TYPE_IMAGE, m_Specification.DebugName, m_Info.Image);
@@ -147,7 +161,30 @@ namespace X2 {
 		// Create a default image view
 		VkImageViewCreateInfo imageViewCreateInfo = {};
 		imageViewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-		imageViewCreateInfo.viewType = m_Specification.Layers > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : (m_Specification.Depth > 1? VK_IMAGE_VIEW_TYPE_3D: VK_IMAGE_VIEW_TYPE_2D);
+
+		switch (m_Specification.Type)
+		{
+		case ImageType::Image3D:
+			X2_CORE_ASSERT(m_Specification.Depth > 1, " image 3D 's depth must > 1");
+			imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_3D;
+			break;
+		case ImageType::Image2DArray:
+			X2_CORE_ASSERT(m_Specification.Layers > 1, " image 2D Array 's layers must > 1");
+			imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+			break;
+		case ImageType::ImageCube:
+			X2_CORE_ASSERT(m_Specification.Layers == 6, " image Cubemap 's layers must equal 6");
+			imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+			break;
+		case ImageType::ImageCubeArray:
+			X2_CORE_ASSERT(m_Specification.Layers % 6 == 0, " image Cubemap Array 's layers must equal 6 * n");
+			imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+			break;
+
+		default:
+			imageViewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+		}
+
 		imageViewCreateInfo.format = vulkanFormat;
 		imageViewCreateInfo.flags = 0;
 		imageViewCreateInfo.subresourceRange = {};
@@ -194,7 +231,7 @@ namespace X2 {
 			VkCommandBuffer commandBuffer = VulkanContext::GetCurrentDevice()->GetCommandBuffer(true);
 
 			VkImageSubresourceRange subresourceRange = {};
-			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			subresourceRange.aspectMask = aspectMask;
 			subresourceRange.baseMipLevel = 0;
 			subresourceRange.levelCount = m_Specification.Mips;
 			subresourceRange.layerCount = m_Specification.Layers;
@@ -213,7 +250,7 @@ namespace X2 {
 			VkCommandBuffer commandBuffer = VulkanContext::GetCurrentDevice()->GetCommandBuffer(true);
 
 			VkImageSubresourceRange subresourceRange = {};
-			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			subresourceRange.aspectMask = aspectMask;
 			subresourceRange.baseMipLevel = 0;
 			subresourceRange.levelCount = m_Specification.Mips;
 			subresourceRange.layerCount = m_Specification.Layers;
@@ -232,14 +269,16 @@ namespace X2 {
 			VkCommandBuffer commandBuffer = VulkanContext::GetCurrentDevice()->GetCommandBuffer(true);
 
 			VkImageSubresourceRange subresourceRange = {};
-			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			subresourceRange.aspectMask = aspectMask;
 			subresourceRange.baseMipLevel = 0;
 			subresourceRange.levelCount = m_Specification.Mips;
 			subresourceRange.layerCount = m_Specification.Layers;
 
+
+
 			Utils::InsertImageMemoryBarrier(commandBuffer, m_Info.Image,
 				0, 0,
-				VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+				VK_IMAGE_LAYOUT_UNDEFINED, Utils::IsDepthFormat(m_Specification.Format)? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL :VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
 				VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
 				subresourceRange);
 
@@ -251,7 +290,7 @@ namespace X2 {
 			VkCommandBuffer commandBuffer = VulkanContext::GetCurrentDevice()->GetCommandBuffer(true);
 
 			VkImageSubresourceRange subresourceRange = {};
-			subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			subresourceRange.aspectMask = aspectMask;
 			subresourceRange.baseMipLevel = 0;
 			subresourceRange.levelCount = m_Specification.Mips;
 			subresourceRange.layerCount = m_Specification.Layers;
@@ -308,6 +347,8 @@ namespace X2 {
 			VKUtils::SetDebugUtilsObjectName(device, VK_OBJECT_TYPE_IMAGE_VIEW, fmt::format("{} image view layer: {}", m_Specification.DebugName, layer), m_PerLayerImageViews[layer]);
 		}
 	}
+
+
 
 	VkImageView VulkanImage2D::GetMipImageView(uint32_t mip)
 	{

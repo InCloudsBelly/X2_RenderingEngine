@@ -79,4 +79,12 @@ namespace X2 {
 		memcpy(pData, (const uint8_t*)data + offset, size);
 		allocator.UnmapMemory(m_MemoryAlloc);
 	}
+
+	void VulkanUniformBuffer::RT_SetData_DeviceOffset(const void* data, uint32_t size, uint32_t offset)
+	{
+		VulkanAllocator allocator("VulkanUniformBuffer");
+		uint8_t* pData = allocator.MapMemory<uint8_t>(m_MemoryAlloc);
+		memcpy(pData + offset, (const uint8_t*)data , size);
+		allocator.UnmapMemory(m_MemoryAlloc);
+	}
 }

@@ -155,13 +155,15 @@ struct PointLight
 layout(std140, binding = 4) uniform PointLightData
 {
 	uint LightCount;
-	PointLight Lights[1000];
+	PointLight Lights[16];
+	mat4 Mats[96];
 } u_PointLights;
 
 struct SpotLight
 {
 	vec3 Position;
 	float Multiplier;
+	vec4 CornerPositions[4];
 	vec3 Direction;
 	float AngleAttenuation;
 	vec3 Radiance;
@@ -175,13 +177,10 @@ struct SpotLight
 layout(std140, binding = 19) uniform SpotLightData
 {
 	uint LightCount;
-	SpotLight Lights[1024];
+	SpotLight Lights[16];
+	mat4 Mats[16];
 } u_SpotLights;
 
-layout(std140, binding = 20) uniform SpotShadowData
-{
-	mat4 Mats[1024];
-} u_SpotLightMatrices;
 
 layout(std430, binding = 14) buffer VisiblePointLightIndicesBuffer
 {

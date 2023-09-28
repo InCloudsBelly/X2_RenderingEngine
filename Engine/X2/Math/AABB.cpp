@@ -2,9 +2,7 @@
 #include "AABB.h"
 
 namespace X2 {
-
     namespace Volume {
-
         AABB::AABB(glm::vec3 Min, glm::vec3 Max) : Min(Min), Max(Max) {
 
         }
@@ -119,7 +117,7 @@ namespace X2 {
             return corners;
 
         }
-
     }
 
 }
+

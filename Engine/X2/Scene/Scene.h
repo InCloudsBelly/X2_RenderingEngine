@@ -37,7 +37,7 @@ namespace X2 {
 		bool CastShadows = true;
 	};
 
-	struct PointLight
+	struct PointLightInfo
 	{
 		glm::vec3 Position = { 0.0f, 0.0f, 0.0f };
 		float Intensity = 0.0f;
@@ -50,10 +50,11 @@ namespace X2 {
 		char Padding[3]{ 0, 0, 0 };
 	};
 
-	struct SpotLight
+	struct SpotLightInfo
 	{
 		glm::vec3 Position = { 0.0f, 0.0f, 0.0f };
 		float Intensity = 0.0f;
+		glm::vec4 CornerPosition[4];
 		glm::vec3 Direction = { 0.0f, 0.0f, 0.0f };
 		float AngleAttenuation = 0.0f;
 		glm::vec3 Radiance = { 0.0f, 0.0f, 0.0f };
@@ -65,7 +66,6 @@ namespace X2 {
 		bool CastsShadows = true;
 		char Padding1[3]{ 0, 0, 0 };
 	};
-
 
 	struct FogVolume
 	{
@@ -79,11 +79,105 @@ namespace X2 {
 		static constexpr size_t MaxDirectionalLights = 4;
 
 		DirectionalLight DirectionalLights[MaxDirectionalLights];
-		std::vector<PointLight> PointLights;
-		std::vector<SpotLight> SpotLights;
-		[[nodiscard]] uint32_t GetPointLightsSize() const { return (uint32_t)(PointLights.size() * sizeof PointLight); }
-		[[nodiscard]] uint32_t GetSpotLightsSize() const { return (uint32_t)(SpotLights.size() * sizeof SpotLight); }
+		std::vector<PointLightInfo> PointLights;
+		std::vector<SpotLightInfo> SpotLights;
+		[[nodiscard]] uint32_t GetPointLightsSize() const { return (uint32_t)(PointLights.size() * sizeof PointLightInfo); }
+		[[nodiscard]] uint32_t GetSpotLightsSize() const { return (uint32_t)(SpotLights.size() * sizeof SpotLightInfo); }
 	};
+
+
+	struct DrawCommand
+	{
+		Ref<Mesh> Mesh;
+		uint32_t SubmeshIndex;
+		Ref<MaterialTable> MaterialTable;
+		Ref<VulkanMaterial> OverrideMaterial;
+
+		uint32_t InstanceCount = 0;
+		uint32_t InstanceOffset = 0;
+		bool IsRigged = false;
+	};
+
+	struct StaticDrawCommand
+	{
+		Ref<StaticMesh> StaticMesh;
+		uint32_t SubmeshIndex;
+		Ref<MaterialTable> MaterialTable;
+		Ref<VulkanMaterial> OverrideMaterial;
+
+		uint32_t InstanceCount = 0;
+		uint32_t InstanceOffset = 0;
+	};
+
+	struct MeshKey
+	{
+		uint64_t EntityUUID;
+		AssetHandle MeshHandle;
+		AssetHandle MaterialHandle;
+		uint32_t SubmeshIndex;
+		bool IsSelected;
+
+		MeshKey(uint64_t entityUUID, AssetHandle meshHandle, AssetHandle materialHandle, uint32_t submeshIndex, bool isSelected)
+			:EntityUUID(entityUUID), MeshHandle(meshHandle), MaterialHandle(materialHandle), SubmeshIndex(submeshIndex), IsSelected(isSelected)
+		{
+		}
+
+		bool operator<(const MeshKey& other) const
+		{
+			if (EntityUUID < other.EntityUUID)
+				return true;
+
+			if (EntityUUID > other.EntityUUID)
+				return false;
+
+			if (MeshHandle < other.MeshHandle)
+				return true;
+
+			if (MeshHandle > other.MeshHandle)
+				return false;
+
+			if (SubmeshIndex < other.SubmeshIndex)
+				return true;
+
+			if (SubmeshIndex > other.SubmeshIndex)
+				return false;
+
+			if (MaterialHandle < other.MaterialHandle)
+				return true;
+
+			if (MaterialHandle > other.MaterialHandle)
+				return false;
+
+			return IsSelected < other.IsSelected;
+
+		}
+	};
+
+	struct TransformVertexData
+	{
+		glm::vec4 MRow[3];
+	};
+
+	struct TransformBuffer
+	{
+		Ref<VulkanVertexBuffer> Buffer;
+		TransformVertexData* Data = nullptr;
+	};
+
+	struct TransformMapData
+	{
+		std::vector<TransformVertexData> Transforms;
+		uint32_t TransformOffset = 0;
+	};
+
+	struct SceneRendererCamera
+	{
+		X2::Camera Camera;
+		glm::mat4 ViewMatrix;
+		float Near, Far; //Non-reversed
+		float FOV;
+	};
+
 
 
 	class Entity;

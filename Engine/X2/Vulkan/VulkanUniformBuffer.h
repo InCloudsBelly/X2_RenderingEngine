@@ -13,6 +13,7 @@ namespace X2 {
 
 		virtual void SetData(const void* data, uint32_t size, uint32_t offset = 0) ;
 		virtual void RT_SetData(const void* data, uint32_t size, uint32_t offset = 0) ;
+		virtual void RT_SetData_DeviceOffset(const void* data, uint32_t size, uint32_t offset = 0) ;
 		virtual uint32_t GetBinding() const  { return m_Binding; }
 
 		const VkDescriptorBufferInfo& GetDescriptorBufferInfo() const { return m_DescriptorInfo; }

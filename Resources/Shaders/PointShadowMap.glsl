@@ -22,7 +22,7 @@ layout(location = 10) 	in vec4 a_MRowPrev2;
 
 layout(push_constant) uniform Transform
 {
-	int LightIndex;
+	int LightDirIndex;
 } u_Renderer;
 
 void main()
@@ -34,7 +34,7 @@ void main()
 		vec4(a_MRow0.w, a_MRow1.w, a_MRow2.w, 1.0)
 	);
 
-	gl_Position = u_SpotLights.Mats[u_Renderer.LightIndex] * transform * vec4(a_Position, 1.0);
+	gl_Position = u_PointLights.Mats[u_Renderer.LightDirIndex] * transform * vec4(a_Position, 1.0);
 }
 
 #version 450 core

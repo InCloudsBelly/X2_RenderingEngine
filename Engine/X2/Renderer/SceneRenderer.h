@@ -18,6 +18,12 @@
 
 #include "DebugRenderer.h"
 
+#include "Shadow/DirectionalShadow.h"
+#include "Shadow/SpotLightShadow.h"
+#include "Shadow/PointLightShadow.h"
+
+
+
 namespace X2
 {
 
@@ -104,13 +110,6 @@ namespace X2
 		float LuminanceFactor = 1.0f;
 	};
 
-	struct SceneRendererCamera
-	{
-		X2::Camera Camera;
-		glm::mat4 ViewMatrix;
-		float Near, Far; //Non-reversed
-		float FOV;
-	};
 
 	struct BloomSettings
 	{
@@ -241,49 +240,7 @@ namespace X2
 
 		void PreRender();
 
-		struct MeshKey
-		{
-			uint64_t EntityUUID;
-			AssetHandle MeshHandle;
-			AssetHandle MaterialHandle;
-			uint32_t SubmeshIndex;
-			bool IsSelected;
-
-			MeshKey(uint64_t entityUUID, AssetHandle meshHandle, AssetHandle materialHandle, uint32_t submeshIndex, bool isSelected)
-				:EntityUUID(entityUUID), MeshHandle(meshHandle), MaterialHandle(materialHandle), SubmeshIndex(submeshIndex), IsSelected(isSelected)
-			{
-			}
-
-			bool operator<(const MeshKey& other) const
-			{
-				if (EntityUUID < other.EntityUUID)
-					return true;
-
-				if (EntityUUID > other.EntityUUID)
-					return false;
-
-				if (MeshHandle < other.MeshHandle)
-					return true;
-
-				if (MeshHandle > other.MeshHandle)
-					return false;
-
-				if (SubmeshIndex < other.SubmeshIndex)
-					return true;
-
-				if (SubmeshIndex > other.SubmeshIndex)
-					return false;
-
-				if (MaterialHandle < other.MaterialHandle)
-					return true;
-
-				if (MaterialHandle > other.MaterialHandle)
-					return false;
-
-				return IsSelected < other.IsSelected;
-
-			}
-		};
+		
 
 		//void CopyToBoneTransformStorage(const MeshKey& meshKey, const Ref<MeshSource>& meshSource, const std::vector<glm::mat4>& boneTransforms);
 
@@ -301,6 +258,7 @@ namespace X2
 		void HBAOBlurPass();
 		void ShadowMapPass();
 		void SpotShadowMapPass();
+		void PointShadowMapPass();
 		void PreDepthPass();
 		void HZBCompute();
 		void PreIntegration();
@@ -432,20 +390,23 @@ namespace X2
 		{
 			uint32_t Count{ 0 };
 			glm::vec3 Padding{};
-			PointLight PointLights[1024]{};
+			PointLightInfo PointLights[MAX_POINT_LIGHT_SHADOW_COUNT]{};
+			glm::mat4 ShadowMatrices[MAX_SPOT_LIGHT_SHADOW_COUNT * 6]{};
+
 		} PointLightsUB;
 
 		struct UBSpotLights
 		{
 			uint32_t Count{ 0 };
 			glm::vec3 Padding{};
-			SpotLight SpotLights[1000]{};
+			SpotLightInfo SpotLights[MAX_SPOT_LIGHT_SHADOW_COUNT]{};
+			glm::mat4 ShadowMatrices[MAX_SPOT_LIGHT_SHADOW_COUNT]{};
 		} SpotLightUB;
 
-		struct UBSpotShadowData
-		{
-			glm::mat4 ShadowMatrices[1000]{};
-		} SpotShadowDataUB;
+		//struct UBSpotShadowData
+		//{
+		//	glm::mat4 ShadowMatrices[MAX_SPOT_LIGHT_SHADOW_COUNT]{};
+		//} SpotShadowDataUB;
 
 		struct UBScene
 		{
@@ -556,9 +517,9 @@ namespace X2
 
 
 		// Shadows
-		Ref<VulkanPipeline> m_SpotShadowPassPipeline;
+	/*	Ref<VulkanPipeline> m_SpotShadowPassPipeline;
 		Ref<VulkanPipeline> m_SpotShadowPassAnimPipeline;
-		Ref<VulkanMaterial> m_SpotShadowPassMaterial;
+		Ref<VulkanMaterial> m_SpotShadowPassMaterial;*/
 
 		glm::uvec3 m_LightCullingWorkGroups;
 
@@ -674,13 +635,19 @@ namespace X2
 
 		Ref<VulkanPipeline> m_CompositePipeline;
 
-		Ref<VulkanPipeline> m_ShadowPassPipelines[4];
-		Ref<VulkanPipeline> m_ShadowPassPipelinesAnim[4];
+	/*	Ref<VulkanPipeline> m_ShadowPassPipelines[4];
+		Ref<VulkanPipeline> m_ShadowPassPipelinesAnim[4];*/
+
+		Ref<DirectionalLightShadow> m_directionalLightShadow;
+		Ref<SpotLightShadow> m_spotLightsShadow;
+		Ref<PointLightShadow> m_pointLightShadow;
+
+
 
 		Ref<VulkanPipeline> m_EdgeDetectionPipeline;
 		Ref<VulkanMaterial> m_EdgeDetectionMaterial;
 
-		Ref<VulkanMaterial> m_ShadowPassMaterial;
+		//Ref<VulkanMaterial> m_ShadowPassMaterial;
 
 		Ref<VulkanPipeline> m_SkyboxPipeline;
 		Ref<VulkanMaterial> m_SkyboxMaterial;
@@ -703,16 +670,6 @@ namespace X2
 		std::vector<Ref<VulkanTexture2D>> m_BloomComputeTextures{ 3 };
 		Ref<VulkanMaterial> m_BloomComputeMaterial;
 
-		struct TransformVertexData
-		{
-			glm::vec4 MRow[3];
-		};
-
-		struct TransformBuffer
-		{
-			Ref<VulkanVertexBuffer> Buffer;
-			TransformVertexData* Data = nullptr;
-		};
 
 		std::vector<TransformBuffer> m_SubmeshTransformBuffers;
 		
@@ -724,34 +681,9 @@ namespace X2
 
 		Ref<VulkanRenderPass> m_ExternalCompositeRenderPass;
 
-		struct DrawCommand
-		{
-			Ref<Mesh> Mesh;
-			uint32_t SubmeshIndex;
-			Ref<MaterialTable> MaterialTable;
-			Ref<VulkanMaterial> OverrideMaterial;
 
-			uint32_t InstanceCount = 0;
-			uint32_t InstanceOffset = 0;
-			bool IsRigged = false;
-		};
 
-		struct StaticDrawCommand
-		{
-			Ref<StaticMesh> StaticMesh;
-			uint32_t SubmeshIndex;
-			Ref<MaterialTable> MaterialTable;
-			Ref<VulkanMaterial> OverrideMaterial;
 
-			uint32_t InstanceCount = 0;
-			uint32_t InstanceOffset = 0;
-		};
-
-		struct TransformMapData
-		{
-			std::vector<TransformVertexData> Transforms;
-			uint32_t TransformOffset = 0;
-		};
 
 		//struct BoneTransformsMapData
 		//{
@@ -814,6 +746,7 @@ namespace X2
 		{
 			uint32_t DirShadowMapPassQuery = -1;
 			uint32_t SpotShadowMapPassQuery = -1;
+			uint32_t PointShadowMapPassQuery = -1;
 			uint32_t DepthPrePassQuery = -1;
 			uint32_t HierarchicalDepthQuery = -1;
 			uint32_t PreIntegrationQuery = -1;

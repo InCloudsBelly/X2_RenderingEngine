@@ -52,6 +52,8 @@
 
 #include "GLFW/include/GLFW/glfw3.h"
 
+#include <glm/glm.hpp>
+
 namespace X2 {
 
 #define MAX_PROJECT_NAME_LENGTH 255
@@ -1922,56 +1924,85 @@ namespace X2 {
 		{
 			Entity entity = m_CurrentScene->GetEntityWithUUID(entityID);
 
-			if (!entity.HasComponent<PointLightComponent>())
-				continue;
-
-			const auto& plc = entity.GetComponent<PointLightComponent>();
-			glm::vec3 translation = m_CurrentScene->GetWorldSpaceTransform(entity).Translation;
-			m_Renderer2D->DrawCircle(translation, { 0.0f, 0.0f, 0.0f }, plc.Radius, glm::vec4(plc.Radiance, 1.0f));
-			m_Renderer2D->DrawCircle(translation, { glm::radians(90.0f), 0.0f, 0.0f }, plc.Radius, glm::vec4(plc.Radiance, 1.0f));
-			m_Renderer2D->DrawCircle(translation, { 0.0f, glm::radians(90.0f), 0.0f }, plc.Radius, glm::vec4(plc.Radiance, 1.0f));
-		}
-
-		for (const auto& entityID : selectedEntities)
-		{
-			Entity entity = m_CurrentScene->GetEntityWithUUID(entityID);
-
-			if (!entity.HasComponent<FogVolumeComponent>())
-				continue;
-
-			const auto& plc = entity.GetComponent<FogVolumeComponent>();
-			TransformComponent& entityTransform = entity.Transform();
-			glm::mat4 transMatrix = entityTransform.GetTransform();
-
-			glm::vec4 MinCorner = { -0.5,-0.5, -0.5, 1.0f };
-			glm::vec4 MaxCorner = {  0.5, 0.5,  0.5, 1.0f };
-
-			glm::vec4 corners[8] =
+			if (entity.HasComponent<PointLightComponent>())
 			{
-				transMatrix * glm::vec4 { MinCorner.x, MinCorner.y, MaxCorner.z, 1.0f },
-				transMatrix * glm::vec4 { MinCorner.x, MaxCorner.y, MaxCorner.z, 1.0f },
-				transMatrix * glm::vec4 { MaxCorner.x, MaxCorner.y, MaxCorner.z, 1.0f },
-				transMatrix * glm::vec4 { MaxCorner.x, MinCorner.y, MaxCorner.z, 1.0f },
+				const auto& plc = entity.GetComponent<PointLightComponent>();
+				glm::vec3 translation = m_CurrentScene->GetWorldSpaceTransform(entity).Translation;
+				m_Renderer2D->DrawCircle(translation, { 0.0f, 0.0f, 0.0f }, plc.Radius, glm::vec4(plc.Radiance, 1.0f));
+				m_Renderer2D->DrawCircle(translation, { glm::radians(90.0f), 0.0f, 0.0f }, plc.Radius, glm::vec4(plc.Radiance, 1.0f));
+				m_Renderer2D->DrawCircle(translation, { 0.0f, glm::radians(90.0f), 0.0f }, plc.Radius, glm::vec4(plc.Radiance, 1.0f));
+			}
+			else if (entity.HasComponent<FogVolumeComponent>())
+			{
+				const auto& plc = entity.GetComponent<FogVolumeComponent>();
+				TransformComponent& entityTransform = entity.Transform();
+				glm::mat4 transMatrix = entityTransform.GetTransform();
 
-				transMatrix * glm::vec4 { MinCorner.x, MinCorner.y, MinCorner.z, 1.0f },
-				transMatrix * glm::vec4 { MinCorner.x, MaxCorner.y, MinCorner.z, 1.0f },
-				transMatrix * glm::vec4 { MaxCorner.x, MaxCorner.y, MinCorner.z, 1.0f },
-				transMatrix * glm::vec4 { MaxCorner.x, MinCorner.y, MinCorner.z, 1.0f }
-			};
+				glm::vec4 MinCorner = { -0.5,-0.5, -0.5, 1.0f };
+				glm::vec4 MaxCorner = { 0.5, 0.5,  0.5, 1.0f };
 
-			glm::vec4 corner0 = glm::inverse(transMatrix) * corners[3];
+				glm::vec4 corners[8] =
+				{
+					transMatrix * glm::vec4 { MinCorner.x, MinCorner.y, MaxCorner.z, 1.0f },
+					transMatrix * glm::vec4 { MinCorner.x, MaxCorner.y, MaxCorner.z, 1.0f },
+					transMatrix * glm::vec4 { MaxCorner.x, MaxCorner.y, MaxCorner.z, 1.0f },
+					transMatrix * glm::vec4 { MaxCorner.x, MinCorner.y, MaxCorner.z, 1.0f },
 
-			for (uint32_t i = 0; i < 4; i++)
-				m_Renderer2D->DrawLine(corners[i], corners[(i + 1) % 4], { 1.0f,0.0f,0.0f,1.0f });
+					transMatrix * glm::vec4 { MinCorner.x, MinCorner.y, MinCorner.z, 1.0f },
+					transMatrix * glm::vec4 { MinCorner.x, MaxCorner.y, MinCorner.z, 1.0f },
+					transMatrix * glm::vec4 { MaxCorner.x, MaxCorner.y, MinCorner.z, 1.0f },
+					transMatrix * glm::vec4 { MaxCorner.x, MinCorner.y, MinCorner.z, 1.0f }
+				};
 
-			for (uint32_t i = 0; i < 4; i++)
-				m_Renderer2D->DrawLine(corners[i + 4], corners[((i + 1) % 4) + 4], { 0.0f, 1.0f, 0.0f, 1.0f });
+				glm::vec4 corner0 = glm::inverse(transMatrix) * corners[3];
 
-			for (uint32_t i = 0; i < 4; i++)
-				m_Renderer2D->DrawLine(corners[i], corners[i + 4], { 0.0f, 0.0f, 1.0f, 1.0f });
+				for (uint32_t i = 0; i < 4; i++)
+					m_Renderer2D->DrawLine(corners[i], corners[(i + 1) % 4], { 1.0f,0.0f,0.0f,1.0f });
+
+				for (uint32_t i = 0; i < 4; i++)
+					m_Renderer2D->DrawLine(corners[i + 4], corners[((i + 1) % 4) + 4], { 0.0f, 1.0f, 0.0f, 1.0f });
+
+				for (uint32_t i = 0; i < 4; i++)
+					m_Renderer2D->DrawLine(corners[i], corners[i + 4], { 0.0f, 0.0f, 1.0f, 1.0f });
+			}
+			else if (entity.HasComponent<SpotLightComponent>())
+			{
+				const auto& plc = entity.GetComponent<SpotLightComponent>();
+				TransformComponent& entityTransform = entity.Transform();
+				glm::vec3 position = entityTransform.Translation;
+
+				glm::vec3 direction = glm::normalize(plc.Direction);
+				glm::mat4 projection = glm::perspective(glm::radians(plc.Angle), 1.f, 0.1f, plc.Range);
+				glm::mat4 viewprojection = projection * glm::lookAt(position, position - direction, glm::vec3(0.0f, 1.0f, 0.0f));
+
+
+
+
+				glm::vec4 MinCorner = { -1,-1, -1, 1.0f };
+				glm::vec4 MaxCorner = { 1, 1,  1, 1.0f };
+
+
+				glm::mat4 invmat = glm::inverse(viewprojection);
+
+				glm::vec4 corners[18];
+				for (int i = 0; i < 18; i++)
+				{
+					float theta = i * 2 * glm::pi<float>() / 18;
+					corners[i] = invmat * glm::vec4{ glm::cos(theta) ,glm::sin(theta), 1.0f, 1.0f};
+					corners[i] /= corners[i].w;
+				}
+
+				//glm::vec4 corner0 = glm::inverse(transMatrix) * corners[3];
+
+				for (uint32_t i = 0; i < 18; i++)
+					m_Renderer2D->DrawLine(corners[i], corners[(i + 1) % 18], { plc.Radiance,1.0f });
+
+				for (uint32_t i = 0; i < 18; i++)
+						m_Renderer2D->DrawLine(corners[i], glm::vec4(position, 1.0f), { plc.Radiance, 1.0f });
+			}
+			else
+				continue;
 		}
-
-
 
 		m_Renderer2D->EndScene();
 	}

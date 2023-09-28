@@ -223,13 +223,13 @@ float PCSS_DirectionalLight(sampler2DArray shadowMap, uint cascade, vec3 shadowC
 
 const float SPOT_SHADOW_BIAS = 0.00025f;
 
-float HardShadows_SpotLight(sampler2D shadowMap, uint lightIndex, vec3 shadowCoords)
+float HardShadows_SpotLight(sampler2DArray shadowMap, uint lightIndex, vec3 shadowCoords)
 {
-	float shadowMapDepth = texture(shadowMap, shadowCoords.xy).x;
+	float shadowMapDepth = textureLod(shadowMap, vec3(shadowCoords.xy, lightIndex), 0).x;
 	return step(shadowCoords.z, shadowMapDepth + SPOT_SHADOW_BIAS);
 }
 
-float FindBlockerDistance_SpotLight(sampler2D shadowMap, vec3 shadowCoords, float uvLightSize)
+float FindBlockerDistance_SpotLight(sampler2DArray shadowMap, uint lightIndex, vec3 shadowCoords, float uvLightSize)
 {
 	int numBlockerSearchSamples = 16;
 	int blockers = 0;
@@ -239,7 +239,7 @@ float FindBlockerDistance_SpotLight(sampler2D shadowMap, vec3 shadowCoords, floa
 	searchWidth = 0.01;
 	for (int i = 0; i < numBlockerSearchSamples; i++)
 	{
-		float z = textureLod(shadowMap, vec2(shadowCoords.xy + SamplePoisson(i) * searchWidth), 0).r;
+		float z = textureLod(shadowMap, vec3(shadowCoords.xy + SamplePoisson(i) * searchWidth, lightIndex), 0).r;
 		if (z < (shadowCoords.z - SPOT_SHADOW_BIAS))
 		{
 			blockers++;
@@ -254,7 +254,7 @@ float FindBlockerDistance_SpotLight(sampler2D shadowMap, vec3 shadowCoords, floa
 }
 
 
-float PCF_SpotLight(sampler2D shadowMap, vec3 shadowCoords, float uvRadius)
+float PCF_SpotLight(sampler2DArray shadowMap, uint lightIndex, vec3 shadowCoords, float uvRadius)
 {
 	int numPCFSamples = 64;
 
@@ -262,16 +262,16 @@ float PCF_SpotLight(sampler2D shadowMap, vec3 shadowCoords, float uvRadius)
 	for (int i = 0; i < numPCFSamples; i++)
 	{
 		vec2 offset = SamplePoisson(i) * uvRadius;
-		float z = textureLod(shadowMap, (shadowCoords.xy) + offset, 0).r;
+		float z = textureLod(shadowMap, vec3((shadowCoords.xy) + offset, lightIndex), 0).r;
 		sum += step(shadowCoords.z - SPOT_SHADOW_BIAS, z);
 	}
 	return sum / float(numPCFSamples);
 }
 
 
-float PCSS_SpotLight(sampler2D shadowMap, uint lightIndex, vec3 shadowCoords, float uvLightSize)
+float PCSS_SpotLight(sampler2DArray shadowMap, uint lightIndex, vec3 shadowCoords, float uvLightSize)
 {
-	float blockerDistance = FindBlockerDistance_SpotLight(shadowMap, shadowCoords, uvLightSize);
+	float blockerDistance = FindBlockerDistance_SpotLight(shadowMap, lightIndex, shadowCoords, uvLightSize);
 	if (blockerDistance == -1) // No occlusion
 		return 1.0f;
 
@@ -280,10 +280,10 @@ float PCSS_SpotLight(sampler2D shadowMap, uint lightIndex, vec3 shadowCoords, fl
 	float NEAR = 1.0; // Should this value be tweakable?
 	float uvRadius = penumbraWidth * uvLightSize * NEAR / shadowCoords.z; // Do we need to divide by shadowCoords.z?
 	uvRadius = min(uvRadius, 0.002f);
-	return PCF_SpotLight(shadowMap, shadowCoords, uvRadius);
+	return PCF_SpotLight(shadowMap, lightIndex, shadowCoords, uvRadius);
 }
 
-float SpotShadowCalculation(sampler2D SpotAtlas, vec3 worldPos)
+float SpotShadowCalculation(sampler2DArray SpotAtlas, vec3 worldPos)
 {
 	float shadow = 1.0;
 	for (int i = 0; i < u_SpotLights.LightCount; ++i)
@@ -297,7 +297,7 @@ float SpotShadowCalculation(sampler2D SpotAtlas, vec3 worldPos)
 			continue;
 
 		// NOTE(Yan): Mats[0] because we only support ONE shadow casting spot light at the moment and it MUST be index 0
-		vec4 coords = u_SpotLightMatrices.Mats[0] * vec4(worldPos, 1.0f);
+		vec4 coords = u_SpotLights.Mats[0] * vec4(worldPos, 1.0f);
 		vec3 shadowMapCoords = (coords.xyz / coords.w);
 		shadowMapCoords.xy = shadowMapCoords.xy * 0.5 + 0.5;
 		if (any(lessThan(shadowMapCoords.xyz, vec3(0.0f))) || any(greaterThan(shadowMapCoords.xyz, vec3(1.0f))))
@@ -306,6 +306,61 @@ float SpotShadowCalculation(sampler2D SpotAtlas, vec3 worldPos)
 		shadow *= light.SoftShadows ? PCSS_SpotLight(SpotAtlas, lightIndex, shadowMapCoords, light.Falloff) : HardShadows_SpotLight(SpotAtlas, lightIndex, shadowMapCoords);
 	}
 
+	return shadow;
+}
+
+float SpotShadowCalculationByIndex(sampler2DArray SpotAtlas, vec3 worldPos, int lightIndex)
+{
+	float shadow = 1.0;
+
+	SpotLight light = u_SpotLights.Lights[lightIndex];
+	if(!light.CastsShadows)
+		return shadow;
+
+	vec4 coords = u_SpotLights.Mats[lightIndex] * vec4(worldPos, 1.0f);
+	vec3 shadowMapCoords = (coords.xyz / coords.w);
+	shadowMapCoords.xy = shadowMapCoords.xy * 0.5 + 0.5;
+	if (any(lessThan(shadowMapCoords.xyz, vec3(0.0f))) || any(greaterThan(shadowMapCoords.xyz, vec3(1.0f))))
+		return shadow;
+	
+	shadow *= light.SoftShadows ? PCSS_SpotLight(SpotAtlas, lightIndex, shadowMapCoords, light.Falloff) : HardShadows_SpotLight(SpotAtlas, lightIndex, shadowMapCoords);
+
+	return shadow;
+}
+
+/////////////////////////////////////////////
+// Point light Shadows
+/////////////////////////////////////////////
+
+const float POINT_SHADOW_BIAS = 0.1f; // linear Distance bias
+
+float getPostiveLinearDepth(float depth, float n, float f)
+{
+	float fsubn = f - n; 
+	return -(2 * f * n)/fsubn / (depth - (f+ n) / fsubn); 
+}
+
+float PointShadowCalculationByIndex(samplerCubeArray PointShadowAtlas, vec3 worldPos, int lightIndex)
+{
+	float shadow = 1.0;
+
+	PointLight light = u_PointLights.Lights[lightIndex];
+	if(!light.CastsShadows)
+		return shadow;
+
+	vec3 sampleDir = worldPos - light.Position;
+	float distance = length(sampleDir);
+	float cloestDepth = texture(PointShadowAtlas, vec4(sampleDir, lightIndex)).r;
+	
+
+	float f = light.Radius;
+	float n = 0.1f;  // point light projection  Nearplane is now hard coded to 0.1f;
+	
+	float linear_depth = getPostiveLinearDepth(cloestDepth, n, f);
+	float sampledDistance = distance / max(abs(sampleDir.x), max(abs(sampleDir.y),abs(sampleDir.z))) * linear_depth;
+	if(distance - POINT_SHADOW_BIAS >sampledDistance )
+		shadow = 0.0f;
+	
 	return shadow;
 }
 

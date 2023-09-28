@@ -30,25 +30,6 @@ Entities:
       MaterialTable:
         0: 0
       Visible: true
-  - Entity: 1741501273259217433
-    TagComponent:
-      Tag: Point Light
-    Parent: 15655314229017363675
-    Children:
-      []
-    TransformComponent:
-      Position: [5.80429411, 2.42589331, 17.5965729]
-      Rotation: [0, 0, 0]
-      Scale: [1, 1, 1]
-    PointLightComponent:
-      Radiance: [0.862903237, 1, 0]
-      Intensity: 1.64999998
-      CastShadows: true
-      SoftShadows: true
-      MinRadius: 1
-      Radius: 5.80000019
-      LightSize: 0.5
-      Falloff: 1
   - Entity: 2627321198254516796
     TagComponent:
       Tag: Capsule
@@ -64,6 +45,26 @@ Entities:
       MaterialTable:
         0: 17990772787190744807
       Visible: true
+  - Entity: 2839861979664006877
+    TagComponent:
+      Tag: Spot Light
+    Parent: 0
+    Children:
+      []
+    TransformComponent:
+      Position: [-9.02977657, 1, 8.30078697]
+      Rotation: [1.57079637, 0, 0]
+      Scale: [1, 1, 1]
+    SpotLightComponent:
+      Direction: [-13.3000002, -1.39999998, -4.4000001]
+      Radiance: [0.0967742205, 1, 0.562955022]
+      Angle: 26.1000004
+      AngleAttenuation: 5
+      CastsShadows: true
+      SoftShadows: true
+      Falloff: 1
+      Intensity: 1
+      Range: 28.7000008
   - Entity: 4932475457617982109
     TagComponent:
       Tag: Point Light
@@ -71,16 +72,16 @@ Entities:
     Children:
       []
     TransformComponent:
-      Position: [6.36902285, 2.42589331, 1.12514472]
+      Position: [5.28138065, 1.94554448, 12.3727131]
       Rotation: [0, -0, 0]
       Scale: [1, 1, 1]
     PointLightComponent:
-      Radiance: [1, 0, 0]
-      Intensity: 2.25
+      Radiance: [0.983870983, 0.666493177, 0]
+      Intensity: 1
       CastShadows: true
       SoftShadows: true
       MinRadius: 1
-      Radius: 7.5999999
+      Radius: 12
       LightSize: 0.5
       Falloff: 1
   - Entity: 5397537735395125647
@@ -155,6 +156,26 @@ Entities:
       MaterialTable:
         0: 0
       Visible: true
+  - Entity: 9816768774003502054
+    TagComponent:
+      Tag: Spot Light
+    Parent: 0
+    Children:
+      []
+    TransformComponent:
+      Position: [-12.5642548, 1.86516428, 15.980381]
+      Rotation: [1.57079637, 0, 0]
+      Scale: [1, 1, 1]
+    SpotLightComponent:
+      Direction: [-16.7999992, 0, 0]
+      Radiance: [0.581295609, 0.29838711, 1]
+      Angle: 25.3999996
+      AngleAttenuation: 5
+      CastsShadows: true
+      SoftShadows: true
+      Falloff: 0.74000001
+      Intensity: 4.80000019
+      Range: 27.2000008
   - Entity: 11036588182782981811
     TagComponent:
       Tag: Plane
@@ -166,7 +187,7 @@ Entities:
       Rotation: [0, 0, 0]
       Scale: [23.8875065, 1, 15.7124214]
     StaticMeshComponent:
-      AssetID: 17213642029256428448
+      AssetID: 5744084161910692706
       MaterialTable:
         0: 0
       Visible: true
@@ -224,7 +245,6 @@ Entities:
     Children:
       - Handle: 11266527304938774427
       - Handle: 17485239510661114609
-      - Handle: 1741501273259217433
       - Handle: 4932475457617982109
     TransformComponent:
       Position: [0, 0, 0]

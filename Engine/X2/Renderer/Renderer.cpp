@@ -142,6 +142,7 @@ namespace X2 {
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/DirShadowMap_Anim.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/SpotShadowMap.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/SpotShadowMap_Anim.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shaders/PointShadowMap.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shaders/HZB.glsl");
 
 		// HBAO
@@ -428,9 +429,9 @@ namespace X2 {
 		s_RendererAPI->EndFrame();
 	}
 
-	void Renderer::SetSceneEnvironment(SceneRenderer* sceneRenderer, Ref<Environment> environment, Ref<VulkanImage2D> shadow, Ref<VulkanImage2D> spotShadow)
+	void Renderer::SetSceneEnvironment(SceneRenderer* sceneRenderer, Ref<Environment> environment, Ref<VulkanImage2D> shadow, Ref<VulkanImage2D> spotShadow, Ref<VulkanImage2D> pointShadow)
 	{
-		s_RendererAPI->SetSceneEnvironment(sceneRenderer, environment, shadow, spotShadow);
+		s_RendererAPI->SetSceneEnvironment(sceneRenderer, environment, shadow, spotShadow, pointShadow);
 	}
 
 
